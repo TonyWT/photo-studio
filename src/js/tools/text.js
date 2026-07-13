@@ -1715,11 +1715,20 @@ class Text_editor_class {
 							const letterDrawX = isHorizontalTextDirection ? textDirectionOffset + kerning : wrapDirectionOffset;
 							const letterDrawY = isHorizontalTextDirection ? wrapDirectionOffset : textDirectionOffset + kerning;
 							const curve = isHorizontalTextDirection ? Number(layer.params.curve) || 0 : 0;
+							const warp = layer.params.warp || 'arc';
 							const totalLineWidth = characterOffsets[characterOffsets.length - 1] || 1;
 							const letterCenter = characterOffsets[characterIndex] + letterWidth / 2;
 							const normalizedCurvePosition = (letterCenter / totalLineWidth - 0.5) * 2;
-							const curveOffset = curve * ((normalizedCurvePosition * normalizedCurvePosition) - 0.25);
-							const curveAngle = Math.atan((curve * 4 * normalizedCurvePosition) / totalLineWidth);
+							let curveOffset = curve * ((normalizedCurvePosition * normalizedCurvePosition) - 0.25);
+							let curveAngle = Math.atan((curve * 4 * normalizedCurvePosition) / totalLineWidth);
+							if (warp === 'wave') {
+								curveOffset = curve * Math.sin(normalizedCurvePosition * Math.PI);
+								curveAngle = Math.atan((curve * Math.PI * Math.cos(normalizedCurvePosition * Math.PI) * 2) / totalLineWidth);
+							}
+							else if (warp === 'flag') {
+								curveOffset = curve * (1 - normalizedCurvePosition * normalizedCurvePosition);
+								curveAngle = Math.atan((-curve * 2 * normalizedCurvePosition * 2) / totalLineWidth);
+							}
 							let isLetterSelected = false;
 							if (this.selection.isVisible) {
 								if (!isSelectionEmpty) {
@@ -2331,6 +2340,7 @@ class Text_class extends Base_tools_class {
 					background_color: textAttributes?.background_color || '#000000',
 					background_opacity: Number(textAttributes?.background_opacity) || 0,
 					curve: Number(textAttributes?.curve) || 0,
+					warp: textAttributes?.warp || 'arc',
 				},
 				render_function: [this.name, 'render'],
 				x: mouse.x,

@@ -89,7 +89,7 @@ function applyTextToolAttribute(attribute, value) {
   const layer = window.AppConfig?.layer;
   const layerParamAttributes = new Set([
     'align', 'shadow_enabled', 'shadow_color', 'shadow_blur', 'shadow_x', 'shadow_y',
-    'background_enabled', 'background_color', 'background_opacity', 'curve',
+    'background_enabled', 'background_color', 'background_opacity', 'curve', 'warp',
   ]);
   if (layerParamAttributes.has(attribute) && layer?.type === 'text' && !layer.locked) {
     const property = attribute === 'align' ? 'halign' : attribute;
@@ -1481,6 +1481,7 @@ function renderEditorToolControls(key) {
     const shadowEnabled = Boolean(attributes.shadow_enabled);
     const backgroundEnabled = Boolean(attributes.background_enabled);
     const curve = Number(attributes.curve) || 0;
+	const warp = attributes.warp ?? 'arc';
     target.innerHTML = `
       <button type="button" data-testid="text-create" data-core-tool="text">添加文字</button>
       <label class="studio-control-select">字体
@@ -1515,6 +1516,9 @@ function renderEditorToolControls(key) {
       <label class="studio-control-color">背景色<input type="color" value="${attributes.background_color ?? '#000000'}" data-testid="text-background-color"></label>
       <label class="studio-control-range">背景不透明度 <output data-text-background-opacity-output>${attributes.background_opacity ?? 35}%</output><input type="range" min="0" max="100" value="${attributes.background_opacity ?? 35}" data-testid="text-background-opacity"></label>
       <label class="studio-control-range">曲线 <output data-text-curve-output>${curve}</output><input type="range" min="-100" max="100" value="${curve}" data-testid="text-curve"></label>
+	  <label class="studio-control-select">Warp
+		<select data-testid="text-warp"><option value="arc" ${warp === 'arc' ? 'selected' : ''}>弧线</option><option value="wave" ${warp === 'wave' ? 'selected' : ''}>波浪</option><option value="flag" ${warp === 'flag' ? 'selected' : ''}>旗帜</option></select>
+	  </label>
       <p class="studio-control-hint">使用系统字体；点击“添加文字”后在画布中单击或拖拽以创建文本层。</p>
     `;
     const fontInput = target.querySelector('[data-testid="text-font"]');
@@ -1529,6 +1533,7 @@ function renderEditorToolControls(key) {
     const backgroundColorInput = target.querySelector('[data-testid="text-background-color"]');
     const backgroundOpacityInput = target.querySelector('[data-testid="text-background-opacity"]');
     const curveInput = target.querySelector('[data-testid="text-curve"]');
+	const warpInput = target.querySelector('[data-testid="text-warp"]');
     fontInput.addEventListener('change', () => applyTextToolAttribute('font', fontInput.value));
     sizeInput.addEventListener('input', () => applyTextToolAttribute('size', Number(sizeInput.value)));
     fillInput.addEventListener('input', () => applyTextToolAttribute('fill', fillInput.value));
@@ -1550,6 +1555,7 @@ function renderEditorToolControls(key) {
       applyTextToolAttribute('curve', Number(curveInput.value));
       target.querySelector('[data-text-curve-output]').textContent = curveInput.value;
     });
+	warpInput.addEventListener('change', () => applyTextToolAttribute('warp', warpInput.value));
     target.querySelectorAll('[data-testid="text-bold"], [data-testid="text-italic"], [data-testid="text-underline"]').forEach((button) => {
       button.addEventListener('click', () => {
         const attribute = button.dataset.testid.replace('text-', '');

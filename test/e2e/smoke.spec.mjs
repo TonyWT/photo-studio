@@ -2727,8 +2727,10 @@ test('Text 面板提供本机字体与完整样式控件，并写回文字工具
   await expect(page.getByTestId('text-stroke-size')).toBeVisible();
   await expect(page.getByTestId('text-shadow-enabled')).toBeVisible();
   await expect(page.getByTestId('text-background-enabled')).toBeVisible();
+	await expect(page.getByTestId('text-warp')).toBeVisible();
 
   await page.getByTestId('text-font').selectOption('Verdana');
+	await page.getByTestId('text-warp').selectOption('wave');
   await page.getByTestId('text-size').fill('52');
   await page.getByTestId('text-fill').fill('#d946ef');
   await page.getByTestId('text-bold').click();
@@ -2750,6 +2752,7 @@ test('Text 面板提供本机字体与完整样式控件，并写回文字工具
       align: attributes.align.value,
       stroke: attributes.stroke,
       strokeSize: attributes.stroke_size.value,
+	  warp: attributes.warp,
     };
   })).toEqual({
     font: 'Verdana',
@@ -2761,6 +2764,7 @@ test('Text 面板提供本机字体与完整样式控件，并写回文字工具
     align: 'center',
     stroke: '#0ea5e9',
     strokeSize: 3,
+	warp: 'wave',
   });
 });
 
