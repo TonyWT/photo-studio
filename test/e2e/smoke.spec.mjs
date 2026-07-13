@@ -2006,6 +2006,115 @@ test('Arrange 可直接在画布上拖动活动图层，并作为单次变换撤
   await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
 });
 
+test('Arrange 可通过画布手柄缩放活动图片图层，并可撤销', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-arrange').click();
+  await page.getByTestId('arrange-x').fill('120');
+  await page.getByTestId('arrange-y').fill('120');
+  await page.getByTestId('arrange-width').fill('1600');
+  await page.getByTestId('arrange-height').fill('1100');
+  await page.getByTestId('arrange-apply-transform').click();
+  await expect.poll(() => page.evaluate(() => ({
+    x: window.AppConfig.layer.x,
+    y: window.AppConfig.layer.y,
+    width: window.AppConfig.layer.width,
+    height: window.AppConfig.layer.height,
+  }))).toEqual({ x: 120, y: 120, width: 1600, height: 1100 });
+
+  const before = await page.evaluate(() => ({
+    x: window.AppConfig.layer.x,
+    y: window.AppConfig.layer.y,
+    width: window.AppConfig.layer.width,
+    height: window.AppConfig.layer.height,
+    history: window.State.action_history.length,
+    index: window.State.action_history_index,
+  }));
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const scale = bounds.width / 3840;
+  const handle = {
+    x: bounds.x + (before.x + before.width) * scale + 7,
+    y: bounds.y + (before.y + before.height) * scale + 7,
+  };
+  await page.mouse.move(handle.x, handle.y);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + 80, handle.y + 55, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => ({
+    x: window.AppConfig.layer.x,
+    y: window.AppConfig.layer.y,
+    width: window.AppConfig.layer.width,
+    height: window.AppConfig.layer.height,
+  }))).toEqual(expect.objectContaining({ x: before.x, y: before.y, width: expect.any(Number), height: expect.any(Number) }));
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.width)).toBeGreaterThan(before.width);
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.height)).toBeGreaterThan(before.height);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => ({
+    x: window.AppConfig.layer.x,
+    y: window.AppConfig.layer.y,
+    width: window.AppConfig.layer.width,
+    height: window.AppConfig.layer.height,
+  }))).toEqual({ x: before.x, y: before.y, width: before.width, height: before.height });
+  await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+});
+
+test('Arrange 可通过画布旋转手柄旋转活动图层，并可撤销', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-arrange').click();
+  await page.getByTestId('arrange-x').fill('120');
+  await page.getByTestId('arrange-y').fill('120');
+  await page.getByTestId('arrange-width').fill('1600');
+  await page.getByTestId('arrange-height').fill('1100');
+  await page.getByTestId('arrange-rotation').fill('0');
+  await page.getByTestId('arrange-apply-transform').click();
+  const before = await page.evaluate(() => ({
+    x: window.AppConfig.layer.x,
+    y: window.AppConfig.layer.y,
+    width: window.AppConfig.layer.width,
+    height: window.AppConfig.layer.height,
+    rotate: window.AppConfig.layer.rotate,
+    zoom: window.AppConfig.ZOOM,
+    history: window.State.action_history.length,
+    index: window.State.action_history_index,
+  }));
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const scale = bounds.width / 3840;
+  const block = 12 / before.zoom;
+  const rotateDistance = Math.max(
+    Math.min(before.width * 0.9, Math.abs(before.width - 2 * block)),
+    before.width / 2 - block / 2,
+  );
+  const rotateHandle = {
+    x: bounds.x + (before.x + rotateDistance + block / 2.4 + 2 / before.zoom) * scale,
+    y: bounds.y + (before.y - block / 2.4 - 2 / before.zoom) * scale,
+  };
+  await page.mouse.move(rotateHandle.x, rotateHandle.y);
+  await page.mouse.down();
+  await page.mouse.move(
+    bounds.x + (before.x + before.width / 2 + 520) * scale,
+    bounds.y + (before.y + before.height / 2 - 120) * scale,
+    { steps: 4 },
+  );
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.rotate)).not.toBe(before.rotate);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.rotate)).toBe(before.rotate);
+  await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+});
+
 test('Arrange 可调整不透明度与旋转活动图片图层', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);
