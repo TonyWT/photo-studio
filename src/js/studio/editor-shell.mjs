@@ -1184,15 +1184,48 @@ function renderEditorToolControls(key) {
   }
 
   if (key === 'retouch') {
+    const editable = activeImageLayerIsEditable();
+    const disabled = editable ? '' : ' disabled aria-disabled="true"';
+    const cloneAttributes = findToolConfig('clone')?.attributes ?? {};
+    const blurAttributes = findToolConfig('blur')?.attributes ?? {};
+    const size = Number(blurAttributes.size ?? cloneAttributes.size ?? 30);
+    const strength = Math.round(Math.max(0, Math.min(1, Number(blurAttributes.strength ?? 1))) * 100);
+    const source = cloneAttributes.source_layer?.value ?? 'Current';
     target.innerHTML = `
+      <label class="studio-control-range">笔刷大小 <output data-retouch-size-output>${size}px</output>
+        <input type="range" min="1" max="300" value="${size}" data-testid="retouch-size" ${disabled}>
+      </label>
+      <label class="studio-control-range">局部模糊强度 <output data-retouch-strength-output>${strength}%</output>
+        <input type="range" min="1" max="100" value="${strength}" data-testid="retouch-blur-strength" ${disabled}>
+      </label>
+      <label class="studio-control-select">克隆来源
+        <select data-testid="retouch-clone-source" ${disabled}>
+          <option value="Current" ${source === 'Current' ? 'selected' : ''}>当前图层</option>
+          <option value="Previous" ${source === 'Previous' ? 'selected' : ''}>下一图层</option>
+        </select>
+      </label>
       <div class="studio-control-group studio-control-group-two" aria-label="本地修饰工具">
-        <button type="button" data-testid="retouch-clone" data-core-tool="clone">克隆</button>
-        <button type="button" data-testid="retouch-blur" data-core-tool="blur">局部模糊</button>
-        <button type="button" data-testid="retouch-sharpen" data-core-tool="sharpen">局部锐化</button>
-        <button type="button" data-testid="retouch-desaturate" data-core-tool="desaturate">局部去色</button>
+        <button type="button" data-testid="retouch-clone" data-core-tool="clone"${disabled}>克隆</button>
+        <button type="button" data-testid="retouch-blur" data-core-tool="blur"${disabled}>局部模糊</button>
+        <button type="button" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
+        <button type="button" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>局部去色</button>
       </div>
-      <p class="studio-control-hint">仅可在未锁定的图片图层上修饰；每次笔触都会写入本地历史。</p>
+      <p class="studio-control-hint">仅可在未锁定的图片图层上修饰；每次笔触都会写入本地历史。克隆工具可按住 Alt/Option 设定来源。</p>
     `;
+    const sizeInput = target.querySelector('[data-testid="retouch-size"]');
+    const strengthInput = target.querySelector('[data-testid="retouch-blur-strength"]');
+    const sourceInput = target.querySelector('[data-testid="retouch-clone-source"]');
+    sizeInput?.addEventListener('input', () => {
+      const nextSize = Number(sizeInput.value);
+      ['clone', 'blur', 'sharpen', 'desaturate'].forEach((tool) => setToolAttribute(tool, 'size', nextSize));
+      target.querySelector('[data-retouch-size-output]').textContent = `${nextSize}px`;
+    });
+    strengthInput?.addEventListener('input', () => {
+      const nextStrength = Number(strengthInput.value) / 100;
+      setToolAttribute('blur', 'strength', nextStrength);
+      target.querySelector('[data-retouch-strength-output]').textContent = `${strengthInput.value}%`;
+    });
+    sourceInput?.addEventListener('change', () => setToolAttributeValue('clone', 'source_layer', sourceInput.value));
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
       button.addEventListener('click', () => activateCoreTool(button.dataset.coreTool));
     });
