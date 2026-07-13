@@ -2193,11 +2193,8 @@ test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', 
     history: window.State.action_history.length,
     index: window.State.action_history_index,
     pixel: (() => {
-      const canvas = document.createElement('canvas');
-      canvas.width = window.AppConfig.layer.link.naturalWidth;
-      canvas.height = window.AppConfig.layer.link.naturalHeight;
+      const canvas = document.getElementById('canvas_minipaint');
       const context = canvas.getContext('2d', { willReadFrequently: true });
-      context.drawImage(window.AppConfig.layer.link, 0, 0);
       return Array.from(context.getImageData(135, 135, 1, 1).data);
     })(),
   }));
@@ -2466,6 +2463,62 @@ test('Drawing 会激活画笔并将颜色、尺寸和不透明度写入本地配
     alpha: window.AppConfig.ALPHA,
     size: window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.size,
   }))).toEqual({ color: '#d946ef', alpha: 107, size: 18 });
+});
+
+test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'drawing-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-size').fill('1');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-brush').click();
+  await expect(page.locator('#tools_container .brush')).toHaveClass(/active/);
+
+  const before = await page.evaluate(() => ({
+    history: window.State.action_history.length,
+    index: window.State.action_history_index,
+    pixel: (() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = window.AppConfig.layer.link.naturalWidth;
+      canvas.height = window.AppConfig.layer.link.naturalHeight;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(window.AppConfig.layer.link, 0, 0);
+      return Array.from(context.getImageData(135, 135, 1, 1).data);
+    })(),
+  }));
+  expect(before.pixel).toEqual([20, 30, 40, 255]);
+
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  })).not.toEqual(before.pixel);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  })).toEqual(before.pixel);
+  await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
 });
 
 test('Drawing 填充不会修改锁定图片图层或写入历史', async ({ page }) => {
