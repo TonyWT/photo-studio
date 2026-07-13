@@ -1,4 +1,4 @@
-import { isNativeProjectDocument, normalizeProjectName, projectStore } from './project-store.mjs';
+import { isNativeProjectDocument, isSupportedImage, normalizeProjectName, projectStore } from './project-store.mjs';
 
 export const MANUAL_CUTOUT_TOOLS = ['selection', 'magic_erase', 'erase'];
 const CUTOUT_SHAPE_MODES = new Set(['lasso', 'ellipse']);
@@ -40,6 +40,7 @@ export function shouldUseWebGL2(canvas) {
 
 let currentProjectId = null;
 let currentProjectName = '未命名项目';
+let collageWorkspace = null;
 
 const EXPORT_TYPES = Object.freeze({
   png: 'PNG - Portable Network Graphics',
@@ -634,6 +635,135 @@ async function insertArrangeFrame() {
   return true;
 }
 
+function getCollageSlotRect(layout, slotIndex) {
+  const column = slotIndex % layout.columns;
+  const row = Math.floor(slotIndex / layout.columns);
+  const left = Math.round(window.AppConfig.WIDTH * column / layout.columns);
+  const top = Math.round(window.AppConfig.HEIGHT * row / layout.rows);
+  const right = Math.round(window.AppConfig.WIDTH * (column + 1) / layout.columns);
+  const bottom = Math.round(window.AppConfig.HEIGHT * (row + 1) / layout.rows);
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function findCollageSlotLayer(slotIndex) {
+  return window.AppConfig?.layers?.find((layer) => Number(layer?.params?.collage_slot) === slotIndex) ?? null;
+}
+
+function readLocalImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('无法读取本地图片。'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('无法解码本地图片。'));
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function placeCollageImage(file) {
+  const workspace = collageWorkspace;
+  if (!workspace || !file || !isSupportedImage(file)) return false;
+  const { layout, selectedSlot } = workspace;
+  const rect = getCollageSlotRect(layout, selectedSlot);
+  if (rect.width <= 0 || rect.height <= 0 || !window.app?.Actions?.Insert_layer_action) return false;
+  const image = await readLocalImage(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  const context = canvas.getContext('2d');
+  const scale = Math.max(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
+  const drawWidth = Math.ceil(image.naturalWidth * scale);
+  const drawHeight = Math.ceil(image.naturalHeight * scale);
+  context.drawImage(image, Math.round((rect.width - drawWidth) / 2), Math.round((rect.height - drawHeight) / 2), drawWidth, drawHeight);
+
+  const replacement = {
+    name: `拼贴 ${selectedSlot + 1} - ${file.name}`,
+    type: 'image',
+    data: canvas.toDataURL('image/png'),
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
+    width_original: rect.width,
+    height_original: rect.height,
+    params: { collage_slot: selectedSlot },
+  };
+  const existing = findCollageSlotLayer(selectedSlot);
+  const actions = [];
+  if (existing) actions.push(new window.app.Actions.Delete_layer_action(existing.id, true));
+  actions.push(new window.app.Actions.Insert_layer_action(replacement));
+  await window.State.do_action(new window.app.Actions.Bundle_action(`set_collage_slot_${selectedSlot}`, 'Set Collage Slot', actions));
+  window.app?.GUI?.GUI_layers?.render_layers?.();
+  renderCollageWorkspace();
+  return true;
+}
+
+function renderCollageWorkspace() {
+  const workspace = collageWorkspace;
+  if (!workspace) return;
+  const panel = document.querySelector('[data-testid="editor-tool-panel"]');
+  const title = document.querySelector('[data-editor-tool-title]');
+  const description = document.querySelector('[data-editor-tool-description]');
+  const target = document.querySelector('[data-editor-tool-controls]');
+  const attributes = document.getElementById('action_attributes');
+  if (!panel || !target) return;
+  panel.hidden = false;
+  if (title) title.textContent = '拼贴';
+  if (description) description.textContent = '选择分格后拖入或选择本地图片；图片会覆盖式裁切为该格尺寸。';
+  if (attributes) {
+    attributes.innerHTML = '';
+    attributes.hidden = true;
+  }
+  const slots = Array.from({ length: workspace.layout.columns * workspace.layout.rows }, (_, slotIndex) => {
+    const rect = getCollageSlotRect(workspace.layout, slotIndex);
+    const filled = Boolean(findCollageSlotLayer(slotIndex));
+    return `<button type="button" class="${workspace.selectedSlot === slotIndex ? 'is-selected' : ''}" data-collage-slot="${slotIndex}" data-testid="collage-slot-${slotIndex}">分格 ${slotIndex + 1}<small>${rect.width} × ${rect.height} · ${filled ? '已填入' : '空白'}</small></button>`;
+  }).join('');
+  target.innerHTML = `
+    <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff" data-testid="collage-image-picker" hidden>
+    <div class="studio-control-group studio-control-group-two studio-collage-slots" aria-label="拼贴分格">${slots}</div>
+    <button type="button" data-testid="collage-choose-image">选择本地图片</button>
+    <p class="studio-control-status" data-testid="collage-status">当前分格：${workspace.selectedSlot + 1}。可拖入图片或点击选择。</p>
+  `;
+  const picker = target.querySelector('[data-testid="collage-image-picker"]');
+  const choose = target.querySelector('[data-testid="collage-choose-image"]');
+  const status = target.querySelector('[data-testid="collage-status"]');
+  const useFile = async (file) => {
+    if (!file) return;
+    if (!isSupportedImage(file)) {
+      status.textContent = '请选择 PNG、JPG、WebP、GIF、BMP 或 TIFF 图片。';
+      return;
+    }
+    status.textContent = '正在填入本地图片…';
+    try {
+      await placeCollageImage(file);
+      status.textContent = `分格 ${collageWorkspace.selectedSlot + 1} 已填入并自动裁切。`;
+    } catch {
+      status.textContent = '无法处理这张本地图片。';
+    }
+  };
+  choose.addEventListener('click', () => picker.click());
+  picker.addEventListener('change', async () => {
+    await useFile(picker.files?.[0]);
+    picker.value = '';
+  });
+  target.querySelectorAll('[data-collage-slot]').forEach((button) => {
+    button.addEventListener('click', () => {
+      collageWorkspace.selectedSlot = Number(button.dataset.collageSlot);
+      renderCollageWorkspace();
+    });
+    button.addEventListener('dragover', (event) => event.preventDefault());
+    button.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      collageWorkspace.selectedSlot = Number(button.dataset.collageSlot);
+      await useFile(event.dataTransfer.files?.[0]);
+    });
+  });
+}
+
 function setupCollageFromQuery() {
   const template = new URLSearchParams(window.location.search).get('collage');
   const templates = {
@@ -653,6 +783,8 @@ function setupCollageFromQuery() {
   window.AppConfig.guides_enabled = true;
   window.AppConfig.need_render = true;
   document.body.dataset.collageTemplate = template;
+  collageWorkspace = { template, layout, selectedSlot: 0 };
+  renderCollageWorkspace();
   return true;
 }
 
@@ -729,6 +861,7 @@ function syncCropOutputInputs(target) {
 function renderEditorToolControls(key) {
   const target = document.querySelector('[data-editor-tool-controls]');
   if (!target) return;
+  document.getElementById('action_attributes')?.removeAttribute('hidden');
   if (key === 'liquify') {
     const attributes = findToolConfig('bulge_pinch')?.attributes;
     const availability = getLiquifyAvailability();
@@ -1218,6 +1351,7 @@ function renderEditorToolControls(key) {
     const strength = Math.round(Math.max(0, Math.min(1, Number(blurAttributes.strength ?? 1))) * 100);
 	const dodgeBurnStrength = Number(dodgeBurnAttributes.strength ?? 50);
 	const dodgeBurnMode = dodgeBurnAttributes.mode?.value ?? 'dodge';
+	const activeRetouchTool = window.AppConfig?.TOOL?.name ?? 'clone';
     const source = cloneAttributes.source_layer?.value ?? 'Current';
     target.innerHTML = `
       <label class="studio-control-range">笔刷大小 <output data-retouch-size-output>${size}px</output>
@@ -1236,12 +1370,13 @@ function renderEditorToolControls(key) {
         </select>
       </label>
       <div class="studio-control-group studio-control-group-two" aria-label="本地修饰工具">
-        <button type="button" data-testid="retouch-clone" data-core-tool="clone"${disabled}>克隆</button>
-        <button type="button" data-testid="retouch-blur" data-core-tool="blur"${disabled}>局部模糊</button>
-        <button type="button" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
-        <button type="button" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>局部去色</button>
-		<button type="button" class="${dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>减淡</button>
-		<button type="button" class="${dodgeBurnMode === 'burn' ? 'is-selected' : ''}" data-testid="retouch-burn" data-core-tool="dodge_burn"${disabled}>加深</button>
+        <button type="button" class="${activeRetouchTool === 'clone' ? 'is-selected' : ''}" data-testid="retouch-clone" data-core-tool="clone"${disabled}>克隆</button>
+		<button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-repair" data-core-tool="repair"${disabled}>修复</button>
+        <button type="button" class="${activeRetouchTool === 'blur' ? 'is-selected' : ''}" data-testid="retouch-blur" data-core-tool="blur"${disabled}>局部模糊</button>
+        <button type="button" class="${activeRetouchTool === 'sharpen' ? 'is-selected' : ''}" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
+        <button type="button" class="${activeRetouchTool === 'desaturate' ? 'is-selected' : ''}" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>局部去色</button>
+		<button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>减淡</button>
+		<button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'burn' ? 'is-selected' : ''}" data-testid="retouch-burn" data-core-tool="dodge_burn"${disabled}>加深</button>
       </div>
       <p class="studio-control-hint">仅可在未锁定的图片图层上修饰；每次笔触都会写入本地历史。克隆工具可按住 Alt/Option 设定来源。</p>
     `;
@@ -1250,7 +1385,7 @@ function renderEditorToolControls(key) {
     const sourceInput = target.querySelector('[data-testid="retouch-clone-source"]');
     sizeInput?.addEventListener('input', () => {
       const nextSize = Number(sizeInput.value);
-	  ['clone', 'blur', 'sharpen', 'desaturate', 'dodge_burn'].forEach((tool) => setToolAttribute(tool, 'size', nextSize));
+	  ['clone', 'repair', 'blur', 'sharpen', 'desaturate', 'dodge_burn'].forEach((tool) => setToolAttribute(tool, 'size', nextSize));
       target.querySelector('[data-retouch-size-output]').textContent = `${nextSize}px`;
     });
     strengthInput?.addEventListener('input', () => {
@@ -1271,7 +1406,11 @@ function renderEditorToolControls(key) {
 	  setToolAttributeValue('dodge_burn', 'mode', 'burn');
 	});
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
-      button.addEventListener('click', () => activateCoreTool(button.dataset.coreTool));
+      button.addEventListener('click', async () => {
+        if (!await activateCoreTool(button.dataset.coreTool)) return;
+        target.querySelectorAll('[data-core-tool]').forEach((candidate) => candidate.classList.remove('is-selected'));
+        button.classList.add('is-selected');
+      });
     });
     return;
   }

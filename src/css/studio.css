@@ -82,6 +82,7 @@ body.photo-studio-editor .studio-control-status { margin: 0; padding: 9px; borde
 body.photo-studio-editor .studio-control-status.is-available { border-color: #226a80; color: #b7e7f6; }
 body.photo-studio-editor .studio-control-status.is-unavailable { color: #b2a795; }
 body.photo-studio-editor .studio-tool-panel .attributes { display: flex; width: auto; min-height: 0; margin: 0; padding: 12px; border: 1px solid #3d3d3d; border-radius: 8px; background: #1e1e1e; }
+body.photo-studio-editor .studio-tool-panel .attributes[hidden] { display: none; }
 body.photo-studio-editor .sidebar_right { position: relative; width: auto; margin: 0; padding: 9px 8px; overflow: visible; border-left: 1px solid #333; background: #222; transition: width .16s ease, padding .16s ease, border-color .16s ease; }
 body.photo-studio-editor .layers-collapsed .wrapper { grid-template-columns: minmax(0, 1fr) 0; }
 body.photo-studio-editor .layers-collapsed .sidebar_right { width: 0; padding-right: 0; padding-left: 0; border-left-color: transparent; }

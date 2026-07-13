@@ -422,6 +422,12 @@ config.TOOLS = [
 		},
 	},
 	{
+		name: 'repair',
+		attributes: {
+			size: 30,
+		},
+	},
+	{
 		name: 'crop',
 		on_update: 'on_params_update',
 		on_leave: 'on_leave',

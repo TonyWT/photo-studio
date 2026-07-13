@@ -70,6 +70,67 @@ test('主页可选择 2×2 本地拼贴模板并进入编辑器', async ({ page 
   await expect.poll(() => page.evaluate(() => window.AppConfig.guides.length)).toBe(2);
 });
 
+test('2×2 拼贴可向选中分格放入本地图片，并覆盖式自动裁切为图层', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('create-collage').click();
+  await page.getByTestId('collage-template-2x2').click();
+  await expect(page).toHaveURL(/\/editor\/\?collage=2x2$/);
+  await expect(page.getByTestId('collage-slot-0')).toBeVisible();
+  await expect(page.getByTestId('collage-slot-3')).toBeVisible();
+  await expect(page.locator('#action_attributes')).toBeHidden();
+  await page.getByTestId('collage-slot-0').click();
+
+  const source = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 100;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ef4444';
+    context.fillRect(0, 0, 100, 100);
+    context.fillStyle = '#2563eb';
+    context.fillRect(100, 0, 100, 100);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('collage-image-picker').setInputFiles({
+    name: 'wide-source.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(source, 'base64'),
+  });
+
+  await expect.poll(() => page.evaluate(() => {
+    const layer = window.AppConfig.layers.find((item) => item.params?.collage_slot === 0);
+    if (!layer?.link) return null;
+    return {
+      x: layer.x,
+      y: layer.y,
+      width: layer.width,
+      height: layer.height,
+      widthOriginal: layer.width_original,
+      heightOriginal: layer.height_original,
+    };
+  })).toEqual({
+    x: 0,
+    y: 0,
+    width: 400,
+    height: 300,
+    widthOriginal: 400,
+    heightOriginal: 300,
+  });
+  await expect(page.getByTestId('collage-slot-0')).toContainText('已填入');
+  await expect.poll(() => page.evaluate(() => {
+    const layer = window.AppConfig.layers.find((item) => item.params?.collage_slot === 0);
+    const canvas = document.createElement('canvas');
+    canvas.width = layer.link.naturalWidth;
+    canvas.height = layer.link.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(layer.link, 0, 0);
+    return {
+      left: Array.from(context.getImageData(0, 150, 1, 1).data),
+      right: Array.from(context.getImageData(399, 150, 1, 1).data),
+    };
+  })).toEqual({ left: [239, 68, 68, 255], right: [37, 99, 235, 255] });
+});
+
 test('新建画布进入独立编辑器路由', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('create-new').click();
@@ -2100,6 +2161,69 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
   await page.locator('#canvas_minipaint').click({ position: { x: 1, y: 1 } });
   await page.waitForTimeout(100);
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(lockedHistoryLength);
+});
+
+test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', async ({ page }) => {
+  await openHome(page);
+  const repairFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(40, 140, 200)';
+    context.fillRect(0, 0, 270, 270);
+    context.fillStyle = 'rgb(255, 0, 255)';
+    context.fillRect(135, 135, 1, 1);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'repair-blemish.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(repairFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-retouch').click();
+  await expect(page.getByTestId('retouch-repair')).toBeVisible();
+  await page.getByTestId('retouch-repair').click();
+  await expect(page.locator('#tools_container .repair')).toHaveClass(/active/);
+  await expect(page.getByTestId('retouch-repair')).toHaveClass(/is-selected/);
+  await page.getByTestId('retouch-size').fill('1');
+  const before = await page.evaluate(() => ({
+    history: window.State.action_history.length,
+    index: window.State.action_history_index,
+    pixel: (() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = window.AppConfig.layer.link.naturalWidth;
+      canvas.height = window.AppConfig.layer.link.naturalHeight;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(window.AppConfig.layer.link, 0, 0);
+      return Array.from(context.getImageData(135, 135, 1, 1).data);
+    })(),
+  }));
+  expect(before.pixel).toEqual([255, 0, 255, 255]);
+
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = window.AppConfig.layer.link.naturalWidth;
+    canvas.height = window.AppConfig.layer.link.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(window.AppConfig.layer.link, 0, 0);
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  })).toEqual([40, 140, 200, 255]);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = window.AppConfig.layer.link.naturalWidth;
+    canvas.height = window.AppConfig.layer.link.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(window.AppConfig.layer.link, 0, 0);
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  })).toEqual(before.pixel);
+  await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
 });
 
 test('Retouch 减淡笔刷会局部提亮并提供可撤销的本地像素修改', async ({ page }) => {
