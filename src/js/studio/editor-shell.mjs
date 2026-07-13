@@ -88,7 +88,7 @@ function applyTextToolAttribute(attribute, value) {
   const layer = window.AppConfig?.layer;
   const layerParamAttributes = new Set([
     'align', 'shadow_enabled', 'shadow_color', 'shadow_blur', 'shadow_x', 'shadow_y',
-    'background_enabled', 'background_color', 'background_opacity',
+    'background_enabled', 'background_color', 'background_opacity', 'curve',
   ]);
   if (layerParamAttributes.has(attribute) && layer?.type === 'text' && !layer.locked) {
     const property = attribute === 'align' ? 'halign' : attribute;
@@ -1341,6 +1341,7 @@ function renderEditorToolControls(key) {
     const alignment = attributes.align?.value ?? 'left';
     const shadowEnabled = Boolean(attributes.shadow_enabled);
     const backgroundEnabled = Boolean(attributes.background_enabled);
+    const curve = Number(attributes.curve) || 0;
     target.innerHTML = `
       <button type="button" data-testid="text-create" data-core-tool="text">添加文字</button>
       <label class="studio-control-select">字体
@@ -1374,6 +1375,7 @@ function renderEditorToolControls(key) {
       <label class="studio-control-check"><input type="checkbox" data-testid="text-background-enabled" ${backgroundEnabled ? 'checked' : ''}>文字背景</label>
       <label class="studio-control-color">背景色<input type="color" value="${attributes.background_color ?? '#000000'}" data-testid="text-background-color"></label>
       <label class="studio-control-range">背景不透明度 <output data-text-background-opacity-output>${attributes.background_opacity ?? 35}%</output><input type="range" min="0" max="100" value="${attributes.background_opacity ?? 35}" data-testid="text-background-opacity"></label>
+      <label class="studio-control-range">曲线 <output data-text-curve-output>${curve}</output><input type="range" min="-100" max="100" value="${curve}" data-testid="text-curve"></label>
       <p class="studio-control-hint">使用系统字体；点击“添加文字”后在画布中单击或拖拽以创建文本层。</p>
     `;
     const fontInput = target.querySelector('[data-testid="text-font"]');
@@ -1387,6 +1389,7 @@ function renderEditorToolControls(key) {
     const backgroundEnabledInput = target.querySelector('[data-testid="text-background-enabled"]');
     const backgroundColorInput = target.querySelector('[data-testid="text-background-color"]');
     const backgroundOpacityInput = target.querySelector('[data-testid="text-background-opacity"]');
+    const curveInput = target.querySelector('[data-testid="text-curve"]');
     fontInput.addEventListener('change', () => applyTextToolAttribute('font', fontInput.value));
     sizeInput.addEventListener('input', () => applyTextToolAttribute('size', Number(sizeInput.value)));
     fillInput.addEventListener('input', () => applyTextToolAttribute('fill', fillInput.value));
@@ -1403,6 +1406,10 @@ function renderEditorToolControls(key) {
     backgroundOpacityInput.addEventListener('input', () => {
       applyTextToolAttribute('background_opacity', Number(backgroundOpacityInput.value));
       target.querySelector('[data-text-background-opacity-output]').textContent = `${backgroundOpacityInput.value}%`;
+    });
+    curveInput.addEventListener('input', () => {
+      applyTextToolAttribute('curve', Number(curveInput.value));
+      target.querySelector('[data-text-curve-output]').textContent = curveInput.value;
     });
     target.querySelectorAll('[data-testid="text-bold"], [data-testid="text-italic"], [data-testid="text-underline"]').forEach((button) => {
       button.addEventListener('click', () => {

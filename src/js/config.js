@@ -374,6 +374,7 @@ config.TOOLS = [
 			background_enabled: false,
 			background_color: '#000000',
 			background_opacity: 35,
+			curve: 0,
 			strikethrough: {
 				value: false,
 				icon: `strikethrough.svg`

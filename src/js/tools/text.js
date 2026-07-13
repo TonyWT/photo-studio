@@ -1714,6 +1714,12 @@ class Text_editor_class {
 							const wrapDirectionOffset = Math.round(drawOffsetTop + wrapSizes[wrapIndex].offset + wrapSizes[wrapIndex].baseline);
 							const letterDrawX = isHorizontalTextDirection ? textDirectionOffset + kerning : wrapDirectionOffset;
 							const letterDrawY = isHorizontalTextDirection ? wrapDirectionOffset : textDirectionOffset + kerning;
+							const curve = isHorizontalTextDirection ? Number(layer.params.curve) || 0 : 0;
+							const totalLineWidth = characterOffsets[characterOffsets.length - 1] || 1;
+							const letterCenter = characterOffsets[characterIndex] + letterWidth / 2;
+							const normalizedCurvePosition = (letterCenter / totalLineWidth - 0.5) * 2;
+							const curveOffset = curve * ((normalizedCurvePosition * normalizedCurvePosition) - 0.25);
+							const curveAngle = Math.atan((curve * 4 * normalizedCurvePosition) / totalLineWidth);
 							let isLetterSelected = false;
 							if (this.selection.isVisible) {
 								if (!isSelectionEmpty) {
@@ -1759,6 +1765,12 @@ class Text_editor_class {
 								ctx.strokeRect(letterStartX, letterStartY, letterSizeX, letterSizeY);
 								ctx.lineWidth = stroke_size;
 							}
+							ctx.save();
+							if (curve) {
+								ctx.translate(letterDrawX, letterDrawY + curveOffset);
+								ctx.rotate(curveAngle);
+								ctx.translate(-letterDrawX, -letterDrawY);
+							}
 							ctx.fillStyle = fillStyle;
 							ctx.strokeStyle = strokeStyle;
 							ctx.fillText(letter, letterDrawX, letterDrawY);
@@ -1776,6 +1788,7 @@ class Text_editor_class {
 								ctx.lineWidth = Math.max(1, fontMetrics.height / 20);
 								ctx.fillRect(letterDrawX - 0.25 - kerning, letterDrawY + (ctx.lineWidth), letterWidth + 0.5, ctx.lineWidth);
 							}
+							ctx.restore();
 							characterIndex++;
 							lineLetterCount++;
 						}
@@ -2317,6 +2330,7 @@ class Text_class extends Base_tools_class {
 					background_enabled: Boolean(textAttributes?.background_enabled),
 					background_color: textAttributes?.background_color || '#000000',
 					background_opacity: Number(textAttributes?.background_opacity) || 0,
+					curve: Number(textAttributes?.curve) || 0,
 				},
 				render_function: [this.name, 'render'],
 				x: mouse.x,
