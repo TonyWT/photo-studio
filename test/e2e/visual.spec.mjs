@@ -15,6 +15,13 @@ test('编辑器视觉基准', async ({ page }) => {
   await expect(page).toHaveScreenshot('editor.png', { animations: 'disabled', maxDiffPixelRatio: 0.01 });
 });
 
+test('工作台选中工具使用中性底色，不显示青色侧边条', async ({ page }) => {
+  await page.goto('/editor/');
+  const activeTool = page.getByTestId('tool-arrange');
+  await expect(activeTool).toHaveClass(/is-active/);
+  await expect(activeTool).toHaveCSS('box-shadow', 'none');
+});
+
 test.describe('1920 × 878 已加载图片工作台', () => {
   test.use({ viewport: { width: 1920, height: 878 } });
 
