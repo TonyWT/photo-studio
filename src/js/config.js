@@ -362,6 +362,10 @@ config.TOOLS = [
 				value: false,
 				icon: `underline.svg`
 			},
+			align: {
+				value: 'left',
+				values: ['left', 'center', 'right'],
+			},
 			strikethrough: {
 				value: false,
 				icon: `strikethrough.svg`

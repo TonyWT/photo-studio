@@ -15,8 +15,13 @@ export class Toggle_layer_visibility_action extends Base_action {
 	}
 
 	async do() {
-		super.do();
 		const layer = app.Layers.get_layer(this.layer_id);
+		if (!layer) {
+			throw new Error('Aborted - layer with specified id doesn\'t exist');
+		}
+		// Visibility is independent from edit protection: locked layers remain
+		// hideable and the operation is persisted in undo/redo history.
+		super.do();
 		this.old_visible = layer.visible;
 		if (layer.visible == false)
 			layer.visible = true;

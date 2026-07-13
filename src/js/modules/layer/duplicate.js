@@ -35,6 +35,7 @@ class Layer_duplicate_class {
 	}
 
 	duplicate() {
+		if (!config.layer || config.layer.locked) return false;
 		var params = JSON.parse(JSON.stringify(config.layer));
 		delete params.id;
 		delete params.order;

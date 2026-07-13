@@ -2038,6 +2038,11 @@ class Text_class extends Base_tools_class {
 
 			this.textarea.addEventListener('blur', () => {
 				this.focused = false;
+				if (this.layer?.locked) {
+					this.focusedValue = null;
+					this.Base_layers.render();
+					return;
+				}
 				let editor = this.get_editor(this.layer);
 				if (editor) {
 					let value = JSON.stringify(editor.document.lines);
@@ -2056,14 +2061,20 @@ class Text_class extends Base_tools_class {
 			let beforeImeText = "";
 			this.textarea.addEventListener('compositionstart', () => {
 				beforeImeText = "";
-					isComposing = true;
-					if (config.layer) {
+					isComposing = Boolean(config.layer && !config.layer.locked);
+					if (isComposing) {
 						const editor = this.get_editor(config.layer);
 						beforeImeText = editor.get_complete_text();
 					}
 			});
 
 			this.textarea.addEventListener('compositionend', (e) => {
+				if (!config.layer || config.layer.locked) {
+					beforeImeText = "";
+					isComposing = false;
+					e.target.value = '';
+					return;
+				}
 				const editor = this.get_editor(config.layer);
 				editor.set_IME_position(e.target.value);
 				beforeImeText = "";
@@ -2072,6 +2083,10 @@ class Text_class extends Base_tools_class {
 			});
 
 			this.textarea.addEventListener('input', (e) => {
+				if (!config.layer || config.layer.locked) {
+					e.target.value = '';
+					return;
+				}
 				if(isComposing){
 					const editor = this.get_editor(config.layer);
 					editor.replace_entire_IME_text(beforeImeText, e.target.value);
@@ -2088,6 +2103,10 @@ class Text_class extends Base_tools_class {
 			}, true);
 
 			this.textarea.addEventListener('keydown', (e) => {
+				if (config.layer?.locked) {
+					e.preventDefault();
+					return;
+				}
 				if (config.layer) {
 					let handled = true;
 					const editor = this.get_editor(config.layer);
@@ -2261,6 +2280,9 @@ class Text_class extends Base_tools_class {
 
 		const existingLayer = this.get_text_layer_at_mouse(e);
 		if (existingLayer) {
+			if (existingLayer.locked) {
+				return;
+			}
 			this.selecting = true;
 			this.layer = existingLayer;
 			const editor = this.get_editor(this.layer);
@@ -2275,6 +2297,8 @@ class Text_class extends Base_tools_class {
 		else {
 			// Create a new text layer
 			this.creating = true;
+			const textAttributes = config.TOOLS.find((tool) => tool.name === this.name)?.attributes;
+			const halign = textAttributes?.align?.value || 'left';
 			const layer = {
 				type: this.name,
 				params: {
@@ -2282,7 +2306,7 @@ class Text_class extends Base_tools_class {
 					kerning: 'metrics',
 					text_direction: 'ltr',
 					wrap_direction: 'ttb',
-					halign: 'left',
+					halign,
 					valign: 'top',
 					wrap: 'letter'
 				},
@@ -2441,6 +2465,9 @@ class Text_class extends Base_tools_class {
 	}
 
 	on_params_update(param) {
+		if (config.layer?.type === this.name && config.layer.locked) {
+			return;
+		}
 		const editor = this.get_editor(config.layer);
 		const value = param.value;
 		const meta = {};

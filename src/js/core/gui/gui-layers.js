@@ -50,6 +50,11 @@ class GUI_layers_class {
 
 	set_events() {
 		var _this = this;
+		const activeLayerIsEditable = () => Boolean(config.layer) && !config.layer.locked;
+		const targetLayerIsEditable = (layerId) => {
+			const layer = app.Layers.get_layer(layerId);
+			return Boolean(layer) && !layer.locked;
+		};
 
 		document.getElementById('layers_base').addEventListener('click', function (event) {
 			var target = event.target;
@@ -61,20 +66,24 @@ class GUI_layers_class {
 			}
 			else if (target.id == 'layer_duplicate') {
 				//duplicate
+				if (!activeLayerIsEditable()) return;
 				_this.Layer_duplicate.duplicate();
 			}
 			else if (target.id == 'layer_raster') {
 				//raster
+				if (!activeLayerIsEditable()) return;
 				_this.Layer_raster.raster();
 			}
 			else if (target.id == 'layer_up') {
 				//move layer up
+				if (!activeLayerIsEditable()) return;
 				app.State.do_action(
 					new app.Actions.Reorder_layer_action(config.layer.id, 1)
 				);
 			}
 			else if (target.id == 'layer_down') {
 				//move layer down
+				if (!activeLayerIsEditable()) return;
 				app.State.do_action(
 					new app.Actions.Reorder_layer_action(config.layer.id, -1)
 				);
@@ -87,6 +96,7 @@ class GUI_layers_class {
 			}
 			else if (target.id == 'delete') {
 				//delete layer
+				if (!targetLayerIsEditable(target.dataset.id)) return;
 				app.State.do_action(
 					new app.Actions.Delete_layer_action(target.dataset.id)
 				);
@@ -112,12 +122,14 @@ class GUI_layers_class {
 			}
 			else if (target.id == 'delete_filter') {
 				//delete filter
+				if (!targetLayerIsEditable(target.dataset.pid)) return;
 				app.State.do_action(
 					new app.Actions.Delete_layer_filter_action(target.dataset.pid, target.dataset.id)
 				);
 			}
 			else if (target.id == 'filter_name') {
 				//edit filter
+				if (!targetLayerIsEditable(target.dataset.pid)) return;
 				var effects = _this.Effects_browser.get_effects_list();
 				var key = target.dataset.filter.toLowerCase();
 				for (var i in effects) {
@@ -134,6 +146,7 @@ class GUI_layers_class {
 			var target = event.target;
 			if (target.id == 'layer_name') {
 				//rename layer
+				if (!targetLayerIsEditable(target.dataset.id)) return;
 				_this.Layer_rename.rename(target.dataset.id);
 			}
 		});
@@ -168,12 +181,13 @@ class GUI_layers_class {
 					class_extra += ' is-locked';
 				}
 				html += '<div class="item ' + class_extra + '">';
+				const disabled = value.locked ? ' disabled aria-disabled="true"' : '';
 				if (value.visible == true)
 					html += '	<button class="visibility visible trn" id="visibility" data-id="' + value.id + '" title="Hide"></button>';
 				else
 					html += '	<button class="visibility trn" id="visibility" data-id="' + value.id + '" title="Show"></button>';
 				html += '	<button class="lock" id="lock" data-testid="layer-lock" data-id="' + value.id + '" title="' + (value.locked ? 'Unlock layer' : 'Lock layer') + '">' + (value.locked ? '解锁' : '锁定') + '</button>';
-				html += '	<button class="delete trn" id="delete" data-id="' + value.id + '" title="Delete"></button>';
+				html += '	<button class="delete trn" id="delete" data-id="' + value.id + '" title="Delete"' + disabled + '></button>';
 				
 				if(value.composition === 'source-atop'){
 					html += '	<button class="arrow_down" data-id="' + value.id + '" ></button>';
@@ -198,7 +212,7 @@ class GUI_layers_class {
 						title = title.replace(/-/g, ' ');
 
 						html += '<div class="filter">';
-						html += '	<span class="delete" id="delete_filter" data-pid="' + layers[i].id + '" data-id="' + filter.id + '" title="delete"></span>';
+						html += '	<button class="delete" id="delete_filter" data-pid="' + layers[i].id + '" data-id="' + filter.id + '" title="delete"' + (layers[i].locked ? ' disabled aria-disabled="true"' : '') + '></button>';
 						html += '	<span class="layer_name" id="filter_name" data-pid="' + layers[i].id + '" data-id="' + filter.id + '" data-filter="' + filter.name + '">' + title + '</span>';
 						html += '	<div class="clear"></div>';
 						html += '</div>';
@@ -210,6 +224,14 @@ class GUI_layers_class {
 
 		//register
 		document.getElementById(target_id).innerHTML = html;
+		const activeLocked = Boolean(config.layer?.locked);
+		for (const control of ['layer_duplicate', 'layer_raster', 'layer_up', 'layer_down']) {
+			const button = document.getElementById(control);
+			if (button) {
+				button.disabled = activeLocked;
+				button.setAttribute('aria-disabled', String(activeLocked));
+			}
+		}
 		if (config.LANG != 'en') {
 			this.Tools_translate.translate(config.LANG, document.getElementById(target_id));
 		}

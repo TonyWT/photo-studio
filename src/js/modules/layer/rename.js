@@ -14,8 +14,10 @@ class Layer_rename_class {
 
 	rename(id = null) {
 		var _this = this;
+		const target = app.Layers.get_layer(id || config.layer?.id);
+		if (!target || target.locked) return false;
 
-		var name_ = this.Helper.escapeHtml(config.layer.name);
+		var name_ = this.Helper.escapeHtml(target.name);
 
 		var settings = {
 			title: 'Rename',

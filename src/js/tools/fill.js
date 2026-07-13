@@ -42,6 +42,9 @@ class Fill_class extends Base_tools_class {
 		if (mouse.click_valid == false) {
 			return;
 		}
+		if (!config.layer || config.layer.locked) {
+			return;
+		}
 		if (config.layer.rotate || 0 > 0) {
 			alertify.error('Erase on rotate object is disabled. Please rasterize first.');
 			return;
@@ -54,6 +57,9 @@ class Fill_class extends Base_tools_class {
 		var params = this.getParams();
 
 		if(this.working == true){
+			return;
+		}
+		if (!config.layer || config.layer.locked) {
 			return;
 		}
 

@@ -1,10 +1,8 @@
-import app from './../../app.js';
-import config from './../../config.js';
 import Dialog_class from './../../libs/popup.js';
 import Base_layers_class from './../../core/base-layers.js';
 import ImageFilters from './../../libs/imagefilters.js';
 import glfx from './../../libs/glfx.js';
-import alertify from './../../../../node_modules/alertifyjs/build/alertify.min.js';
+import { captureEditableImageLayer, commitCapturedFilter } from './filter-commit.js';
 
 class Effects_tiltShift_class {
 
@@ -16,11 +14,8 @@ class Effects_tiltShift_class {
 
 	tilt_shift() {
 		var _this = this;
-
-		if (config.layer.type != 'image') {
-			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
-			return;
-		}
+		var target = captureEditableImageLayer();
+		if (!target) return;
 
 		var settings = {
 			title: 'Tilt Shift',
@@ -58,24 +53,14 @@ class Effects_tiltShift_class {
 				canvas_preview.stroke();
 			},
 			on_finish: function (params) {
-				_this.save(params);
+				_this.save(params, target);
 			},
 		};
 		this.POP.show(settings);
 	}
 
-	save(params) {
-		//get canvas from layer
-		var canvas = this.Base_layers.convert_layer_to_canvas(null, true);
-		var ctx = canvas.getContext("2d");
-
-		//change data
-		this.change(canvas, params);
-
-		//save
-		return app.State.do_action(
-			new app.Actions.Update_layer_image_action(canvas)
-		);
+	save(params, target) {
+		return commitCapturedFilter(this.Base_layers, target, (canvas) => this.change(canvas, params));
 	}
 
 	change(canvas, params) {

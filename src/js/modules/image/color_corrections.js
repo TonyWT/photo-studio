@@ -15,16 +15,17 @@ class Image_colorCorrections_class {
 		this.ImageFilters = ImageFilters_class;
 	}
 
-	color_corrections() {
+	color_corrections(options = {}) {
 		var _this = this;
+		var defaults = options.defaults || {};
 
-		if (config.layer.type != 'image') {
-			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+		if (config.layer?.type != 'image' || config.layer.locked) {
+			alertify.error('This layer must contain an unlocked image.');
 			return;
 		}
 
 		var settings = {
-			title: 'Color Corrections',
+			title: options.title || 'Color Corrections',
 			preview: true,
 			on_change: function (params, canvas_preview, w, h, canvas) {
 				//destructive effects
@@ -41,16 +42,16 @@ class Image_colorCorrections_class {
 				canvas_preview.drawImage(canvas, 0, 0);
 			},
 			params: [
-				{name: "param_b", title: "Brightness:", value: "0", range: [-100, 100]},
-				{name: "param_c", title: "Contrast:", value: "0", range: [-100, 100]},
-				{name: "param_s", title: "Saturation:", value: "0", range: [-100, 100]},
-				{name: "param_h", title: "Hue:", value: "0", range: [-180, 180]},
+				{name: "param_b", title: "Brightness:", value: defaults.param_b ?? "0", range: [-100, 100]},
+				{name: "param_c", title: "Contrast:", value: defaults.param_c ?? "0", range: [-100, 100]},
+				{name: "param_s", title: "Saturation:", value: defaults.param_s ?? "0", range: [-100, 100]},
+				{name: "param_h", title: "Hue:", value: defaults.param_h ?? "0", range: [-180, 180]},
 				{},
-				{name: "param_l", title: "Luminance:", value: "0", range: [-100, 100]},
+				{name: "param_l", title: "Luminance:", value: defaults.param_l ?? "0", range: [-100, 100]},
 				{},
-				{name: "param_red", title: "Red channel:", value: "0", range: [-255, 255]},
-				{name: "param_green", title: "Green channel:", value: "0", range: [-255, 255]},
-				{name: "param_blue", title: "Blue channel:", value: "0", range: [-255, 255]},
+				{name: "param_red", title: "Red channel:", value: defaults.param_red ?? "0", range: [-255, 255]},
+				{name: "param_green", title: "Green channel:", value: defaults.param_green ?? "0", range: [-255, 255]},
+				{name: "param_blue", title: "Blue channel:", value: defaults.param_blue ?? "0", range: [-255, 255]},
 			],
 			on_finish: function (params) {
 				_this.save_changes(params);
@@ -60,6 +61,10 @@ class Image_colorCorrections_class {
 	}
 
 	save_changes(params) {
+		if (config.layer?.type !== 'image' || config.layer.locked) {
+			alertify.error('This layer must contain an unlocked image.');
+			return false;
+		}
 
 		//get canvas from layer
 		var canvas = this.Base_layers.convert_layer_to_canvas(null, true);

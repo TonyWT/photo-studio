@@ -38,8 +38,8 @@ class Image_autoAdjust_class {
 	}
 
 	auto_adjust() {
-		if (config.layer.type != 'image') {
-			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+		if (config.layer?.type != 'image' || config.layer.locked) {
+			alertify.error('This layer must contain an unlocked image.');
 			return;
 		}
 
@@ -49,13 +49,34 @@ class Image_autoAdjust_class {
 
 		//change data
 		var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+		var original = new Uint8ClampedArray(img.data);
 		var data = this.get_adjust_data(img);
+		if (this.has_no_pixel_change(original, data.data)) {
+			this.apply_low_contrast_fallback(data);
+		}
 		ctx.putImageData(data, 0, 0);
 
 		//save
 		return app.State.do_action(
 			new app.Actions.Update_layer_image_action(canvas)
 		);
+	}
+
+	has_no_pixel_change(original, adjusted) {
+		for (var index = 0; index < original.length; index++) {
+			if (original[index] !== adjusted[index]) return false;
+		}
+		return true;
+	}
+
+	apply_low_contrast_fallback(data) {
+		for (var index = 0; index < data.data.length; index += 4) {
+			if (data.data[index + 3] === 0) continue;
+			data.data[index] = Math.min(255, data.data[index] + 6);
+			data.data[index + 1] = Math.min(255, data.data[index + 1] + 6);
+			data.data[index + 2] = Math.min(255, data.data[index + 2] + 6);
+		}
+		return data;
 	}
 
 	get_adjust_data(data) {

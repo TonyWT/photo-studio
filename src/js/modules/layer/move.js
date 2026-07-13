@@ -9,12 +9,14 @@ class Layer_move_class {
 	}
 
 	up() {
+		if (!config.layer || config.layer.locked) return false;
 		app.State.do_action(
 			new app.Actions.Reorder_layer_action(config.layer.id, 1)
 		);
 	}
 
 	down() {
+		if (!config.layer || config.layer.locked) return false;
 		app.State.do_action(
 			new app.Actions.Reorder_layer_action(config.layer.id, -1)
 		);

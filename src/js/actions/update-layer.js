@@ -19,11 +19,17 @@ export class Update_layer_action extends Base_action {
 	}
 
 	async do() {
-		super.do();
 		this.reference_layer = app.Layers.get_layer(this.layer_id);
 		if (!this.reference_layer) {
 			throw new Error('Aborted - layer with specified id doesn\'t exist');
 		}
+		if (this.reference_layer.locked) {
+			const changedKeys = Object.keys(this.settings).filter((key) => key !== 'id' && key !== 'order');
+			if (changedKeys.some((key) => key !== 'locked') || this.settings.locked !== false) {
+				throw new Error('Aborted - Locked layer cannot be updated');
+			}
+		}
+		super.do();
 		for (let i in this.settings) {
 			if (i == 'id')
 				continue;

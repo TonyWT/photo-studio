@@ -9,6 +9,7 @@ class Layer_delete_class {
 	}
 
 	delete() {
+		if (!config.layer || config.layer.locked) return false;
 		app.State.do_action(
 			new app.Actions.Delete_layer_action(config.layer.id)
 		);

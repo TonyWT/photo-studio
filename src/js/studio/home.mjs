@@ -1,5 +1,5 @@
 import './../../css/studio.css';
-import { isSupportedImage, projectStore } from './project-store.mjs';
+import { isNativeProjectDocument, isSupportedImage, projectStore } from './project-store.mjs';
 
 const home = document.querySelector('[data-page="home"]');
 
@@ -22,6 +22,29 @@ async function openFile(file) {
   }
   await projectStore.stashFile(file);
   openEditor();
+}
+
+function showProjectImportError(message = '') {
+  const target = document.querySelector('[data-testid="project-import-error"]');
+  if (!target) return;
+  target.textContent = message;
+  target.hidden = !message;
+}
+
+async function importProject(file) {
+  showProjectImportError();
+  if (!file) return;
+  try {
+    const document = JSON.parse(await file.text());
+    if (!isNativeProjectDocument(document)) {
+      showProjectImportError('这不是有效的原生项目文件。');
+      return;
+    }
+    await projectStore.stashDocument(document, file.name);
+    openEditor();
+  } catch {
+    showProjectImportError('这不是有效的原生项目文件。');
+  }
 }
 
 async function renderProjects() {
@@ -57,8 +80,10 @@ async function onProjectAction(event) {
 
 if (home) {
   const picker = document.querySelector('[data-testid="image-picker"]');
+  const projectPicker = document.querySelector('[data-testid="project-picker"]');
   const dropzone = document.querySelector('[data-testid="dropzone"]');
   document.querySelector('[data-testid="open-image"]').addEventListener('click', () => picker.click());
+  document.querySelector('[data-testid="import-project"]').addEventListener('click', () => projectPicker.click());
   const collagePicker = document.querySelector('[data-testid="collage-templates"]');
   document.querySelector('[data-testid="create-collage"]').addEventListener('click', () => {
     collagePicker.hidden = !collagePicker.hidden;
@@ -68,6 +93,7 @@ if (home) {
     if (template) openCollage(template);
   });
   picker.addEventListener('change', (event) => openFile(event.target.files?.[0]));
+  projectPicker.addEventListener('change', (event) => importProject(event.target.files?.[0]));
   dropzone.addEventListener('dragover', (event) => event.preventDefault());
   dropzone.addEventListener('drop', (event) => {
     event.preventDefault();

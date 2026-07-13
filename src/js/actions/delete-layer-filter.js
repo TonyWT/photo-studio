@@ -21,10 +21,12 @@ export class Delete_layer_filter_action extends Base_action {
 	}
 
 	async do() {
-		super.do();
 		this.reference_layer = app.Layers.get_layer(this.layer_id);
 		if (!this.reference_layer) {
 			throw new Error('Aborted - layer with specified id doesn\'t exist');
+		}
+		if (this.reference_layer.locked) {
+			throw new Error('Aborted - Locked layer filter cannot be deleted');
 		}
 		this.old_filter = null;
 		for (let i in this.reference_layer.filters) {
@@ -37,6 +39,7 @@ export class Delete_layer_filter_action extends Base_action {
 		if (!this.old_filter) {
 			throw new Error('Aborted - filter with specified id doesn\'t exist in layer');
 		}
+		super.do();
 		config.need_render = true;
 		app.GUI.GUI_layers.render_layers();
 	}

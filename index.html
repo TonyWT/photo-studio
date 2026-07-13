@@ -24,9 +24,11 @@
           <p>图片只在此浏览器中处理。支持图层、裁剪、调整、滤镜、手动 Cutout、绘制、文字、拼贴和本地导出。</p>
           <div class="studio-actions">
             <button class="studio-button" data-testid="open-image">打开图片</button>
+            <button class="studio-button secondary" type="button" data-testid="import-project">导入项目</button>
             <a class="studio-button secondary" href="./editor/" data-testid="create-new">新建画布</a>
             <button class="studio-button secondary" type="button" data-testid="create-collage">新建拼贴</button>
           </div>
+          <p role="alert" data-testid="project-import-error" hidden></p>
           <div class="studio-collage-picker" data-testid="collage-templates" hidden>
             <p>选择本地拼贴模板</p>
             <div>
@@ -48,5 +50,6 @@
     </section>
   </main>
   <input hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff" data-testid="image-picker">
+  <input hidden type="file" accept="application/json,.json" data-testid="project-picker">
 </body>
 </html>

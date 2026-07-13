@@ -41,6 +41,10 @@ class BulgePinch_class extends Base_tools_class {
 		if (mouse.click_valid == false) {
 			return;
 		}
+		if (!config.layer || config.layer.locked) {
+			alertify.error('This layer is locked. Unlock it before editing.');
+			return;
+		}
 		if (config.layer.type != 'image') {
 			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
 			return;
@@ -75,6 +79,17 @@ class BulgePinch_class extends Base_tools_class {
 		if (this.started == false) {
 			return;
 		}
+		if (!config.layer || config.layer.locked || config.layer.type != 'image') {
+			if (config.layer) {
+				delete config.layer.link_canvas;
+			}
+			this.tmpCanvas.width = 1;
+			this.tmpCanvas.height = 1;
+			this.tmpCanvas = null;
+			this.tmpCanvasCtx = null;
+			this.started = false;
+			return;
+		}
 		delete config.layer.link_canvas;
 
 		app.State.do_action(
@@ -88,6 +103,7 @@ class BulgePinch_class extends Base_tools_class {
 		this.tmpCanvas.height = 1;
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
+		this.started = false;
 	}
 
 	bulgePinch_general(mouse, power, radius, bulge) {

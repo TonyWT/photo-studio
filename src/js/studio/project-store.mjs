@@ -8,15 +8,44 @@ export const SUPPORTED_IMAGE_TYPES = new Set([
 ]);
 
 const IMAGE_EXTENSION = /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i;
+const PROJECT_NAME_EXTENSION = /\.(png|jpe?g|webp|gif|bmp|tiff?|json)$/i;
+
+function isNonEmptyRecord(value) {
+  return Boolean(value)
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && Object.keys(value).length > 0;
+}
 
 export function isSupportedImage(file) {
   return Boolean(file) && (SUPPORTED_IMAGE_TYPES.has(file.type) || (!file.type && IMAGE_EXTENSION.test(file.name || '')));
 }
 
+export function isNativeProjectDocument(document) {
+  return Boolean(document)
+    && typeof document === 'object'
+    && !Array.isArray(document)
+    && typeof document.info === 'object'
+    && document.info !== null
+    && !Array.isArray(document.info)
+    && Number.isFinite(document.info.width)
+    && document.info.width > 0
+    && Number.isFinite(document.info.height)
+    && document.info.height > 0
+    && Array.isArray(document.layers)
+    && document.layers.every((layer) => isNonEmptyRecord(layer)
+      && Number.isFinite(layer.id)
+      && (layer.type === null || typeof layer.type === 'string'))
+    && Array.isArray(document.data)
+    && document.data.every((entry) => isNonEmptyRecord(entry)
+      && Number.isFinite(entry.id)
+      && typeof entry.data === 'string');
+}
+
 export function normalizeProjectName(name) {
   const cleaned = String(name || '')
     .trim()
-    .replace(IMAGE_EXTENSION, '')
+    .replace(PROJECT_NAME_EXTENSION, '')
     .replace(/[\\/:*?"<>|]+/g, '-')
     .replace(/\s*-\s*/g, '-')
     .replace(/\s+/g, ' ')
@@ -75,6 +104,13 @@ export class LocalProjectStore {
   async stashProject(projectId) {
     const id = newId();
     await this.request('handoff', 'readwrite', (store) => store.put({ id, kind: 'project', projectId, createdAt: Date.now() }));
+    sessionStorage.setItem('photo-studio-handoff', id);
+    return id;
+  }
+
+  async stashDocument(document, name) {
+    const id = newId();
+    await this.request('handoff', 'readwrite', (store) => store.put({ id, kind: 'document', document, name, createdAt: Date.now() }));
     sessionStorage.setItem('photo-studio-handoff', id);
     return id;
   }

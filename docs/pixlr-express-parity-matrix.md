@@ -11,7 +11,7 @@
 | W-01 | 56px 左侧深色图标工具轨 | 固定图标轨、悬停中文 tooltip、单一激活工具 | 部分可用：10 个非 AI 入口已建立，工具面板路由已接通 | 1920×878 截图、Chromium E2E |
 | W-02 | 中心黑色画布工作台 | 居中画布、棋盘透明背景、图片适配缩放 | 部分可用：深色工作区与居中画布已替换；已在固定 3840×2880 样图、26% 缩放、1920×878 视口下建立视觉基准 | 固定 PNG Canvas 状态 + `editor-loaded` 视觉快照 |
 | W-03 | 右侧窄图层轨（添加、缩略图、选中、锁定） | 图层缩略图、选择、显隐、排序、添加与锁定 | 部分可用：窄图层轨、添加、选择/显隐/删除、导入图片缩略图、锁定与收起已实现；图层重命名和更完整排序入口仍待补 | 图层 E2E（锁定、撤销、收起） |
-| W-04 | 底部缩放、撤销/重做、关闭、保存 | 缩放显示与加减、撤销/重做、本地项目保存、导出 | 部分可用：控制已接到底层内核；锁定、不透明度、旋转的撤销已验证，下载与 IndexedDB 仍需独立断言 | RPA + 下载/IndexedDB 断言 |
+| W-04 | 底部缩放、撤销/重做、关闭、保存 | 缩放显示与加减、撤销/重做、本地项目保存、导出 | 部分可用：控制已接到底层内核；PNG/JPEG/WebP、原生项目下载和 JSON 恢复已验证，下载后的像素基准与 IndexedDB 重开仍需补 | RPA + 下载/IndexedDB 断言 |
 | W-05 | 工具打开时左侧 280px 参数面板 | 每个工具有标题、参数、取消/应用或关闭 | 部分可用：通用面板、Cutout 模式/容差、Arrange 不透明度/旋转/翻转和 Crop 比例预设已完成；其余工具待补 | 工具状态截图 + DOM 断言 |
 
 ## 1. 保留的非 AI 编辑功能
@@ -19,17 +19,17 @@
 | 编号 | 参考工具与细节 | 本地映射 | 当前状态 | 最低验收 |
 | --- | --- | --- | --- | --- |
 | A-01 | Home：打开图片、新建、临时项目 | 首页本地打开/新建/最近项目 | 部分可用 | 打开本地图片与恢复项目 |
-| A-02 | Arrange：图层选择、名称、透明度、锁定、变换、旋转、翻转、删除、快速加 Frame/Text/Shape | miniPaint 图层、文字、形状、图层移动/复制/合并 | 部分可用：不透明度、重复、删除、顺序、旋转、翻转、锁定、文字/形状工具已实现；名称、混合、自由变换与 Frame 待补 | 图层状态 + 撤销 E2E |
-| A-03 | Crop：自由裁剪、宽高、拉直、比例、输出尺寸、旋转/翻转、图片/画布尺寸 | Crop、Resize、Rotate、Flip、Canvas size | 部分可用：自由裁剪、1:1/4:3/16:9 居中比例、应用/重置已实现；输出尺寸、拉直与裁剪内旋转/翻转待补 | Crop E2E 尺寸断言；基准 PNG 像素断言待补 |
-| A-04 | Cutout：魔棒、画笔、套索、形状；Keep/Remove；容差、柔化、连续；反选、重置、应用 | selection、magic_erase、erase；需补 Keep/Remove 与面板编排 | 部分可用：矩形选区、魔术橡皮、橡皮画笔、容差、柔化边缘、全局取样、移除/重置选区已实现，且受图层锁定保护；自由套索、形状、加减选区、反选和专门的应用流程待补 | 移除选区历史 E2E；透明像素/撤销 PNG 基准待补 |
-| A-05 | Adjust：Auto、B&W、Pop、Color/Light/Details/Scene 参数，Compare/Reset/Apply | Color corrections、Auto adjust、Blur/Sharpen/Desaturate 与效果模块 | 部分可用：面板已接入自动修正、颜色与光线、黑白；参数分组和 Compare/Reset/Apply 待补 | 自动修正历史 E2E；其余参数组 PNG 基准 |
-| A-06 | Effect：预览强度、返回、取消、应用 | Effects browser / 各效果模块 | 部分可用：已从工具面板打开本地效果浏览器；Pixlr 式预览/强度流程待补 | 效果浏览器 E2E、选中效果应用/撤销 |
-| A-07 | Filter：HDR、Focus/Bokeh、Reflect、Dispersion、Glitch、Colorize | miniPaint 现有滤镜优先映射；缺少的项目列入新增 | 部分可用 | 每个卡片存在且有真实结果或标记缺失 |
-| A-08 | Liquify：推移等子工具、Size/Strength/Density、质量预览、关闭 | Bulge/Pinch（WebGL2）为起点；需补子工具与临时预览 | 部分可用 | WebGL2 状态、应用/撤销 |
-| A-09 | Retouch：修复、克隆、模糊/锐化、减淡/加深等 | clone、blur、sharpen、desaturate | 内核可复用，壳层缺失 | 栅格图层实际修改 |
-| A-10 | Drawing：画笔、填充、笔、形状；颜色、笔刷、大小、柔化、透明度 | brush、pencil、fill、gradient、shape | 内核可复用，壳层缺失 | 新画布笔触与撤销 |
-| A-11 | Text：添加、字体、填充、对齐、样式、描边、阴影、背景、曲线/变形 | text + 本地系统字体；基础样式可复用，曲线/变形缺失 | 部分可用 | 文本图层、编辑与导出 |
-| A-12 | File/Save：PNG/JPEG/WebP、项目文件、关闭 | miniPaint 导出 + IndexedDB 项目 JSON | 部分可用 | 可解码导出和项目重开 |
+| A-02 | Arrange：图层选择、名称、透明度、锁定、变换、旋转、翻转、删除、快速加 Frame/Text/Shape | miniPaint 图层、文字、形状、图层移动/复制/合并 | 部分可用：名称、不透明度、重复、删除、顺序、旋转、翻转、锁定、原子坐标/尺寸/角度变换、文字/形状与基础 Frame 已实现；混合模式与画布上自由变换待补。锁定层仍可显隐并可撤销，其余修改受 UI/动作双重拦截。 | 图层状态 + 撤销 E2E |
+| A-03 | Crop：自由裁剪、宽高、拉直、比例、输出尺寸、旋转/翻转、图片/画布尺寸 | Crop、Resize、Rotate、Flip、Canvas size | 部分可用：自由裁剪、比例、输出宽高、裁剪会话内旋转/翻转、应用/取消均已实现；真实拖拽取消不会残留历史，锁定预检覆盖所有受影响层，Text/Shape 的旋转与翻转可撤销。拉直待补 | Crop 尺寸、像素、矢量几何与撤销 E2E |
+| A-04 | Cutout：魔棒、画笔、套索、形状；Keep/Remove；容差、柔化、连续；反选、重置、应用 | selection、magic_erase、erase；需补 Keep/Remove 与面板编排 | 部分可用：矩形、自由套索、椭圆、加减选/反选、Keep/Remove、魔术橡皮和橡皮笔刷均为本地处理；缩放/平移坐标、锁定/旋转保护、鼠标/触摸多指会话隔离、alpha 像素和撤销/重做均已验证。形状类型扩展与专门应用预览待补 | Cutout 触控/像素/撤销 E2E |
+| A-05 | Adjust：Auto、B&W、Pop、Color/Light/Details/Scene 参数，Compare/Reset/Apply | Color corrections、Auto adjust、Blur/Sharpen/Desaturate 与效果模块 | 部分可用：Auto、B&W、Pop、Color、Light、Details、Scene 均为本地真实入口；固定图的逐项像素变化/撤销和锁定保护已验证。参数对话框提供预览/取消/应用；Compare、Reset 专门控件仍待补 | 七项 RGBA 像素哈希 + 撤销 E2E |
+| A-06 | Effect：预览强度、返回、取消、应用 | Effects browser / 各效果模块 | 可用：本地效果浏览器及各效果预览对话框提供参数强度、取消/应用；重复编辑、撤销/重做能恢复正确参数。锁定或非图片层禁用且底层动作拒绝绕过。 | 效果浏览器、取消、应用/撤销、参数更新、锁定拦截 E2E |
+| A-07 | Filter：HDR、Focus/Bokeh、Reflect、Dispersion、Glitch、Colorize | miniPaint 现有滤镜优先映射；缺少的项目列入新增 | 部分可用：六个本地入口均已接通；HDR/Focus-Bokeh 复用 Enrich/Tilt Shift，Reflect/Dispersion/Glitch/Colorize 为本地 Canvas 算法。逐项像素变化、撤销恢复和弹窗后锁定保护已验证；Pixlr 式缩略图预览卡片与更丰富参数待补 | 六项 RGBA 像素哈希 + 撤销 E2E |
+| A-08 | Liquify：推移等子工具、Size/Strength/Density、质量预览、关闭 | Bulge/Pinch（WebGL2）为起点；需补子工具与临时预览 | 部分可用：已提供本地 WebGL2 膨胀/收缩、半径与强度；锁定、无图层或无 WebGL2 时明确禁用并安全退出旧工具；有效笔触、撤销已验证。推移/密度、临时预览和应用/取消待补 | WebGL2 状态、应用/撤销 |
+| A-09 | Retouch：修复、克隆、模糊/锐化、减淡/加深等 | clone、blur、sharpen、desaturate | 部分可用：克隆、局部模糊、局部锐化、局部去色已接入面板并受锁定保护；修复/减淡/加深及像素基准待补 | 局部去色历史/撤销 E2E；其余像素基准待补 |
+| A-10 | Drawing：画笔、填充、笔、形状；颜色、笔刷、大小、柔化、透明度 | brush、pencil、fill、gradient、shape | 部分可用：画笔、铅笔、填充、渐变、形状及颜色/大小/不透明度已接入；锁定层填充无历史写入；实际笔触、柔化和各工具像素基准待补 | 配置/工具激活 E2E；锁定填充 E2E；笔触基准待补 |
+| A-11 | Text：添加、字体、填充、对齐、样式、描边、阴影、背景、曲线/变形 | text + 本地系统字体；基础样式可复用，曲线/变形缺失 | 部分可用：文字面板已接入系统字体、字号、填充、加粗/斜体/下划线、描边；真实文字层创建、编辑、撤销和锁定保护已验证；对齐、阴影、背景、曲线/变形待补 | 文本图层、编辑与导出 |
+| A-12 | File/Save：PNG/JPEG/WebP、项目文件、关闭 | miniPaint 导出 + IndexedDB 项目 JSON | 部分可用：PNG/JPEG/WebP 下载、原生 JSON 导出/导入、合法空白项目和图片项目恢复已验证；下载图像解码与 IndexedDB 重开待补 | 可解码导出和项目重开 |
 | A-13 | Create collage（首页入口） | 新建 2×2 / 3×1 本地拼贴模板、编辑器辅助网格 | 部分可用 | 已覆盖选模板进入编辑器与网格数断言；后续补分格拖拽、图片占位和自动裁切 |
 
 ## 2. 严格排除

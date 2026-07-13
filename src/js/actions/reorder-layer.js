@@ -25,6 +25,9 @@ export class Reorder_layer_action extends Base_action {
 		if (!this.reference_layer) {
 			throw new Error('Aborted - layer with specified id doesn\'t exist');
 		}
+		if (this.reference_layer.locked) {
+			throw new Error('Aborted - Locked layer cannot be reordered');
+		}
 		if (this.direction < 0) {
 			this.reference_target = app.Layers.find_previous(this.layer_id);
 		}

@@ -41,6 +41,9 @@ class Sharpen_class extends Base_tools_class {
 		if (mouse.click_valid == false) {
 			return;
 		}
+		if (!config.layer || config.layer.locked) {
+			return;
+		}
 		if (config.layer.type != 'image') {
 			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
 			return;

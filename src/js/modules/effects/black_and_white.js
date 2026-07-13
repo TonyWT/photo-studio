@@ -16,8 +16,8 @@ class Effects_backAndWhite_class {
 	black_and_white() {
 		var _this = this;
 
-		if (config.layer.type != 'image') {
-			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+		if (config.layer?.type != 'image' || config.layer.locked) {
+			alertify.error('This layer must contain an unlocked image.');
 			return;
 		}
 
@@ -56,6 +56,10 @@ class Effects_backAndWhite_class {
 	}
 
 	save(params) {
+		if (config.layer?.type !== 'image' || config.layer.locked) {
+			alertify.error('This layer must contain an unlocked image.');
+			return false;
+		}
 		//get canvas from layer
 		var canvas = this.Base_layers.convert_layer_to_canvas(null, true);
 		var ctx = canvas.getContext("2d");

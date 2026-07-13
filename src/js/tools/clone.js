@@ -175,6 +175,9 @@ class Clone_class extends Base_tools_class {
 		var mouse = this.get_mouse_info(e);
 		var params = this.getParams();
 		var layer = config.layer;
+		if (!layer || layer.locked) {
+			return;
+		}
 		var previous_layer = this.Base_layers.find_previous(config.layer.id);
 
 		if (mouse.click_valid == false) {

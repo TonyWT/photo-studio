@@ -27,15 +27,21 @@ export class Update_layer_image_action extends Base_action {
 	}
 
 	async do() {
-		super.do();
 		this.reference_layer = app.Layers.get_layer(this.layer_id);
 		if (!this.reference_layer) {
 			throw new Error('Aborted - layer with specified id doesn\'t exist');
+		}
+		// Guard the action's explicit target, not config.layer. Async previews can
+		// outlive a layer selection change, but must never write locked pixels.
+		if (this.reference_layer.locked) {
+			this.reference_layer = null;
+			throw new Error('Aborted - locked layer image cannot be changed');
 		}
 		if (this.reference_layer.type != 'image'){
 			alertify.error('Error: layer must be image.');
 			throw new Error('Aborted - layer is not an image');
 		}
+		super.do();
 
 		// Get data url representation of image
 		let canvas_data_url;

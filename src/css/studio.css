@@ -65,11 +65,22 @@ body.photo-studio-editor .studio-control-group-two { grid-template-columns: repe
 body.photo-studio-editor .studio-control-group button { min-height: 34px; border: 1px solid #474747; border-radius: 5px; color: #c8c8c8; background: #303030; font: 12px/1 inherit; cursor: pointer; }
 body.photo-studio-editor .studio-control-group button:hover,
 body.photo-studio-editor .studio-control-group button.is-selected { border-color: #00a9df; color: #fff; background: #17465a; }
+body.photo-studio-editor .studio-control-group button:disabled { border-color: #3d3d3d; color: #777; background: #292929; cursor: not-allowed; }
 body.photo-studio-editor .studio-control-range { display: grid; grid-template-columns: 1fr auto; gap: 7px; color: #bcbcbc; font-size: 12px; }
 body.photo-studio-editor .studio-control-range input { width: 100%; grid-column: 1 / -1; accent-color: #00a9df; }
 body.photo-studio-editor .studio-control-check { display: flex; align-items: center; gap: 8px; min-height: 28px; color: #bebebe; font-size: 12px; cursor: pointer; }
 body.photo-studio-editor .studio-control-check input { width: 14px; height: 14px; margin: 0; accent-color: #00a9df; }
+body.photo-studio-editor .studio-control-color { display: flex; min-height: 30px; align-items: center; justify-content: space-between; color: #bcbcbc; font-size: 12px; }
+body.photo-studio-editor .studio-control-color input { width: 42px; height: 28px; padding: 0; border: 1px solid #474747; border-radius: 4px; background: #303030; cursor: pointer; }
+body.photo-studio-editor .studio-control-select,
+body.photo-studio-editor .studio-control-number { display: grid; gap: 6px; color: #bcbcbc; font-size: 12px; }
+body.photo-studio-editor .studio-control-select select,
+body.photo-studio-editor .studio-control-number input { min-height: 30px; border: 1px solid #474747; border-radius: 4px; color: #e4e4e4; background: #303030; font: inherit; }
+body.photo-studio-editor .studio-control-group-three { grid-template-columns: repeat(3, 1fr); }
 body.photo-studio-editor .studio-control-hint { margin: 0; color: #898989; font-size: 11px; line-height: 1.5; }
+body.photo-studio-editor .studio-control-status { margin: 0; padding: 9px; border: 1px solid #3d3d3d; border-radius: 5px; color: #bcbcbc; background: #1e1e1e; font-size: 12px; line-height: 1.5; }
+body.photo-studio-editor .studio-control-status.is-available { border-color: #226a80; color: #b7e7f6; }
+body.photo-studio-editor .studio-control-status.is-unavailable { color: #b2a795; }
 body.photo-studio-editor .studio-tool-panel .attributes { display: flex; width: auto; min-height: 0; margin: 0; padding: 12px; border: 1px solid #3d3d3d; border-radius: 8px; background: #1e1e1e; }
 body.photo-studio-editor .sidebar_right { position: relative; width: auto; margin: 0; padding: 9px 8px; overflow: visible; border-left: 1px solid #333; background: #222; transition: width .16s ease, padding .16s ease, border-color .16s ease; }
 body.photo-studio-editor .layers-collapsed .wrapper { grid-template-columns: minmax(0, 1fr) 0; }
@@ -109,6 +120,7 @@ body.photo-studio-editor .studio-status-actions { display: flex; height: 100%; a
 body.photo-studio-editor .studio-status-actions button,
 body.photo-studio-editor .studio-status-actions output,
 body.photo-studio-editor .studio-close-button { border: 0; color: #bcbcbc; background: transparent; font: 700 12px/1 inherit; letter-spacing: .02em; text-decoration: none; }
+body.photo-studio-editor .studio-export-format { min-height: 34px; padding: 0 9px; border: 1px solid #727272; border-radius: 6px; color: #f2f2f2; background: #303030; font: 700 12px/1 inherit; }
 body.photo-studio-editor .studio-status-actions button { min-width: 26px; cursor: pointer; }
 body.photo-studio-editor .studio-status-actions button:hover,
 body.photo-studio-editor .studio-close-button:hover { color: #fff; }
