@@ -737,14 +737,16 @@ function renderEditorToolControls(key) {
     const power = Number(attributes.power) || 50;
     const density = Number(attributes.density) || 50;
     const bulge = attributes.bulge !== false;
+	const push = Boolean(attributes.push);
     const liquifyTool = getCoreToolModule('bulge_pinch');
     const previewActive = Boolean(liquifyTool?.has_session?.());
     const disabled = availability.enabled ? '' : 'disabled';
     target.innerHTML = `
       <p class="studio-control-status ${availability.enabled ? 'is-available' : 'is-unavailable'}" data-testid="liquify-status">${previewActive ? '液化预览中：继续点按可叠加，应用后写入一次历史。' : availability.message}</p>
-      <div class="studio-control-group studio-control-group-two" aria-label="液化模式">
-        <button type="button" class="${bulge ? 'is-selected' : ''}" aria-pressed="${bulge}" data-testid="liquify-mode-bulge" ${disabled}>膨胀</button>
-        <button type="button" class="${bulge ? '' : 'is-selected'}" aria-pressed="${!bulge}" data-testid="liquify-mode-pinch" ${disabled}>收缩</button>
+      <div class="studio-control-group" aria-label="液化模式">
+        <button type="button" class="${!push && bulge ? 'is-selected' : ''}" aria-pressed="${!push && bulge}" data-testid="liquify-mode-bulge" ${disabled}>膨胀</button>
+        <button type="button" class="${!push && !bulge ? 'is-selected' : ''}" aria-pressed="${!push && !bulge}" data-testid="liquify-mode-pinch" ${disabled}>收缩</button>
+        <button type="button" class="${push ? 'is-selected' : ''}" aria-pressed="${push}" data-testid="liquify-mode-push" ${disabled}>推移</button>
       </div>
       <label class="studio-control-range">半径 <output data-liquify-radius-output>${radius}px</output>
         <input type="range" min="1" max="500" value="${radius}" data-testid="liquify-radius" ${disabled}>
@@ -781,12 +783,18 @@ function renderEditorToolControls(key) {
     });
     target.querySelector('[data-testid="liquify-mode-bulge"]')?.addEventListener('click', () => {
       setToolAttribute('bulge_pinch', 'bulge', true);
+	  setToolAttribute('bulge_pinch', 'push', false);
       renderEditorToolControls('liquify');
     });
     target.querySelector('[data-testid="liquify-mode-pinch"]')?.addEventListener('click', () => {
       setToolAttribute('bulge_pinch', 'bulge', false);
+	  setToolAttribute('bulge_pinch', 'push', false);
       renderEditorToolControls('liquify');
     });
+	target.querySelector('[data-testid="liquify-mode-push"]')?.addEventListener('click', () => {
+	  setToolAttribute('bulge_pinch', 'push', true);
+	  renderEditorToolControls('liquify');
+	});
     target.querySelector('[data-testid="liquify-cancel"]')?.addEventListener('click', () => {
       liquifyTool?.cancel_session?.();
       renderEditorToolControls('liquify');

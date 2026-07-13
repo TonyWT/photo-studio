@@ -2174,6 +2174,49 @@ test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安�
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(lockedHistoryLength);
 });
 
+test('Liquify 推移沿笔触暂存本地预览，并只在应用时写入一次历史', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-liquify').click();
+  const push = page.getByTestId('liquify-mode-push');
+  await expect(push).toBeVisible();
+
+  const webgl2Available = await page.evaluate(() => document.body.dataset.liquifyAcceleration === 'webgl2');
+  if (!webgl2Available) {
+    await expect(push).toBeDisabled();
+    return;
+  }
+
+  await push.click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'bulge_pinch').attributes)).toMatchObject({
+    push: true,
+  });
+  const before = await page.evaluate(() => ({
+    history: window.State.action_history.length,
+    preview: document.getElementById('canvas_preview').toDataURL(),
+  }));
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds.x + bounds.width * 0.38, bounds.y + bounds.height * 0.48);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.62, bounds.y + bounds.height * 0.48, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object.has_session())).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).not.toBe(before.preview);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history);
+
+  await page.getByTestId('liquify-apply').click();
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+  const applied = await page.evaluate(() => document.getElementById('canvas_preview').toDataURL());
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).toBe(before.preview);
+  await page.locator('[data-editor-history="redo"]').click();
+  await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).toBe(applied);
+});
+
 test('选区进入锁定图层的不可用液化时，会按标准工具生命周期清理临时选区', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'locked-liquify.png', mimeType: 'image/png', buffer: samplePng });

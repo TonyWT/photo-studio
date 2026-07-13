@@ -457,6 +457,7 @@ config.TOOLS = [
 			power: 50,
 			density: 50,
 			bulge: true,
+			push: false,
 		},
 	},
 	{
