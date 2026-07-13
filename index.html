@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="本地优先、无 AI 的网页图片编辑器">
+  <title>Photo Studio</title>
+  <script defer src="./dist/home.js"></script>
+</head>
+<body class="studio-home">
+  <main class="studio-app" data-page="home">
+    <aside class="studio-sidebar">
+      <div class="studio-brand">PHOTO STUDIO</div>
+      <nav class="studio-nav" aria-label="工作区导航">
+        <a href="./" aria-current="page">图片编辑</a>
+        <a href="#recent">最近项目</a>
+      </nav>
+    </aside>
+    <section class="studio-content">
+      <section class="studio-hero">
+        <div>
+          <p>本地图片工作台</p>
+          <h1>快速开始，精细编辑。</h1>
+          <p>图片只在此浏览器中处理。支持图层、裁剪、调整、滤镜、手动 Cutout、绘制、文字、拼贴和本地导出。</p>
+          <div class="studio-actions">
+            <button class="studio-button" data-testid="open-image">打开图片</button>
+            <a class="studio-button secondary" href="./editor/" data-testid="create-new">新建画布</a>
+            <button class="studio-button secondary" type="button" data-testid="create-collage">新建拼贴</button>
+          </div>
+          <div class="studio-collage-picker" data-testid="collage-templates" hidden>
+            <p>选择本地拼贴模板</p>
+            <div>
+              <button type="button" data-collage-template="2x2" data-testid="collage-template-2x2">2 × 2</button>
+              <button type="button" data-collage-template="3x1" data-testid="collage-template-3x1">3 × 1</button>
+            </div>
+          </div>
+        </div>
+        <div class="studio-dropzone" data-testid="dropzone">
+          <div class="studio-icon">✦</div>
+          <strong>拖放图片到这里</strong>
+          <span>或点击“打开图片”；支持 PNG、JPG、WebP、GIF、BMP、TIFF。</span>
+        </div>
+      </section>
+      <section class="studio-recent" id="recent">
+        <h2>最近项目</h2>
+        <div class="project-grid" data-testid="recent-projects"></div>
+      </section>
+    </section>
+  </main>
+  <input hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff" data-testid="image-picker">
+</body>
+</html>

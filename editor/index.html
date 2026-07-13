@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=0">
+  <title>Photo Studio 编辑器</title>
+  <script defer src="../dist/editor.js"></script>
+</head>
+<body>
+  <div class="studio-editor-shell" data-testid="editor-shell">
+    <aside class="studio-tool-rail" aria-label="编辑工具" data-testid="editor-tool-rail">
+      <a class="studio-rail-home" href="../" aria-label="返回主页" data-testid="editor-home"><img src="../images/logo.svg" alt=""></a>
+      <div class="studio-rail-divider" aria-hidden="true"></div>
+      <button type="button" class="studio-tool-button is-active" data-editor-tool="arrange" data-testid="tool-arrange" title="排列"><img src="../images/icons/select.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="crop" data-testid="tool-crop" title="裁剪"><img src="../images/icons/crop.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="cutout" data-testid="tool-cutout" title="手动抠图"><img src="../images/icons/selection.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="adjust" data-testid="tool-adjust" title="调整"><img src="../images/icons/desaturate.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="effect" data-testid="tool-effect" title="效果"><img src="../images/icons/gradient.png" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="filter" data-testid="tool-filter" title="滤镜"><img src="../images/icons/blur.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="liquify" data-testid="tool-liquify" title="液化"><img src="../images/icons/bulge_pinch.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="retouch" data-testid="tool-retouch" title="修饰"><img src="../images/icons/clone.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="drawing" data-testid="tool-drawing" title="绘制"><img src="../images/icons/brush.svg" alt=""></button>
+      <button type="button" class="studio-tool-button" data-editor-tool="text" data-testid="tool-text" title="文字"><img src="../images/icons/text.svg" alt=""></button>
+    </aside>
+
+    <aside class="studio-tool-panel" aria-live="polite" data-testid="editor-tool-panel" hidden>
+      <div class="studio-tool-panel-heading"><span data-editor-tool-title>排列</span><button type="button" data-editor-panel-close aria-label="关闭工具面板">×</button></div>
+      <p class="studio-tool-panel-description" data-editor-tool-description>选择、移动、缩放和排列当前图层。</p>
+      <div class="studio-tool-controls" data-editor-tool-controls></div>
+      <div class="block attributes" id="action_attributes"></div>
+    </aside>
+
+    <div class="wrapper">
+      <nav aria-label="主菜单" class="main_menu" id="main_menu"></nav>
+      <div class="submenu"><a class="logo" href="../">Photo Studio</a><button class="undo_button" id="undo_button" type="button"><span class="sr_only">撤销</span></button></div>
+      <div class="sidebar_left" id="tools_container"></div>
+      <div class="middle_area" id="middle_area" data-testid="editor-workspace"><canvas class="ruler_left" id="ruler_left"></canvas><canvas class="ruler_top" id="ruler_top"></canvas><div class="main_wrapper" id="main_wrapper"><div class="canvas_wrapper" id="canvas_wrapper"><div id="mouse"></div><div class="transparent-grid" id="canvas_minipaint_background"></div><canvas id="canvas_minipaint">浏览器不支持 Canvas。</canvas></div></div></div>
+      <aside class="sidebar_right" aria-label="图层" data-testid="editor-layer-rail"><div class="preview block"><h2 class="trn toggle" data-target="toggle_preview">预览</h2><div id="toggle_preview"></div></div><div class="colors block"><h2 class="trn toggle" data-target="toggle_colors">颜色</h2><div class="content" id="toggle_colors"></div></div><div class="block" id="info_base"><h2 class="trn toggle toggle-full" data-target="toggle_info">信息</h2><div class="content" id="toggle_info"></div></div><div class="details block" id="details_base"><h2 class="trn toggle toggle-full" data-target="toggle_details">图层详情</h2><div class="content details-content" id="toggle_details"></div></div><div class="layers block"><h2 class="trn">图层</h2><div class="content" id="layers_base"></div></div></aside>
+    </div>
+
+    <footer class="studio-editor-statusbar" data-testid="editor-statusbar">
+      <div class="studio-document-size" data-testid="editor-document-size"><span id="studio-document-dimensions">新建画布</span></div>
+      <div class="studio-status-actions" aria-label="画布操作">
+        <button type="button" data-editor-zoom="out" aria-label="缩小">−</button>
+        <output data-testid="editor-zoom">100%</output>
+        <button type="button" data-editor-zoom="in" aria-label="放大">+</button>
+        <span class="studio-status-separator" aria-hidden="true"></span>
+        <button type="button" data-editor-history="undo">撤销</button>
+        <button type="button" data-editor-history="redo">重做</button>
+        <span class="studio-status-separator" aria-hidden="true"></span>
+        <a class="studio-close-button" href="../" data-testid="editor-close">关闭</a>
+        <button class="studio-local-save-button" type="button" data-testid="save-local-project">保存项目</button>
+        <button class="studio-export-button" type="button" data-testid="export-image">导出</button>
+      </div>
+    </footer>
+  </div>
+  <div class="mobile_menu"><button class="left_mobile_menu" id="left_mobile_menu_button" type="button"><span class="sr_only">切换菜单</span></button><button class="right_mobile_menu" id="mobile_menu_button" type="button"><span class="sr_only">切换菜单</span></button></div>
+  <div class="hidden" id="tmp"></div><div id="popups"></div>
+</body>
+</html>
