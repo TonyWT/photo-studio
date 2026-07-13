@@ -1428,6 +1428,17 @@ function bindWorkbenchControls() {
     const panel = document.querySelector('[data-testid="editor-tool-panel"]');
     if (panel) panel.hidden = true;
   });
+
+  // miniPaint owns the layer-rail click handler. Defer one tick after its
+  // lock action so an already-open workbench panel reflects the new
+  // editability immediately instead of leaving stale enabled controls.
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('[data-testid="layer-lock"]')) return;
+    window.setTimeout(() => {
+      const activeTool = document.querySelector('[data-editor-tool].is-active')?.dataset.editorTool;
+      if (activeTool) renderEditorToolControls(activeTool);
+    }, 0);
+  });
   const refreshLayers = () => window.app?.GUI?.GUI_layers?.render_layers?.();
   document.querySelector('[data-editor-history="undo"]')?.addEventListener('click', async () => {
     await window.State?.undo_action?.();
