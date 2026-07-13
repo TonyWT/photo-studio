@@ -2505,3 +2505,22 @@ test('编辑器可保存本地项目', async ({ page }) => {
   await page.getByTestId('save-local-project').click();
   await expect(page.getByTestId('save-local-project')).toHaveText('已保存本地项目');
 });
+
+test('本地项目保存后可从首页最近项目重新打开并恢复画布尺寸', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('create-new').click();
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  const dimensions = await page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT]);
+  await page.getByTestId('save-local-project').click();
+  await expect(page.getByTestId('save-local-project')).toHaveText('已保存本地项目');
+
+  await page.getByTestId('editor-home').click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('[data-page="home"]')).toHaveAttribute('data-ready', 'true');
+  const savedProject = page.locator('[data-testid="recent-projects"] [data-open-project]').first();
+  await expect(savedProject).toBeVisible();
+  await savedProject.click();
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual(dimensions);
+});
