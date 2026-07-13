@@ -1978,6 +1978,34 @@ test('Arrange 可复制图层并通过底部撤销恢复', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.AppConfig.layers.length)).toBe(1);
 });
 
+test('Arrange 可直接在画布上拖动活动图层，并作为单次变换撤销', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-arrange').click();
+  await expect(page.locator('#tools_container .select')).toHaveClass(/active/);
+  const before = await page.evaluate(() => ({
+    x: window.AppConfig.layer.x,
+    y: window.AppConfig.layer.y,
+    history: window.State.action_history.length,
+    index: window.State.action_history_index,
+  }));
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.65, bounds.y + bounds.height * 0.6, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => ({ x: window.AppConfig.layer.x, y: window.AppConfig.layer.y }))).not.toEqual({ x: before.x, y: before.y });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => ({ x: window.AppConfig.layer.x, y: window.AppConfig.layer.y }))).toEqual({ x: before.x, y: before.y });
+  await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+});
+
 test('Arrange 可调整不透明度与旋转活动图片图层', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);
