@@ -2102,6 +2102,53 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(lockedHistoryLength);
 });
 
+test('Retouch 减淡笔刷会局部提亮并提供可撤销的本地像素修改', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'dodge.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-retouch').click();
+  await expect(page.getByTestId('retouch-dodge')).toBeVisible();
+  await page.getByTestId('retouch-dodge').click();
+  await expect(page.locator('#tools_container .dodge_burn')).toHaveClass(/active/);
+  await page.getByTestId('retouch-size').fill('1');
+  await page.getByTestId('retouch-dodge-burn-strength').fill('100');
+  const before = await page.evaluate(() => ({
+    hash: window.AppConfig.layer.link.src,
+    history: window.State.action_history.length,
+    index: window.State.action_history_index,
+  }));
+  await page.locator('#canvas_minipaint').click({ position: { x: 1, y: 1 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link.src)).not.toBe(before.hash);
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link.src)).toBe(before.hash);
+  await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+});
+
+test('Retouch 加深笔刷会局部压暗并提供可撤销的本地像素修改', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'burn.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-retouch').click();
+  await page.getByTestId('retouch-burn').click();
+  await expect(page.locator('#tools_container .dodge_burn')).toHaveClass(/active/);
+  await page.getByTestId('retouch-size').fill('1');
+  await page.getByTestId('retouch-dodge-burn-strength').fill('100');
+  const before = await page.evaluate(() => ({
+    hash: window.AppConfig.layer.link.src,
+    history: window.State.action_history.length,
+    index: window.State.action_history_index,
+  }));
+  await page.locator('#canvas_minipaint').click({ position: { x: 1, y: 1 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link.src)).not.toBe(before.hash);
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link.src)).toBe(before.hash);
+  await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+});
+
 test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安全执行', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);

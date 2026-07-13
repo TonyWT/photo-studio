@@ -449,6 +449,17 @@ config.TOOLS = [
 		},
 	},
 	{
+		name: 'dodge_burn',
+		attributes: {
+			size: 30,
+			strength: 50,
+			mode: {
+				value: 'dodge',
+				values: ['dodge', 'burn'],
+			},
+		},
+	},
+	{
 		name: 'bulge_pinch',
 		title: 'Bulge/Pinch Tool',
 		on_leave: 'on_leave',

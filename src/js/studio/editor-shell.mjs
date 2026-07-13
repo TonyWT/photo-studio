@@ -1213,8 +1213,11 @@ function renderEditorToolControls(key) {
     const disabled = editable ? '' : ' disabled aria-disabled="true"';
     const cloneAttributes = findToolConfig('clone')?.attributes ?? {};
     const blurAttributes = findToolConfig('blur')?.attributes ?? {};
+	const dodgeBurnAttributes = findToolConfig('dodge_burn')?.attributes ?? {};
     const size = Number(blurAttributes.size ?? cloneAttributes.size ?? 30);
     const strength = Math.round(Math.max(0, Math.min(1, Number(blurAttributes.strength ?? 1))) * 100);
+	const dodgeBurnStrength = Number(dodgeBurnAttributes.strength ?? 50);
+	const dodgeBurnMode = dodgeBurnAttributes.mode?.value ?? 'dodge';
     const source = cloneAttributes.source_layer?.value ?? 'Current';
     target.innerHTML = `
       <label class="studio-control-range">笔刷大小 <output data-retouch-size-output>${size}px</output>
@@ -1223,6 +1226,9 @@ function renderEditorToolControls(key) {
       <label class="studio-control-range">局部模糊强度 <output data-retouch-strength-output>${strength}%</output>
         <input type="range" min="1" max="100" value="${strength}" data-testid="retouch-blur-strength" ${disabled}>
       </label>
+	  <label class="studio-control-range">减淡/加深强度 <output data-retouch-dodge-burn-strength-output>${dodgeBurnStrength}%</output>
+		<input type="range" min="1" max="100" value="${dodgeBurnStrength}" data-testid="retouch-dodge-burn-strength" ${disabled}>
+	  </label>
       <label class="studio-control-select">克隆来源
         <select data-testid="retouch-clone-source" ${disabled}>
           <option value="Current" ${source === 'Current' ? 'selected' : ''}>当前图层</option>
@@ -1234,6 +1240,8 @@ function renderEditorToolControls(key) {
         <button type="button" data-testid="retouch-blur" data-core-tool="blur"${disabled}>局部模糊</button>
         <button type="button" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
         <button type="button" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>局部去色</button>
+		<button type="button" class="${dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>减淡</button>
+		<button type="button" class="${dodgeBurnMode === 'burn' ? 'is-selected' : ''}" data-testid="retouch-burn" data-core-tool="dodge_burn"${disabled}>加深</button>
       </div>
       <p class="studio-control-hint">仅可在未锁定的图片图层上修饰；每次笔触都会写入本地历史。克隆工具可按住 Alt/Option 设定来源。</p>
     `;
@@ -1242,7 +1250,7 @@ function renderEditorToolControls(key) {
     const sourceInput = target.querySelector('[data-testid="retouch-clone-source"]');
     sizeInput?.addEventListener('input', () => {
       const nextSize = Number(sizeInput.value);
-      ['clone', 'blur', 'sharpen', 'desaturate'].forEach((tool) => setToolAttribute(tool, 'size', nextSize));
+	  ['clone', 'blur', 'sharpen', 'desaturate', 'dodge_burn'].forEach((tool) => setToolAttribute(tool, 'size', nextSize));
       target.querySelector('[data-retouch-size-output]').textContent = `${nextSize}px`;
     });
     strengthInput?.addEventListener('input', () => {
@@ -1250,7 +1258,18 @@ function renderEditorToolControls(key) {
       setToolAttribute('blur', 'strength', nextStrength);
       target.querySelector('[data-retouch-strength-output]').textContent = `${strengthInput.value}%`;
     });
+	const dodgeBurnStrengthInput = target.querySelector('[data-testid="retouch-dodge-burn-strength"]');
+	dodgeBurnStrengthInput?.addEventListener('input', () => {
+	  setToolAttribute('dodge_burn', 'strength', Number(dodgeBurnStrengthInput.value));
+	  target.querySelector('[data-retouch-dodge-burn-strength-output]').textContent = `${dodgeBurnStrengthInput.value}%`;
+	});
     sourceInput?.addEventListener('change', () => setToolAttributeValue('clone', 'source_layer', sourceInput.value));
+	target.querySelector('[data-testid="retouch-dodge"]')?.addEventListener('click', () => {
+	  setToolAttributeValue('dodge_burn', 'mode', 'dodge');
+	});
+	target.querySelector('[data-testid="retouch-burn"]')?.addEventListener('click', () => {
+	  setToolAttributeValue('dodge_burn', 'mode', 'burn');
+	});
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
       button.addEventListener('click', () => activateCoreTool(button.dataset.coreTool));
     });
