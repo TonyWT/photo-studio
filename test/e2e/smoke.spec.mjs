@@ -1369,6 +1369,48 @@ test('Crop 会话内的旋转和翻转仅作为临时变换，应用后以一个
   await expect.poll(() => page.evaluate(readActiveLayerPixelHash)).toBe(originalPixelHash);
 });
 
+test('Crop 拉直角度只在会话内暂存，应用后作为单个可撤销的像素变换提交', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.app?.GUI?.GUI_tools?.tools_modules?.crop))).toBe(true);
+  await page.getByTestId('tool-crop').click();
+
+  const before = await page.evaluate(() => ({
+    width: window.AppConfig.WIDTH,
+    height: window.AppConfig.HEIGHT,
+    history: window.State.action_history.length,
+  }));
+  const pixelHash = await page.evaluate(readActiveLayerPixelHash);
+  await page.evaluate(() => {
+    const crop = window.app.GUI.GUI_tools.tools_modules.crop.object;
+    crop.selection = { x: 0, y: 0, width: window.AppConfig.WIDTH, height: window.AppConfig.HEIGHT };
+  });
+
+  await page.getByTestId('crop-straighten').evaluate((input) => {
+    input.value = '13.5';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(page.getByTestId('crop-straighten-value')).toHaveText('13.5°');
+  await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.get_pending_transform())).toEqual({
+    rotation: 0,
+    straighten: 13.5,
+    flip_horizontal: false,
+    flip_vertical: false,
+  });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history);
+  await expect.poll(() => page.evaluate(readActiveLayerPixelHash)).toBe(pixelHash);
+
+  await page.getByTestId('crop-apply').click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([before.width, before.height]);
+  await expect.poll(() => page.evaluate(readActiveLayerPixelHash)).not.toBe(pixelHash);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(readActiveLayerPixelHash)).toBe(pixelHash);
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([before.width, before.height]);
+});
+
 test('Crop 取消会清理临时选区、无历史写入并保持真实 Crop 工具状态', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'crop-lock.png', mimeType: 'image/png', buffer: samplePng });
@@ -1387,7 +1429,7 @@ test('Crop 取消会清理临时选区、无历史写入并保持真实 Crop 工
   await page.getByTestId('crop-rotate-right').click();
   await page.getByTestId('crop-flip-vertical').click();
   await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.get_pending_transform())).toEqual({
-    rotation: 90, flip_horizontal: false, flip_vertical: true,
+    rotation: 90, straighten: 0, flip_horizontal: false, flip_vertical: true,
   });
   await page.getByTestId('crop-cancel').click();
   await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.selection)).toEqual({
@@ -1400,7 +1442,7 @@ test('Crop 取消会清理临时选区、无历史写入并保持真实 Crop 工
     rotate: window.AppConfig.layer.rotate,
   }))).toEqual(documentBeforeCancel);
   await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.get_pending_transform())).toEqual({
-    rotation: 0, flip_horizontal: false, flip_vertical: false,
+    rotation: 0, straighten: 0, flip_horizontal: false, flip_vertical: false,
   });
   await expect(page.getByTestId('editor-tool-panel')).toBeHidden();
   await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe('crop');

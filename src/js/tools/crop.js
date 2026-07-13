@@ -28,6 +28,7 @@ class Crop_class extends Base_tools_class {
 		// cancel or become their own undo step.
 		this.pending_transform = {
 			rotation: 0,
+			straighten: 0,
 			flip_horizontal: false,
 			flip_vertical: false,
 		};
@@ -186,9 +187,21 @@ class Crop_class extends Base_tools_class {
 	get_pending_transform() {
 		return {
 			rotation: this.pending_transform.rotation,
+			straighten: this.pending_transform.straighten,
 			flip_horizontal: this.pending_transform.flip_horizontal,
 			flip_vertical: this.pending_transform.flip_vertical,
 		};
+	}
+
+	set_straighten_pending(angle) {
+		const parsed = Number(angle);
+		// Pixlr-style straighten is intentionally limited to a practical range.
+		// Rounding prevents a range input from accumulating unusable float noise
+		// in the staged crop transaction and its undo snapshot.
+		this.pending_transform.straighten = Number.isFinite(parsed)
+			? Math.round(Math.max(-45, Math.min(45, parsed)) * 10) / 10
+			: 0;
+		config.need_render = true;
 	}
 
 	rotate_pending(direction) {
@@ -208,6 +221,7 @@ class Crop_class extends Base_tools_class {
 
 	clear_pending_transform() {
 		this.pending_transform.rotation = 0;
+		this.pending_transform.straighten = 0;
 		this.pending_transform.flip_horizontal = false;
 		this.pending_transform.flip_vertical = false;
 		config.need_render = true;
@@ -272,6 +286,20 @@ class Crop_class extends Base_tools_class {
 			}
 			context.drawImage(output, 0, 0);
 			output = rotated;
+		}
+		const straighten = Number(transform.straighten) || 0;
+		if (Math.abs(straighten) > 0.0001) {
+			// Unlike quarter-turns, straightening keeps the current crop bounds.
+			// Transparent corners are deliberate: the user can refine the crop box
+			// before Apply, and the document does not unexpectedly grow.
+			const straightened = document.createElement('canvas');
+			straightened.width = output.width;
+			straightened.height = output.height;
+			const context = straightened.getContext('2d');
+			context.translate(straightened.width / 2, straightened.height / 2);
+			context.rotate((straighten * Math.PI) / 180);
+			context.drawImage(output, -output.width / 2, -output.height / 2);
+			output = straightened;
 		}
 		if (transform.flip_horizontal || transform.flip_vertical) {
 			const flipped = document.createElement('canvas');
@@ -380,6 +408,48 @@ class Crop_class extends Base_tools_class {
 		];
 	}
 
+	/**
+	 * Arbitrary-angle straightening has no lossless equivalent for a mixed
+	 * miniPaint document (text, shapes and images use different local geometry).
+	 * Render each affected layer into the selected document rectangle, then turn
+	 * that raster in document space.  This preserves visible layer order,
+	 * opacity and blend mode while making the transformation one atomic Crop
+	 * action that can be undone as a whole.
+	 */
+	rasterize_layer_for_straighten(link, selection, transform) {
+		const source = document.createElement('canvas');
+		source.width = Math.max(1, Math.round(selection.width));
+		source.height = Math.max(1, Math.round(selection.height));
+		const context = source.getContext('2d');
+		context.save();
+		context.translate(-selection.x, -selection.y);
+		this.Base_layers.render_object(context, link);
+		context.restore();
+		return this.transform_canvas(source, transform);
+	}
+
+	async apply_straightened_document(selection, transform) {
+		const dimensions = document.createElement('canvas');
+		dimensions.width = Math.max(1, Math.round(selection.width));
+		dimensions.height = Math.max(1, Math.round(selection.height));
+		const output = this.transform_canvas(dimensions, transform);
+		const actions = [];
+
+		for (const link of config.layers) {
+			if (link.type == null) continue;
+			const raster = this.rasterize_layer_for_straighten(link, selection, transform);
+			actions.push(...this.make_raster_replacement_actions(link, raster));
+		}
+
+		actions.push(
+			new app.Actions.Prepare_canvas_action('undo'),
+			new app.Actions.Update_config_action({ WIDTH: output.width, HEIGHT: output.height }),
+			new app.Actions.Prepare_canvas_action('do'),
+			new app.Actions.Reset_selection_action(this.selection)
+		);
+		return app.State.do_action(new app.Actions.Bundle_action('crop_straighten', 'Crop Straighten', actions));
+	}
+
 	render(ctx, layer) {
 		//nothing
 	}
@@ -444,6 +514,12 @@ class Crop_class extends Base_tools_class {
 		selection.y = Math.max(selection.y, 0);
 		selection.width = Math.min(selection.width, config.WIDTH);
 		selection.height = Math.min(selection.height, config.HEIGHT);
+
+		if (Math.abs(Number(transform.straighten) || 0) > 0.0001) {
+			const result = await this.apply_straightened_document(selection, transform);
+			if (result?.status === 'completed') this.clear_pending_transform();
+			return result;
+		}
 
 		let actions = [];
 

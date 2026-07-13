@@ -918,7 +918,13 @@ function renderEditorToolControls(key) {
     const cropHeight = Math.round(cropSelection?.height ?? window.AppConfig?.HEIGHT ?? 1);
     const locked = !cropDocumentIsEditable();
     const disabled = locked ? 'disabled' : '';
-    const transform = crop?.get_pending_transform?.() ?? { rotation: 0, flip_horizontal: false, flip_vertical: false };
+    const transform = crop?.get_pending_transform?.() ?? {
+      rotation: 0,
+      straighten: 0,
+      flip_horizontal: false,
+      flip_vertical: false,
+    };
+    const straighten = Number(transform.straighten) || 0;
     target.innerHTML = `
       <div class="studio-control-group studio-control-group-two" aria-label="裁剪比例">
         <button type="button" data-testid="crop-ratio-original" ${disabled}>原始比例</button>
@@ -939,6 +945,11 @@ function renderEditorToolControls(key) {
         <button type="button" data-testid="crop-rotate-right" ${disabled}>向右 90°</button>
         <button type="button" class="${transform.flip_horizontal ? 'is-selected' : ''}" aria-pressed="${transform.flip_horizontal}" data-testid="crop-flip-horizontal" ${disabled}>水平翻转</button>
         <button type="button" class="${transform.flip_vertical ? 'is-selected' : ''}" aria-pressed="${transform.flip_vertical}" data-testid="crop-flip-vertical" ${disabled}>垂直翻转</button>
+      </div>
+      <div class="studio-control-group" aria-label="裁剪拉直">
+        <label class="studio-control-range">拉直 <output data-testid="crop-straighten-value">${straighten.toFixed(1).replace(/\.0$/, '')}°</output>
+          <input type="range" min="-45" max="45" step="0.1" value="${straighten}" data-testid="crop-straighten" ${disabled}>
+        </label>
       </div>
       <div class="studio-control-group studio-control-group-two" aria-label="裁剪操作">
         <button type="button" data-testid="crop-apply" ${disabled}>应用裁剪</button>
@@ -980,6 +991,12 @@ function renderEditorToolControls(key) {
     target.querySelector('[data-testid="crop-flip-vertical"]')?.addEventListener('click', () => {
       crop?.flip_pending?.('vertical');
       renderEditorToolControls('crop');
+    });
+    target.querySelector('[data-testid="crop-straighten"]')?.addEventListener('input', (event) => {
+      crop?.set_straighten_pending?.(event.target.value);
+      const current = Number(crop?.get_pending_transform?.().straighten) || 0;
+      const output = target.querySelector('[data-testid="crop-straighten-value"]');
+      if (output) output.textContent = `${current.toFixed(1).replace(/\.0$/, '')}°`;
     });
     target.querySelector('[data-testid="crop-ratio-original"]')?.addEventListener('click', () => {
       applyCenteredCropRatio(window.AppConfig.WIDTH / window.AppConfig.HEIGHT);
