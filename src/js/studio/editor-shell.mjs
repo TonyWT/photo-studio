@@ -1016,6 +1016,12 @@ function renderEditorToolControls(key) {
     const width = Math.max(1, Number(layer?.width) || 1);
     const height = Math.max(1, Number(layer?.height) || 1);
     const rotate = normalizeLayerRotation(layer?.rotate);
+    const compositions = [
+      ['source-over', '正常'], ['multiply', '正片叠底'], ['screen', '滤色'], ['overlay', '叠加'],
+      ['darken', '变暗'], ['lighten', '变亮'], ['color-dodge', '颜色减淡'], ['color-burn', '颜色加深'],
+      ['hard-light', '强光'], ['soft-light', '柔光'], ['difference', '差值'], ['exclusion', '排除'],
+    ];
+    const composition = compositions.some(([value]) => value === layer?.composition) ? layer.composition : 'source-over';
     target.innerHTML = `
       <div class="studio-control-group studio-control-group-two" aria-label="图层排列操作">
         <button type="button" data-testid="arrange-duplicate" ${disabled}>复制图层</button>
@@ -1031,6 +1037,9 @@ function renderEditorToolControls(key) {
       </div>
       <label class="studio-control-range">不透明度 <output data-arrange-opacity-output>${opacity}%</output>
         <input type="range" min="0" max="100" value="${opacity}" data-testid="arrange-opacity" ${disabled}>
+      </label>
+      <label class="studio-control-select">混合模式
+        <select data-testid="arrange-composition" ${disabled}>${compositions.map(([value, label]) => `<option value="${value}" ${value === composition ? 'selected' : ''}>${label}</option>`).join('')}</select>
       </label>
       <div class="studio-control-group studio-control-group-two" aria-label="自由变换">
         <label class="studio-control-number">X
@@ -1095,11 +1104,13 @@ function renderEditorToolControls(key) {
     target.querySelector('[data-testid="arrange-open-image"]')?.addEventListener('click', () => window.FileOpen?.open_file());
     const opacityInput = target.querySelector('[data-testid="arrange-opacity"]');
     const opacityOutput = target.querySelector('[data-arrange-opacity-output]');
+    const compositionInput = target.querySelector('[data-testid="arrange-composition"]');
     opacityInput?.addEventListener('input', () => {
       opacityOutput.textContent = `${opacityInput.value}%`;
       opacityOutput.value = String(opacityInput.value);
     });
     opacityInput?.addEventListener('change', () => updateActiveLayer({ opacity: Number(opacityInput.value) }));
+    compositionInput?.addEventListener('change', () => updateActiveLayer({ composition: compositionInput.value }));
     target.querySelector('[data-testid="arrange-rotate-left"]')?.addEventListener('click', () => {
       if (activeLayerIsEditable()) updateActiveLayer({ rotate: normalizeLayerRotation((Number(window.AppConfig.layer.rotate) || 0) - 90) });
     });

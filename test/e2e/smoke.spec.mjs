@@ -1792,6 +1792,10 @@ test('Arrange 可调整不透明度与旋转活动图片图层', async ({ page }
   await expect.poll(() => page.evaluate(() => window.AppConfig.layer.opacity)).toBe(64);
   await page.locator('[data-editor-history="undo"]').click();
   await expect.poll(() => page.evaluate(() => window.AppConfig.layer.opacity)).toBe(100);
+  await page.getByTestId('arrange-composition').selectOption('multiply');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.composition)).toBe('multiply');
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.composition)).toBe('source-over');
   await page.getByTestId('arrange-rotate-right').click();
   await expect.poll(() => page.evaluate(() => window.AppConfig.layer.rotate)).toBe(90);
 });
