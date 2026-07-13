@@ -63,6 +63,17 @@ function getCoreToolModule(name) {
   return window.app?.GUI?.GUI_tools?.tools_modules?.[name]?.object || null;
 }
 
+function activeLayerIsEditable() {
+  return Boolean(window.AppConfig?.layer) && !window.AppConfig.layer.locked;
+}
+
+async function updateActiveLayer(settings) {
+  if (!activeLayerIsEditable() || !window.app?.Actions?.Update_layer_action || !window.State?.do_action) return false;
+  await window.State.do_action(new window.app.Actions.Update_layer_action(window.AppConfig.layer.id, settings));
+  window.app?.GUI?.GUI_layers?.render_layers?.();
+  return true;
+}
+
 function setupCollageFromQuery() {
   const template = new URLSearchParams(window.location.search).get('collage');
   const templates = {
@@ -85,6 +96,27 @@ function setupCollageFromQuery() {
   return true;
 }
 
+function applyCenteredCropRatio(ratio) {
+  const crop = getCoreToolModule('crop');
+  const width = window.AppConfig?.WIDTH;
+  const height = window.AppConfig?.HEIGHT;
+  if (!crop || !width || !height || !ratio) return false;
+  let selectionWidth = width;
+  let selectionHeight = Math.round(selectionWidth / ratio);
+  if (selectionHeight > height) {
+    selectionHeight = height;
+    selectionWidth = Math.round(selectionHeight * ratio);
+  }
+  crop.selection = {
+    x: Math.round((width - selectionWidth) / 2),
+    y: Math.round((height - selectionHeight) / 2),
+    width: selectionWidth,
+    height: selectionHeight,
+  };
+  window.AppConfig.need_render = true;
+  return true;
+}
+
 function renderEditorToolControls(key) {
   const target = document.querySelector('[data-editor-tool-controls]');
   if (!target) return;
@@ -98,6 +130,18 @@ function renderEditorToolControls(key) {
     <label class="studio-control-range">容差 <output data-cutout-tolerance-output>15</output>
       <input type="range" min="1" max="100" value="15" data-testid="cutout-tolerance">
     </label>
+    <label class="studio-control-check">
+      <input type="checkbox" data-testid="cutout-soft-edge" checked>
+      柔化边缘
+    </label>
+    <label class="studio-control-check">
+      <input type="checkbox" data-testid="cutout-global-sample">
+      全局取样
+    </label>
+    <div class="studio-control-group studio-control-group-two" aria-label="选区操作">
+      <button type="button" data-testid="cutout-remove-selection">移除选区</button>
+      <button type="button" data-testid="cutout-reset-selection">重置选区</button>
+    </div>
   `;
   const tolerance = target.querySelector('[data-testid="cutout-tolerance"]');
   const output = target.querySelector('[data-cutout-tolerance-output]');
@@ -106,6 +150,19 @@ function renderEditorToolControls(key) {
     setToolAttribute('magic_erase', 'power', value);
     output.value = String(value);
     output.textContent = String(value);
+  });
+  const softEdge = target.querySelector('[data-testid="cutout-soft-edge"]');
+  const globalSample = target.querySelector('[data-testid="cutout-global-sample"]');
+  softEdge.checked = findToolConfig('magic_erase')?.attributes?.anti_aliasing !== false;
+  globalSample.checked = findToolConfig('magic_erase')?.attributes?.contiguous === true;
+  softEdge.addEventListener('change', () => setToolAttribute('magic_erase', 'anti_aliasing', softEdge.checked));
+  globalSample.addEventListener('change', () => setToolAttribute('magic_erase', 'contiguous', globalSample.checked));
+  target.querySelector('[data-testid="cutout-remove-selection"]')?.addEventListener('click', () => {
+    if (!activeLayerIsEditable()) return;
+    getCoreToolModule('selection')?.delete_selection?.();
+  });
+  target.querySelector('[data-testid="cutout-reset-selection"]')?.addEventListener('click', () => {
+    getCoreToolModule('selection')?.clear_selection?.();
   });
   target.querySelectorAll('[data-cutout-mode]').forEach((button) => {
     button.addEventListener('click', async () => {
@@ -133,6 +190,12 @@ function renderEditorToolControls(key) {
 
   if (key === 'crop') {
     target.innerHTML = `
+      <div class="studio-control-group studio-control-group-two" aria-label="裁剪比例">
+        <button type="button" data-testid="crop-ratio-original">原始比例</button>
+        <button type="button" data-testid="crop-ratio-1-1">1:1</button>
+        <button type="button" data-testid="crop-ratio-4-3">4:3</button>
+        <button type="button" data-testid="crop-ratio-16-9">16:9</button>
+      </div>
       <div class="studio-control-group studio-control-group-two" aria-label="裁剪操作">
         <button type="button" data-testid="crop-apply">应用裁剪</button>
         <button type="button" data-testid="crop-reset">重置选区</button>
@@ -147,16 +210,34 @@ function renderEditorToolControls(key) {
       crop.Base_selection?.reset_selection();
       window.AppConfig.need_render = true;
     });
+    target.querySelector('[data-testid="crop-ratio-original"]')?.addEventListener('click', () => {
+      applyCenteredCropRatio(window.AppConfig.WIDTH / window.AppConfig.HEIGHT);
+    });
+    target.querySelector('[data-testid="crop-ratio-1-1"]')?.addEventListener('click', () => applyCenteredCropRatio(1));
+    target.querySelector('[data-testid="crop-ratio-4-3"]')?.addEventListener('click', () => applyCenteredCropRatio(4 / 3));
+    target.querySelector('[data-testid="crop-ratio-16-9"]')?.addEventListener('click', () => applyCenteredCropRatio(16 / 9));
     return;
   }
 
   if (key === 'arrange') {
+    const layer = window.AppConfig?.layer;
+    const opacity = Number.isFinite(layer?.opacity) ? layer.opacity : 100;
+    const locked = Boolean(layer?.locked);
     target.innerHTML = `
       <div class="studio-control-group studio-control-group-two" aria-label="图层排列操作">
         <button type="button" data-testid="arrange-duplicate">复制图层</button>
         <button type="button" data-testid="arrange-delete">删除图层</button>
         <button type="button" data-testid="arrange-up">上移图层</button>
         <button type="button" data-testid="arrange-down">下移图层</button>
+      </div>
+      <label class="studio-control-range">不透明度 <output data-arrange-opacity-output>${opacity}%</output>
+        <input type="range" min="0" max="100" value="${opacity}" data-testid="arrange-opacity" ${locked ? 'disabled' : ''}>
+      </label>
+      <div class="studio-control-group studio-control-group-two" aria-label="图层变换操作">
+        <button type="button" data-testid="arrange-rotate-left" ${locked ? 'disabled' : ''}>向左旋转</button>
+        <button type="button" data-testid="arrange-rotate-right" ${locked ? 'disabled' : ''}>向右旋转</button>
+        <button type="button" data-testid="arrange-flip-horizontal" ${locked ? 'disabled' : ''}>水平翻转</button>
+        <button type="button" data-testid="arrange-flip-vertical" ${locked ? 'disabled' : ''}>垂直翻转</button>
       </div>
       <div class="studio-control-group studio-control-group-two" aria-label="新增图层内容">
         <button type="button" data-testid="arrange-open-image">添加图片</button>
@@ -169,6 +250,25 @@ function renderEditorToolControls(key) {
     target.querySelector('[data-testid="arrange-up"]')?.addEventListener('click', () => invokeEditorModule('layer/move', 'up'));
     target.querySelector('[data-testid="arrange-down"]')?.addEventListener('click', () => invokeEditorModule('layer/move', 'down'));
     target.querySelector('[data-testid="arrange-open-image"]')?.addEventListener('click', () => window.FileOpen?.open_file());
+    const opacityInput = target.querySelector('[data-testid="arrange-opacity"]');
+    const opacityOutput = target.querySelector('[data-arrange-opacity-output]');
+    opacityInput?.addEventListener('input', () => {
+      opacityOutput.textContent = `${opacityInput.value}%`;
+      opacityOutput.value = String(opacityInput.value);
+    });
+    opacityInput?.addEventListener('change', () => updateActiveLayer({ opacity: Number(opacityInput.value) }));
+    target.querySelector('[data-testid="arrange-rotate-left"]')?.addEventListener('click', () => {
+      if (activeLayerIsEditable()) invokeEditorModule('image/rotate', 'left');
+    });
+    target.querySelector('[data-testid="arrange-rotate-right"]')?.addEventListener('click', () => {
+      if (activeLayerIsEditable()) invokeEditorModule('image/rotate', 'right');
+    });
+    target.querySelector('[data-testid="arrange-flip-horizontal"]')?.addEventListener('click', () => {
+      if (activeLayerIsEditable()) invokeEditorModule('image/flip', 'horizontal');
+    });
+    target.querySelector('[data-testid="arrange-flip-vertical"]')?.addEventListener('click', () => {
+      if (activeLayerIsEditable()) invokeEditorModule('image/flip', 'vertical');
+    });
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
       button.addEventListener('click', () => activateCoreTool(button.dataset.coreTool));
     });
@@ -282,11 +382,23 @@ function bindWorkbenchControls() {
     const panel = document.querySelector('[data-testid="editor-tool-panel"]');
     if (panel) panel.hidden = true;
   });
-  document.querySelector('[data-editor-history="undo"]')?.addEventListener('click', () => window.State?.undo());
-  document.querySelector('[data-editor-history="redo"]')?.addEventListener('click', () => window.State?.redo());
+  const refreshLayers = () => window.app?.GUI?.GUI_layers?.render_layers?.();
+  document.querySelector('[data-editor-history="undo"]')?.addEventListener('click', async () => {
+    await window.State?.undo_action?.();
+    refreshLayers();
+  });
+  document.querySelector('[data-editor-history="redo"]')?.addEventListener('click', async () => {
+    await window.State?.redo_action?.();
+    refreshLayers();
+  });
   document.querySelector('[data-editor-zoom="out"]')?.addEventListener('click', () => document.getElementById('zoom_less')?.click());
   document.querySelector('[data-editor-zoom="in"]')?.addEventListener('click', () => document.getElementById('zoom_more')?.click());
   document.querySelector('[data-testid="export-image"]')?.addEventListener('click', () => window.FileSave?.export());
+  document.querySelector('[data-testid="layers-rail-close"]')?.addEventListener('click', (event) => {
+    const collapsed = document.body.classList.toggle('layers-collapsed');
+    event.currentTarget.setAttribute('aria-pressed', String(collapsed));
+    event.currentTarget.setAttribute('aria-label', collapsed ? '展开图层轨' : '收起图层轨');
+  });
   window.setInterval(updateCanvasStatus, 300);
 }
 

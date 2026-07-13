@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import path from 'node:path';
 
 const samplePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR42mP8z8Dwn4GBgYGJAQAK+gL+wmnKrQAAAABJRU5ErkJggg==', 'base64');
+const desktopFixture = path.resolve('test/fixtures/editor-photo-fixture.png');
 
 async function openHome(page) {
   await page.goto('/');
@@ -75,6 +77,25 @@ test('手动 Cutout 可切换魔术橡皮并调整本地容差', async ({ page }
   await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'magic_erase').attributes.power)).toBe(37);
 });
 
+test('手动 Cutout 提供真实的柔化、全局取样与选区移除操作', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-cutout').click();
+  await expect(page.getByTestId('editor-tool-panel')).toBeVisible();
+  await page.getByTestId('cutout-soft-edge').uncheck();
+  await page.getByTestId('cutout-global-sample').check();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'magic_erase').attributes)).toMatchObject({ anti_aliasing: false, contiguous: true });
+  await page.evaluate(() => {
+    window.app.GUI.GUI_tools.tools_modules.selection.object.selection = { x: 0, y: 0, width: 1, height: 1 };
+  });
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+  await page.getByTestId('cutout-remove-selection').click();
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThan(historyBefore);
+  await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.selection.object.selection.width)).toBeNull();
+});
+
 test('Adjust 的自动修正会实际写入图片编辑历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
@@ -95,6 +116,23 @@ test('导入图片后右侧图层轨显示实际缩略图', async ({ page }) => 
   const thumbnail = page.getByTestId('editor-layer-rail').locator('.layer_thumbnail img');
   await expect(thumbnail).toHaveCount(1);
   await expect(thumbnail).toHaveAttribute('src', /.+/);
+});
+
+test('桌面已加载图片状态提供图层收起与可撤销锁定', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([3840, 2880]);
+  await expect(page.getByTestId('layers-rail-close')).toBeVisible();
+  const lock = page.getByTestId('layer-lock');
+  await expect(lock).toHaveCount(1);
+  await lock.click();
+  await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.locked))).toBe(true);
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.locked))).toBe(false);
+  await page.getByTestId('layers-rail-close').click();
+  await expect(page.locator('body')).toHaveClass(/layers-collapsed/);
 });
 
 test('Effect 从工具面板打开本地效果浏览器', async ({ page }) => {
@@ -120,6 +158,18 @@ test('Crop 的应用按钮会按当前裁剪选区改变画布尺寸', async ({ 
   await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([1, 1]);
 });
 
+test('Crop 比例预设会在画布内建立正确的居中裁剪区域', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-crop').click();
+  await page.getByTestId('crop-ratio-1-1').click();
+  await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.selection)).toEqual({ x: 480, y: 0, width: 2880, height: 2880 });
+  await page.getByTestId('crop-ratio-16-9').click();
+  await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.selection)).toEqual({ x: 0, y: 360, width: 3840, height: 2160 });
+});
+
 test('Arrange 可复制图层并通过底部撤销恢复', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
@@ -131,6 +181,21 @@ test('Arrange 可复制图层并通过底部撤销恢复', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.AppConfig.layers.length)).toBe(2);
   await page.locator('[data-editor-history="undo"]').click();
   await expect.poll(() => page.evaluate(() => window.AppConfig.layers.length)).toBe(1);
+});
+
+test('Arrange 可调整不透明度与旋转活动图片图层', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-arrange').click();
+  await expect(page.getByTestId('arrange-opacity')).toHaveValue('100');
+  await page.getByTestId('arrange-opacity').fill('64');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.opacity)).toBe(64);
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.opacity)).toBe(100);
+  await page.getByTestId('arrange-rotate-right').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.rotate)).toBe(90);
 });
 
 test('编辑器可保存本地项目', async ({ page }) => {

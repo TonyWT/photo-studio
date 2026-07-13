@@ -71,6 +71,8 @@ class Select_tool_class extends Base_tools_class {
 			}
 			if (this.Helper.is_input(event.target))
 				return;
+			if (config.layer && config.layer.locked)
+				return;
 			var k = event.key;
 
 			if (k == "ArrowUp") {
@@ -152,7 +154,7 @@ class Select_tool_class extends Base_tools_class {
 
 	async mousedown(e) {
 		var mouse = this.get_mouse_info(e);
-		if (mouse.click_valid == false || config.mouse_lock === true) {
+		if (mouse.click_valid == false || config.mouse_lock === true || config.layer.locked) {
 			return;
 		}
 
@@ -182,7 +184,7 @@ class Select_tool_class extends Base_tools_class {
 
 	mousemove(e) {
 		var mouse = this.get_mouse_info(e);
-		if (mouse.is_drag == false || mouse.click_valid == false || config.mouse_lock === true) {
+		if (mouse.is_drag == false || mouse.click_valid == false || config.mouse_lock === true || config.layer.locked) {
 			return;
 		}
 		if (this.resizing) {
@@ -217,7 +219,7 @@ class Select_tool_class extends Base_tools_class {
 
 	mouseup(e) {
 		var mouse = this.get_mouse_info(e);
-		if (mouse.click_valid == false || config.mouse_lock === true) {
+		if (mouse.click_valid == false || config.mouse_lock === true || config.layer.locked) {
 			return;
 		}
 		if (this.resizing) {

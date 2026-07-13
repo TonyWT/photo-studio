@@ -274,6 +274,10 @@ class Selection_class extends Base_tools_class {
 	delete_selection() {
 		var selection = this.selection;
 		var layer = config.layer;
+		if (config.layer.locked == true) {
+			alertify.error('This layer is locked. Unlock it before editing.');
+			return;
+		}
 
 		if (config.layer.type != 'image') {
 			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');

@@ -40,6 +40,10 @@ class Magic_erase_class extends Base_tools_class {
 		if (mouse.click_valid == false) {
 			return;
 		}
+		if (config.layer.locked == true) {
+			alertify.error('This layer is locked. Unlock it before editing.');
+			return;
+		}
 		if (config.layer.rotate || 0 > 0) {
 			alertify.error('Erase on rotate object is disabled. Please rasterize first.');
 			return;

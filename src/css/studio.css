@@ -67,9 +67,17 @@ body.photo-studio-editor .studio-control-group button:hover,
 body.photo-studio-editor .studio-control-group button.is-selected { border-color: #00a9df; color: #fff; background: #17465a; }
 body.photo-studio-editor .studio-control-range { display: grid; grid-template-columns: 1fr auto; gap: 7px; color: #bcbcbc; font-size: 12px; }
 body.photo-studio-editor .studio-control-range input { width: 100%; grid-column: 1 / -1; accent-color: #00a9df; }
+body.photo-studio-editor .studio-control-check { display: flex; align-items: center; gap: 8px; min-height: 28px; color: #bebebe; font-size: 12px; cursor: pointer; }
+body.photo-studio-editor .studio-control-check input { width: 14px; height: 14px; margin: 0; accent-color: #00a9df; }
 body.photo-studio-editor .studio-control-hint { margin: 0; color: #898989; font-size: 11px; line-height: 1.5; }
 body.photo-studio-editor .studio-tool-panel .attributes { display: flex; width: auto; min-height: 0; margin: 0; padding: 12px; border: 1px solid #3d3d3d; border-radius: 8px; background: #1e1e1e; }
-body.photo-studio-editor .sidebar_right { width: auto; margin: 0; padding: 9px 8px; overflow: hidden; border-left: 1px solid #333; background: #222; }
+body.photo-studio-editor .sidebar_right { position: relative; width: auto; margin: 0; padding: 9px 8px; overflow: visible; border-left: 1px solid #333; background: #222; transition: width .16s ease, padding .16s ease, border-color .16s ease; }
+body.photo-studio-editor .layers-collapsed .wrapper { grid-template-columns: minmax(0, 1fr) 0; }
+body.photo-studio-editor .layers-collapsed .sidebar_right { width: 0; padding-right: 0; padding-left: 0; border-left-color: transparent; }
+body.photo-studio-editor .layers-collapsed .sidebar_right > :not(.studio-layers-close) { opacity: 0; pointer-events: none; }
+body.photo-studio-editor .studio-layers-close { position: absolute; z-index: 4; top: 26px; left: -22px; display: grid; width: 28px; height: 28px; padding: 0; border: 1px solid #4c4c4c; border-radius: 50%; background: #303030; cursor: pointer; place-items: center; }
+body.photo-studio-editor .studio-layers-close img { width: 12px; height: 12px; filter: invert(1) grayscale(1) brightness(1.5); opacity: .8; }
+body.photo-studio-editor .studio-layers-close:hover { border-color: #00a9df; }
 body.photo-studio-editor .sidebar_right .preview,
 body.photo-studio-editor .sidebar_right .colors,
 body.photo-studio-editor .sidebar_right #info_base,
@@ -83,15 +91,18 @@ body.photo-studio-editor #layers_base > button:not(#insert_layer) { display: non
 body.photo-studio-editor .layers_list { margin: 0; overflow-y: auto; }
 body.photo-studio-editor .layers_list .item { position: relative; padding: 3px; border: 1px solid transparent; border-radius: 6px; }
 body.photo-studio-editor .layers_list .item.active { border-color: #00b7ee; background: #303030; }
-body.photo-studio-editor .layers_list .layer_name { display: grid; width: 100%; height: 46px; padding: 4px; border: 0; border-radius: 4px; color: transparent; background: repeating-conic-gradient(#414141 0 25%, #303030 0 50%) 50% / 12px 12px; place-items: center; }
+body.photo-studio-editor .layers_list .layer_name { display: grid; width: 100%; height: 72px; padding: 4px; border: 0; border-radius: 4px; color: transparent; background: repeating-conic-gradient(#414141 0 25%, #303030 0 50%) 50% / 12px 12px; place-items: center; }
 body.photo-studio-editor .layers_list .item.active .layer_name { color: transparent; background: repeating-conic-gradient(#555 0 25%, #424242 0 50%) 50% / 12px 12px; }
 body.photo-studio-editor .layers_list .layer_thumbnail { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 3px; background: repeating-conic-gradient(#414141 0 25%, #303030 0 50%) 50% / 12px 12px; }
 body.photo-studio-editor .layers_list .layer_thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
 body.photo-studio-editor .layers_list .layer_label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 body.photo-studio-editor .layers_list .visibility,
-body.photo-studio-editor .layers_list .delete { position: absolute; z-index: 2; top: 6px; opacity: .85; }
+body.photo-studio-editor .layers_list .delete,
+body.photo-studio-editor .layers_list .lock { position: absolute; z-index: 2; top: 6px; opacity: .85; }
 body.photo-studio-editor .layers_list .visibility { left: 6px; }
 body.photo-studio-editor .layers_list .delete { right: 6px; }
+body.photo-studio-editor .layers_list .lock { right: 25px; min-width: 28px; height: 18px; padding: 0 3px; border: 1px solid #565656; border-radius: 9px; color: #e8e8e8; background: rgba(33,33,33,.92); font: 9px/1 inherit; cursor: pointer; }
+body.photo-studio-editor .layers_list .item.is-locked .lock { border-color: #00a9df; color: #fff; background: #17465a; }
 body.photo-studio-editor .studio-editor-statusbar { position: fixed; z-index: 35; right: 0; bottom: 0; left: 0; display: flex; height: 54px; align-items: center; justify-content: space-between; padding: 0 14px 0 66px; border-top: 1px solid #252525; background: #242424; box-sizing: border-box; }
 body.photo-studio-editor .studio-document-size { color: #a9a9a9; font-size: 12px; }
 body.photo-studio-editor .studio-status-actions { display: flex; height: 100%; align-items: center; gap: 9px; }

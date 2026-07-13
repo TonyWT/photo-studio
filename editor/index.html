@@ -9,7 +9,7 @@
 <body>
   <div class="studio-editor-shell" data-testid="editor-shell">
     <aside class="studio-tool-rail" aria-label="编辑工具" data-testid="editor-tool-rail">
-      <a class="studio-rail-home" href="../" aria-label="返回主页" data-testid="editor-home"><img src="../images/logo.svg" alt=""></a>
+      <a class="studio-rail-home" href="../" aria-label="返回主页" data-testid="editor-home"><img src="../images/icons/media.svg" alt=""></a>
       <div class="studio-rail-divider" aria-hidden="true"></div>
       <button type="button" class="studio-tool-button is-active" data-editor-tool="arrange" data-testid="tool-arrange" title="排列"><img src="../images/icons/select.svg" alt=""></button>
       <button type="button" class="studio-tool-button" data-editor-tool="crop" data-testid="tool-crop" title="裁剪"><img src="../images/icons/crop.svg" alt=""></button>
@@ -35,7 +35,7 @@
       <div class="submenu"><a class="logo" href="../">Photo Studio</a><button class="undo_button" id="undo_button" type="button"><span class="sr_only">撤销</span></button></div>
       <div class="sidebar_left" id="tools_container"></div>
       <div class="middle_area" id="middle_area" data-testid="editor-workspace"><canvas class="ruler_left" id="ruler_left"></canvas><canvas class="ruler_top" id="ruler_top"></canvas><div class="main_wrapper" id="main_wrapper"><div class="canvas_wrapper" id="canvas_wrapper"><div id="mouse"></div><div class="transparent-grid" id="canvas_minipaint_background"></div><canvas id="canvas_minipaint">浏览器不支持 Canvas。</canvas></div></div></div>
-      <aside class="sidebar_right" aria-label="图层" data-testid="editor-layer-rail"><div class="preview block"><h2 class="trn toggle" data-target="toggle_preview">预览</h2><div id="toggle_preview"></div></div><div class="colors block"><h2 class="trn toggle" data-target="toggle_colors">颜色</h2><div class="content" id="toggle_colors"></div></div><div class="block" id="info_base"><h2 class="trn toggle toggle-full" data-target="toggle_info">信息</h2><div class="content" id="toggle_info"></div></div><div class="details block" id="details_base"><h2 class="trn toggle toggle-full" data-target="toggle_details">图层详情</h2><div class="content details-content" id="toggle_details"></div></div><div class="layers block"><h2 class="trn">图层</h2><div class="content" id="layers_base"></div></div></aside>
+      <aside class="sidebar_right" aria-label="图层" data-testid="editor-layer-rail"><button class="studio-layers-close" type="button" data-testid="layers-rail-close" aria-label="收起图层轨" aria-pressed="false"><img src="../images/icons/delete.svg" alt=""></button><div class="preview block"><h2 class="trn toggle" data-target="toggle_preview">预览</h2><div id="toggle_preview"></div></div><div class="colors block"><h2 class="trn toggle" data-target="toggle_colors">颜色</h2><div class="content" id="toggle_colors"></div></div><div class="block" id="info_base"><h2 class="trn toggle toggle-full" data-target="toggle_info">信息</h2><div class="content" id="toggle_info"></div></div><div class="details block" id="details_base"><h2 class="trn toggle toggle-full" data-target="toggle_details">图层详情</h2><div class="content details-content" id="toggle_details"></div></div><div class="layers block"><h2 class="trn">图层</h2><div class="content" id="layers_base"></div></div></aside>
     </div>
 
     <footer class="studio-editor-statusbar" data-testid="editor-statusbar">

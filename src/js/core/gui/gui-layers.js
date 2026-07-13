@@ -91,6 +91,17 @@ class GUI_layers_class {
 					new app.Actions.Delete_layer_action(target.dataset.id)
 				);
 			}
+			else if (target.id == 'lock') {
+				//lock or unlock a layer; the state is undoable and select-tool edits honour it
+				var layer = app.Layers.get_layer(target.dataset.id);
+				if (!layer) return;
+				return app.State.do_action(
+					new app.Actions.Update_layer_action(target.dataset.id, { locked: !Boolean(layer.locked) })
+				).then(function () {
+					app.Layers.render();
+					_this.render_layers();
+				});
+			}
 			else if (target.id == 'layer_name') {
 				//select layer
 				if (target.dataset.id == config.layer.id)
@@ -153,11 +164,15 @@ class GUI_layers_class {
 					class_extra += ' active';
 				}
 
+				if (value.locked) {
+					class_extra += ' is-locked';
+				}
 				html += '<div class="item ' + class_extra + '">';
 				if (value.visible == true)
 					html += '	<button class="visibility visible trn" id="visibility" data-id="' + value.id + '" title="Hide"></button>';
 				else
 					html += '	<button class="visibility trn" id="visibility" data-id="' + value.id + '" title="Show"></button>';
+				html += '	<button class="lock" id="lock" data-testid="layer-lock" data-id="' + value.id + '" title="' + (value.locked ? 'Unlock layer' : 'Lock layer') + '">' + (value.locked ? '解锁' : '锁定') + '</button>';
 				html += '	<button class="delete trn" id="delete" data-id="' + value.id + '" title="Delete"></button>';
 				
 				if(value.composition === 'source-atop'){

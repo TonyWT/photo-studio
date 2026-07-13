@@ -1,45 +1,35 @@
 # 编辑器视觉对照 QA（进行中）
 
-- source visual truth path: `/tmp/pixlr-express-editor.png`
-- implementation screenshot path: `/tmp/photo-studio-editor-shell.png`
-- combined comparison path: `/tmp/photo-studio-editor-qa-compare.png`
-- viewport: `1920 × 878`
-- state: 参考为已打开的 3840×2880 栅格照片（26%）；实现为新建 1280×720 空画布（100%）。两者不是同一文档状态，不能对画布内容、缩放值和图层缩略图做像素级判定。
+- 参考截图：`/tmp/pixlr-express-editor.png`
+- 实现截图：`test/e2e/visual.spec.mjs-snapshots/editor-loaded-chromium-darwin.png`
+- 同输入组合对照：`/tmp/photo-studio-editor-qa-comparison-v2.png`
+- 视口：`1920 × 878`
+- 对照状态：两侧均为已打开的 `3840 × 2880` 栅格照片，缩放均为 `26%`。实现侧使用仓库内固定测试图片；照片内容不作为视觉相似度判定对象。
 
-## Findings
+## 已验证
 
-- [P1] 视觉对照尚未使用相同的已加载图片状态。
-  - Location: 中心画布、右侧图层轨、底部文档尺寸/缩放。
-  - Evidence: 左侧参考显示照片、图层缩略图和 26% 缩放；右侧实现显示空白画布和棋盘缩略图。
-  - Impact: 无法确认图片适配、缩略图渲染与状态栏信息是否与目标交互一致。
-  - Fix: 增加固定本地样图的上传夹具；在同一图片、同一缩放状态下重新截图与对照。
+- [通过] 中心画布在固定视口下以约 `1000 × 750` 的可见区域居中展示，尺寸、黑色工作台、左右留白与参考的结构一致。
+- [通过] 右侧为窄图层轨，包含实际栅格缩略图、当前层选中态、锁定操作及可收起入口。
+- [通过] 底栏展示文档尺寸、缩放、撤销/重做、关闭、保存项目及导出；控制均连接到实际编辑器状态，而不是静态视觉占位。
+- [通过] 左侧只提供非 AI 的编辑工具入口；不存在 AI Tools 或 Element 入口。
 
-- [P1] 图层轨缺少实际图层缩略图与锁定状态。
-  - Location: `#layers_base` / `src/js/core/gui/gui-layers.js`。
-  - Evidence: 当前实现提供添加、选择、显隐、删除的内核 UI，但没有将活动图像图层渲染成窄缩略图，也没有锁定入口。
-  - Impact: 右侧区域的核心识别和图层操作路径未达到参考层级。
-  - Fix: 为图像层绘制缩略图，加入锁定操作和对应撤销/状态测试。
+## 仍需收敛的视觉差异
 
-- [P2] 底部操作区的信息密度和图标细节仍与参考有差距。
-  - Location: `.studio-editor-statusbar`。
-  - Evidence: 布局已经是“缩放—历史—关闭—保存/导出”结构，但参考中的图标、按钮数量和按钮文案更紧凑。
-  - Impact: 不阻塞主要编辑流程，但会降低相似状态下的视觉贴合度。
-  - Fix: 在固定样图状态下调整间距和按钮文案；保留应用自己的名称与文案，不复制 Pixlr 品牌内容。
+- [P2] 激活工具使用了较醒目的 3px 青色内嵌高亮；参考的激活态更克制。后续降低该高亮对比度。
+- [P2] 图层锁定目前使用“锁定/解锁”文字按钮，以保证可访问性和真实交互；后续可替换为仓库内开源图标并保留无障碍标签。
+- [P2] 底栏额外显示“保存项目”，这是本地优先产品的必要能力；后续将它与导出收束为更紧凑的保存组，减少与参考的密度差异。
+- [P2] 各工具参数面板的深度和控件密度尚未完全对齐，优先继续补齐 Cutout、Adjust、Effect、Filter、Liquify、Retouch、Drawing、Text 的真实能力。
 
-## Open Questions
+## 功能验证证据
 
-- 需要先完成固定样图上传和图层缩略图，才能判断工作台是否达到视觉验收。
-- Adjust、Effect、Filter、Liquify、Retouch、Drawing、Text 的完整面板仍在功能矩阵中标为部分可用或缺失，不能以当前空壳作为完成验收。
-
-## Implementation Checklist
-
-- [ ] 固定样图进入编辑器后重跑组合视觉对照。
-- [ ] 完成图层缩略图与锁定。
-- [ ] 为工作台工具逐项补真实操作、撤销/重做和导出基准。
-- [ ] 更新截图基准，并再次做相同 viewport/state 的组合比较。
+- 固定图片打开、图层缩略图、锁定并撤销、收起图层轨：`test/e2e/smoke.spec.mjs`。
+- 图层不透明度、旋转及撤销：`test/e2e/smoke.spec.mjs`。
+- 1:1 与 16:9 居中裁剪比例：`test/e2e/smoke.spec.mjs`。
+- 固定尺寸视觉基准：`test/e2e/visual.spec.mjs`。
 
 ## Comparison History
 
-1. 2026-07-13：首次并排比较发现文档状态不一致、图层轨不完整、底栏细节不一致；尚未修复，保留阻断状态。
+1. 2026-07-13：首次对照的文档状态不一致，无法判断画布与图层轨。
+2. 2026-07-13：已改为同视口、同尺寸、同缩放的已加载图片状态；原先的 P1 状态差异已消除，遗留项目均为 P2 细节或未完成功能。
 
-final result: blocked
+final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
