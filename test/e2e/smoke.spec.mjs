@@ -958,6 +958,37 @@ test('Adjust 的自动修正会实际写入图片编辑历史', async ({ page })
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThan(historyBefore);
 });
 
+test('Adjust 预览对话框提供真实 Compare 和 Reset，不在确认前写入历史', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-adjust').click();
+  const beforeHistory = await page.evaluate(() => window.State.action_history.length);
+  await page.getByTestId('adjust-color').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId('popup-compare')).toBeVisible();
+  await expect(dialog.getByTestId('popup-reset')).toBeVisible();
+
+  const red = dialog.locator('#pop_data_param_red');
+  await red.fill('55');
+  await expect(red).toHaveValue('55');
+  const compare = dialog.getByTestId('popup-compare');
+  const compareBox = await compare.boundingBox();
+  expect(compareBox).not.toBeNull();
+  await page.mouse.move(compareBox.x + compareBox.width / 2, compareBox.y + compareBox.height / 2);
+  await page.mouse.down();
+  await expect(dialog).toHaveAttribute('data-preview-mode', 'original');
+  await page.mouse.up();
+  await expect(dialog).toHaveAttribute('data-preview-mode', 'adjusted');
+
+  await dialog.getByTestId('popup-reset').click();
+  await expect(red).toHaveValue('12');
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(beforeHistory);
+  await dialog.locator('[data-id="popup_cancel"]').click();
+});
+
 test('Adjust 七组本地调整均会改变像素并可撤销', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);

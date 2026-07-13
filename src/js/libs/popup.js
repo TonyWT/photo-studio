@@ -53,6 +53,8 @@ var template = `
 		<div data-id="params_content"></div>
 	</div>
 	<div class="buttons">
+		<button type="button" data-id="popup_compare" data-testid="popup-compare" class="button">Compare</button>
+		<button type="button" data-id="popup_reset" data-testid="popup-reset" class="button">Reset</button>
 		<button type="button" data-id="popup_ok" class="button trn">Ok</button>
 		<button type="button" data-id="popup_cancel" class="button trn">Cancel</button>
 	</div>
@@ -267,6 +269,48 @@ class Dialog_class {
 		}
 	}
 
+	show_original_preview() {
+		if (this.preview === false || !this.el) return;
+		var original = this.el.querySelector('[data-id="pop_pre"]');
+		var preview = this.el.querySelector('[data-id="pop_post"]');
+		if (!original || !preview) return;
+		var ctx = preview.getContext('2d');
+		ctx.clearRect(0, 0, preview.width, preview.height);
+		ctx.drawImage(original, 0, 0);
+		this.el.dataset.previewMode = 'original';
+	}
+
+	show_adjusted_preview() {
+		if (this.preview === false || !this.el) return;
+		this.el.dataset.previewMode = 'adjusted';
+		this.preview_handler();
+	}
+
+	reset_params() {
+		if (!this.el) return;
+		for (var i = 0; i < this.parameters.length; i++) {
+			var parameter = this.parameters[i];
+			if (!parameter.name || parameter.value === undefined) continue;
+			var escapedName = CSS.escape(parameter.name);
+			var inputs = this.el.querySelectorAll('#pop_data_' + escapedName + ', input[name="' + parameter.name.replace(/"/g, '\\"') + '"]');
+			for (var j = 0; j < inputs.length; j++) {
+				if (inputs[j].type === 'radio') {
+					inputs[j].checked = inputs[j].value == parameter.value;
+				}
+				else if (inputs[j].type === 'checkbox') {
+					inputs[j].checked = Boolean(parameter.value);
+				}
+				else {
+					inputs[j].value = parameter.value;
+				}
+			}
+			var select = this.el.querySelector('#pop_data_' + escapedName);
+			if (select && select.tagName === 'SELECT') select.value = parameter.value;
+		}
+		this.last_params_hash = '';
+		this.show_adjusted_preview();
+	}
+
 	//OK pressed - prepare data and call handlers
 	save() {
 		var params = this.get_params();
@@ -384,6 +428,10 @@ class Dialog_class {
 		else {
 			this.el.querySelector('[data-id="popup_cancel"]').style.display = 'none';
 		}
+		if (this.preview === false) {
+			this.el.querySelector('[data-id="popup_compare"]').style.display = 'none';
+			this.el.querySelector('[data-id="popup_reset"]').style.display = 'none';
+		}
 
 		this.el.style.display = "block";
 		if (this.className) {
@@ -411,6 +459,15 @@ class Dialog_class {
 		this.el.querySelector('[data-id="popup_close"]').addEventListener('click', (event) => {
 			this.hide(false);
 		});
+		var compareButton = this.el.querySelector('[data-id="popup_compare"]');
+		compareButton.addEventListener('pointerdown', (event) => {
+			event.preventDefault();
+			this.show_original_preview();
+		});
+		for (const eventName of ['pointerup', 'pointerleave', 'pointercancel']) {
+			compareButton.addEventListener(eventName, () => this.show_adjusted_preview());
+		}
+		this.el.querySelector('[data-id="popup_reset"]').addEventListener('click', () => this.reset_params());
 		var targets = this.el.querySelectorAll('input');
 		for (var i = 0; i < targets.length; i++) {
 			targets[i].addEventListener('keyup', (event) => {
