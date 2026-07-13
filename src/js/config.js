@@ -366,6 +366,14 @@ config.TOOLS = [
 				value: 'left',
 				values: ['left', 'center', 'right'],
 			},
+			shadow_enabled: false,
+			shadow_color: '#000000',
+			shadow_blur: 4,
+			shadow_x: 2,
+			shadow_y: 2,
+			background_enabled: false,
+			background_color: '#000000',
+			background_opacity: 35,
 			strikethrough: {
 				value: false,
 				icon: `strikethrough.svg`

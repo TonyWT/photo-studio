@@ -86,8 +86,13 @@ function setToolAttributeValue(name, attribute, value) {
 function applyTextToolAttribute(attribute, value) {
   setToolAttributeValue('text', attribute, value);
   const layer = window.AppConfig?.layer;
-  if (attribute === 'align' && layer?.type === 'text' && !layer.locked) {
-    updateActiveLayer({ params: { ...layer.params, halign: value } });
+  const layerParamAttributes = new Set([
+    'align', 'shadow_enabled', 'shadow_color', 'shadow_blur', 'shadow_x', 'shadow_y',
+    'background_enabled', 'background_color', 'background_opacity',
+  ]);
+  if (layerParamAttributes.has(attribute) && layer?.type === 'text' && !layer.locked) {
+    const property = attribute === 'align' ? 'halign' : attribute;
+    updateActiveLayer({ params: { ...layer.params, [property]: value } });
     return;
   }
   const textTool = getCoreToolModule('text');
@@ -1246,6 +1251,8 @@ function renderEditorToolControls(key) {
     const italic = Boolean(attributes.italic?.value);
     const underline = Boolean(attributes.underline?.value);
     const alignment = attributes.align?.value ?? 'left';
+    const shadowEnabled = Boolean(attributes.shadow_enabled);
+    const backgroundEnabled = Boolean(attributes.background_enabled);
     target.innerHTML = `
       <button type="button" data-testid="text-create" data-core-tool="text">添加文字</button>
       <label class="studio-control-select">字体
@@ -1273,6 +1280,12 @@ function renderEditorToolControls(key) {
       <label class="studio-control-number">描边宽度
         <input type="number" min="0" max="999" step="0.1" value="${strokeSize}" data-testid="text-stroke-size">
       </label>
+      <label class="studio-control-check"><input type="checkbox" data-testid="text-shadow-enabled" ${shadowEnabled ? 'checked' : ''}>文字阴影</label>
+      <label class="studio-control-color">阴影色<input type="color" value="${attributes.shadow_color ?? '#000000'}" data-testid="text-shadow-color"></label>
+      <label class="studio-control-range">阴影模糊 <output data-text-shadow-blur-output>${attributes.shadow_blur ?? 4}px</output><input type="range" min="0" max="50" value="${attributes.shadow_blur ?? 4}" data-testid="text-shadow-blur"></label>
+      <label class="studio-control-check"><input type="checkbox" data-testid="text-background-enabled" ${backgroundEnabled ? 'checked' : ''}>文字背景</label>
+      <label class="studio-control-color">背景色<input type="color" value="${attributes.background_color ?? '#000000'}" data-testid="text-background-color"></label>
+      <label class="studio-control-range">背景不透明度 <output data-text-background-opacity-output>${attributes.background_opacity ?? 35}%</output><input type="range" min="0" max="100" value="${attributes.background_opacity ?? 35}" data-testid="text-background-opacity"></label>
       <p class="studio-control-hint">使用系统字体；点击“添加文字”后在画布中单击或拖拽以创建文本层。</p>
     `;
     const fontInput = target.querySelector('[data-testid="text-font"]');
@@ -1280,11 +1293,29 @@ function renderEditorToolControls(key) {
     const fillInput = target.querySelector('[data-testid="text-fill"]');
     const strokeInput = target.querySelector('[data-testid="text-stroke"]');
     const strokeSizeInput = target.querySelector('[data-testid="text-stroke-size"]');
+    const shadowEnabledInput = target.querySelector('[data-testid="text-shadow-enabled"]');
+    const shadowColorInput = target.querySelector('[data-testid="text-shadow-color"]');
+    const shadowBlurInput = target.querySelector('[data-testid="text-shadow-blur"]');
+    const backgroundEnabledInput = target.querySelector('[data-testid="text-background-enabled"]');
+    const backgroundColorInput = target.querySelector('[data-testid="text-background-color"]');
+    const backgroundOpacityInput = target.querySelector('[data-testid="text-background-opacity"]');
     fontInput.addEventListener('change', () => applyTextToolAttribute('font', fontInput.value));
     sizeInput.addEventListener('input', () => applyTextToolAttribute('size', Number(sizeInput.value)));
     fillInput.addEventListener('input', () => applyTextToolAttribute('fill', fillInput.value));
     strokeInput.addEventListener('input', () => applyTextToolAttribute('stroke', strokeInput.value));
     strokeSizeInput.addEventListener('input', () => applyTextToolAttribute('stroke_size', Number(strokeSizeInput.value)));
+    shadowEnabledInput.addEventListener('change', () => applyTextToolAttribute('shadow_enabled', shadowEnabledInput.checked));
+    shadowColorInput.addEventListener('input', () => applyTextToolAttribute('shadow_color', shadowColorInput.value));
+    shadowBlurInput.addEventListener('input', () => {
+      applyTextToolAttribute('shadow_blur', Number(shadowBlurInput.value));
+      target.querySelector('[data-text-shadow-blur-output]').textContent = `${shadowBlurInput.value}px`;
+    });
+    backgroundEnabledInput.addEventListener('change', () => applyTextToolAttribute('background_enabled', backgroundEnabledInput.checked));
+    backgroundColorInput.addEventListener('input', () => applyTextToolAttribute('background_color', backgroundColorInput.value));
+    backgroundOpacityInput.addEventListener('input', () => {
+      applyTextToolAttribute('background_opacity', Number(backgroundOpacityInput.value));
+      target.querySelector('[data-text-background-opacity-output]').textContent = `${backgroundOpacityInput.value}%`;
+    });
     target.querySelectorAll('[data-testid="text-bold"], [data-testid="text-italic"], [data-testid="text-underline"]').forEach((button) => {
       button.addEventListener('click', () => {
         const attribute = button.dataset.testid.replace('text-', '');

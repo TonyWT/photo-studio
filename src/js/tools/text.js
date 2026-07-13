@@ -2308,7 +2308,15 @@ class Text_class extends Base_tools_class {
 					wrap_direction: 'ttb',
 					halign,
 					valign: 'top',
-					wrap: 'letter'
+					wrap: 'letter',
+					shadow_enabled: Boolean(textAttributes?.shadow_enabled),
+					shadow_color: textAttributes?.shadow_color || '#000000',
+					shadow_blur: Number(textAttributes?.shadow_blur) || 0,
+					shadow_x: Number(textAttributes?.shadow_x) || 0,
+					shadow_y: Number(textAttributes?.shadow_y) || 0,
+					background_enabled: Boolean(textAttributes?.background_enabled),
+					background_color: textAttributes?.background_color || '#000000',
+					background_opacity: Number(textAttributes?.background_opacity) || 0,
 				},
 				render_function: [this.name, 'render'],
 				x: mouse.x,
@@ -2585,6 +2593,27 @@ class Text_class extends Base_tools_class {
 		var params = layer.params;
 
 		const isActiveLayerAndTextTool = layer === config.layer && config.TOOL.name === 'text';
+		const decorationParams = layer.params || {};
+		ctx.save();
+		if (decorationParams.background_enabled) {
+			if (layer.rotate) {
+				const alpha = (layer.rotate * Math.PI) / 180;
+				ctx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
+				ctx.rotate(alpha);
+				ctx.translate(-layer.x - layer.width / 2, -layer.y - layer.height / 2);
+			}
+			ctx.globalAlpha = Math.max(0, Math.min(100, Number(decorationParams.background_opacity) || 0)) / 100;
+			ctx.fillStyle = decorationParams.background_color || '#000000';
+			ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+			ctx.restore();
+			ctx.save();
+		}
+		if (decorationParams.shadow_enabled) {
+			ctx.shadowColor = decorationParams.shadow_color || '#000000';
+			ctx.shadowBlur = Math.max(0, Number(decorationParams.shadow_blur) || 0);
+			ctx.shadowOffsetX = Number(decorationParams.shadow_x) || 0;
+			ctx.shadowOffsetY = Number(decorationParams.shadow_y) || 0;
+		}
 		const editor = this.get_editor(layer);
 		editor.selection.set_visible(isActiveLayerAndTextTool);
 		editor.selection.set_cursor_visible(isActiveLayerAndTextTool && (this.selecting || this.focused));
@@ -2604,6 +2633,7 @@ class Text_class extends Base_tools_class {
 			this.selection.width = 0;
 			this.selection.height = 0;
 		}
+		ctx.restore();
 	}
 
 	get_editor(layer) {
