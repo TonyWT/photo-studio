@@ -1292,6 +1292,69 @@ test('Crop 的应用按钮会按当前裁剪选区改变画布尺寸并保留所
   })).toEqual(expectedPixel);
 });
 
+test('裁剪后的 PNG 导出可解码，并保留当前画布的精确 RGBA 像素', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'export-crop.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  const expectedPixel = await page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    return Array.from(context.getImageData(1, 0, 1, 1).data);
+  });
+  await page.getByTestId('tool-crop').click();
+  await page.evaluate(() => {
+    window.app.GUI.GUI_tools.tools_modules.crop.object.selection = { x: 1, y: 0, width: 1, height: 1 };
+  });
+  await page.getByTestId('crop-apply').click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([1, 1]);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId('export-image').click();
+  const download = await downloadPromise;
+  const bytes = await readFile(await download.path());
+  const decoded = await page.evaluate(async (base64) => {
+    const blob = await (await fetch(`data:image/png;base64,${base64}`)).blob();
+    const image = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    return { width: image.width, height: image.height, pixel: Array.from(context.getImageData(0, 0, 1, 1).data) };
+  }, bytes.toString('base64'));
+  expect(decoded).toEqual({ width: 1, height: 1, pixel: expectedPixel });
+});
+
+test('JPEG 与 WebP 导出可解码，并保持当前画布尺寸', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'export-formats.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  const dimensions = await page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT]);
+
+  for (const format of ['jpeg', 'webp']) {
+    await page.getByTestId('export-format').selectOption(format);
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByTestId('export-image').click();
+    const download = await downloadPromise;
+    const bytes = await readFile(await download.path());
+    const decoded = await page.evaluate(async ({ base64, type }) => {
+      const blob = await (await fetch(`data:${type};base64,${base64}`)).blob();
+      const image = await createImageBitmap(blob);
+      return [image.width, image.height];
+    }, {
+      base64: bytes.toString('base64'),
+      type: format === 'jpeg' ? 'image/jpeg' : 'image/webp',
+    });
+    expect(decoded).toEqual(dimensions);
+  }
+});
+
 test('Crop 比例预设会在画布内建立正确的居中裁剪区域', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);
