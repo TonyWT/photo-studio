@@ -730,10 +730,13 @@ function renderEditorToolControls(key) {
     if (!attributes) return;
     const radius = Number(attributes.radius) || 80;
     const power = Number(attributes.power) || 50;
+    const density = Number(attributes.density) || 50;
     const bulge = attributes.bulge !== false;
+    const liquifyTool = getCoreToolModule('bulge_pinch');
+    const previewActive = Boolean(liquifyTool?.has_session?.());
     const disabled = availability.enabled ? '' : 'disabled';
     target.innerHTML = `
-      <p class="studio-control-status ${availability.enabled ? 'is-available' : 'is-unavailable'}" data-testid="liquify-status">${availability.message}</p>
+      <p class="studio-control-status ${availability.enabled ? 'is-available' : 'is-unavailable'}" data-testid="liquify-status">${previewActive ? '液化预览中：继续点按可叠加，应用后写入一次历史。' : availability.message}</p>
       <div class="studio-control-group studio-control-group-two" aria-label="液化模式">
         <button type="button" class="${bulge ? 'is-selected' : ''}" aria-pressed="${bulge}" data-testid="liquify-mode-bulge" ${disabled}>膨胀</button>
         <button type="button" class="${bulge ? '' : 'is-selected'}" aria-pressed="${!bulge}" data-testid="liquify-mode-pinch" ${disabled}>收缩</button>
@@ -744,12 +747,21 @@ function renderEditorToolControls(key) {
       <label class="studio-control-range">强度 <output data-liquify-strength-output>${power}%</output>
         <input type="range" min="1" max="100" value="${power}" data-testid="liquify-strength" ${disabled}>
       </label>
+      <label class="studio-control-range">密度 <output data-liquify-density-output>${density}%</output>
+        <input type="range" min="1" max="100" value="${density}" data-testid="liquify-density" ${disabled}>
+      </label>
+      <div class="studio-control-group studio-control-group-two" aria-label="液化预览操作">
+        <button type="button" data-testid="liquify-cancel" ${previewActive && availability.enabled ? '' : 'disabled'}>取消预览</button>
+        <button type="button" data-testid="liquify-apply" ${previewActive && availability.enabled ? '' : 'disabled'}>应用液化</button>
+      </div>
     `;
     if (!availability.enabled) return;
     const radiusInput = target.querySelector('[data-testid="liquify-radius"]');
     const strengthInput = target.querySelector('[data-testid="liquify-strength"]');
+    const densityInput = target.querySelector('[data-testid="liquify-density"]');
     const radiusOutput = target.querySelector('[data-liquify-radius-output]');
     const strengthOutput = target.querySelector('[data-liquify-strength-output]');
+    const densityOutput = target.querySelector('[data-liquify-density-output]');
     radiusInput.addEventListener('input', () => {
       setToolAttribute('bulge_pinch', 'radius', Number(radiusInput.value));
       radiusOutput.textContent = `${radiusInput.value}px`;
@@ -758,12 +770,24 @@ function renderEditorToolControls(key) {
       setToolAttribute('bulge_pinch', 'power', Number(strengthInput.value));
       strengthOutput.textContent = `${strengthInput.value}%`;
     });
+    densityInput.addEventListener('input', () => {
+      setToolAttribute('bulge_pinch', 'density', Number(densityInput.value));
+      densityOutput.textContent = `${densityInput.value}%`;
+    });
     target.querySelector('[data-testid="liquify-mode-bulge"]')?.addEventListener('click', () => {
       setToolAttribute('bulge_pinch', 'bulge', true);
       renderEditorToolControls('liquify');
     });
     target.querySelector('[data-testid="liquify-mode-pinch"]')?.addEventListener('click', () => {
       setToolAttribute('bulge_pinch', 'bulge', false);
+      renderEditorToolControls('liquify');
+    });
+    target.querySelector('[data-testid="liquify-cancel"]')?.addEventListener('click', () => {
+      liquifyTool?.cancel_session?.();
+      renderEditorToolControls('liquify');
+    });
+    target.querySelector('[data-testid="liquify-apply"]')?.addEventListener('click', async () => {
+      await liquifyTool?.apply_session?.();
       renderEditorToolControls('liquify');
     });
     return;
@@ -1435,6 +1459,7 @@ function bindWorkbenchControls() {
   document.addEventListener('click', (event) => {
     if (!event.target.closest('[data-testid="layer-lock"]')) return;
     window.setTimeout(() => {
+      getCoreToolModule('bulge_pinch')?.cancel_session?.();
       const activeTool = document.querySelector('[data-editor-tool].is-active')?.dataset.editorTool;
       if (activeTool) renderEditorToolControls(activeTool);
     }, 0);
@@ -1458,6 +1483,11 @@ function bindWorkbenchControls() {
       if (activeTool === 'crop' || activeTool === 'arrange') renderEditorToolControls(activeTool);
     }, 0);
   }, true);
+  window.addEventListener('photo-studio-liquify-preview-change', () => {
+    if (document.querySelector('[data-editor-tool="liquify"]')?.classList.contains('is-active')) {
+      renderEditorToolControls('liquify');
+    }
+  });
   document.querySelector('[data-editor-zoom="out"]')?.addEventListener('click', () => document.getElementById('zoom_less')?.click());
   document.querySelector('[data-editor-zoom="in"]')?.addEventListener('click', () => document.getElementById('zoom_more')?.click());
   document.querySelector('[data-testid="export-image"]')?.addEventListener('click', exportImage);

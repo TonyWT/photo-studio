@@ -25,7 +25,7 @@
 | A-05 | Adjust：Auto、B&W、Pop、Color/Light/Details/Scene 参数，Compare/Reset/Apply | Color corrections、Auto adjust、Blur/Sharpen/Desaturate 与效果模块 | 部分可用：Auto、B&W、Pop、Color、Light、Details、Scene 均为本地真实入口；固定图的逐项像素变化/撤销和锁定保护已验证。参数对话框提供预览/取消/应用；Compare、Reset 专门控件仍待补 | 七项 RGBA 像素哈希 + 撤销 E2E |
 | A-06 | Effect：预览强度、返回、取消、应用 | Effects browser / 各效果模块 | 可用：本地效果浏览器及各效果预览对话框提供参数强度、取消/应用；重复编辑、撤销/重做能恢复正确参数。锁定或非图片层禁用且底层动作拒绝绕过。 | 效果浏览器、取消、应用/撤销、参数更新、锁定拦截 E2E |
 | A-07 | Filter：HDR、Focus/Bokeh、Reflect、Dispersion、Glitch、Colorize | miniPaint 现有滤镜优先映射；缺少的项目列入新增 | 部分可用：六个本地入口均已接通；HDR/Focus-Bokeh 复用 Enrich/Tilt Shift，Reflect/Dispersion/Glitch/Colorize 为本地 Canvas 算法。逐项像素变化、撤销恢复和弹窗后锁定保护已验证；Pixlr 式缩略图预览卡片与更丰富参数待补 | 六项 RGBA 像素哈希 + 撤销 E2E |
-| A-08 | Liquify：推移等子工具、Size/Strength/Density、质量预览、关闭 | Bulge/Pinch（WebGL2）为起点；需补子工具与临时预览 | 部分可用：已提供本地 WebGL2 膨胀/收缩、半径与强度；锁定、无图层或无 WebGL2 时明确禁用并安全退出旧工具；有效笔触、撤销已验证。推移/密度、临时预览和应用/取消待补 | WebGL2 状态、应用/撤销 |
+| A-08 | Liquify：推移等子工具、Size/Strength/Density、质量预览、关闭 | Bulge/Pinch（WebGL2）为起点；需补子工具与临时预览 | 部分可用：已提供本地 WebGL2 膨胀/收缩、半径/强度/密度；多次点按先留在本地临时预览，显式应用才生成一次可撤销历史，取消不写入。锁定、无图层或无 WebGL2 时明确禁用并安全退出旧工具。推移待补 | WebGL2 状态、预览取消、应用/撤销 |
 | A-09 | Retouch：修复、克隆、模糊/锐化、减淡/加深等 | clone、blur、sharpen、desaturate | 部分可用：克隆、局部模糊、局部锐化、局部去色已接入面板并受锁定保护；修复/减淡/加深及像素基准待补 | 局部去色历史/撤销 E2E；其余像素基准待补 |
 | A-10 | Drawing：画笔、填充、笔、形状；颜色、笔刷、大小、柔化、透明度 | brush、pencil、fill、gradient、shape | 部分可用：画笔、铅笔、填充、渐变、形状及颜色/大小/不透明度已接入；锁定层填充无历史写入；实际笔触、柔化和各工具像素基准待补 | 配置/工具激活 E2E；锁定填充 E2E；笔触基准待补 |
 | A-11 | Text：添加、字体、填充、对齐、样式、描边、阴影、背景、曲线/变形 | text + 本地系统字体；基础样式可复用，曲线/变形缺失 | 部分可用：文字面板已接入系统字体、字号、填充、加粗/斜体/下划线、描边和左/中/右对齐；真实文字层创建、编辑、撤销和锁定保护已验证；阴影、背景、曲线/变形待补 | 文本图层、编辑、对齐与导出 |

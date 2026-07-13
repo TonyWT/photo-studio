@@ -18,6 +18,7 @@ class BulgePinch_class extends Base_tools_class {
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
 		this.started = false;
+		this.sessionLayerId = null;
 	}
 
 	load() {
@@ -53,14 +54,22 @@ class BulgePinch_class extends Base_tools_class {
 			alertify.error('Liquify 需要 WebGL2；当前浏览器已禁用该工具。');
 			return;
 		}
+		if (this.sessionLayerId != null && this.sessionLayerId != config.layer.id) {
+			this.cancel_session();
+		}
 		this.started = true;
 
-		//get canvas from layer
-		this.tmpCanvas = document.createElement('canvas');
-		this.tmpCanvasCtx = this.tmpCanvas.getContext("2d");
-		this.tmpCanvas.width = config.layer.width_original;
-		this.tmpCanvas.height = config.layer.height_original;
-		this.tmpCanvasCtx.drawImage(config.layer.link, 0, 0);
+		// Keep strokes in a temporary WebGL-backed canvas until the user chooses
+		// Apply. That gives Liquify a real preview/cancel lifecycle rather than
+		// committing one undo entry for every dab.
+		if (!this.tmpCanvas) {
+			this.sessionLayerId = config.layer.id;
+			this.tmpCanvas = document.createElement('canvas');
+			this.tmpCanvasCtx = this.tmpCanvas.getContext("2d");
+			this.tmpCanvas.width = config.layer.width_original;
+			this.tmpCanvas.height = config.layer.height_original;
+			this.tmpCanvasCtx.drawImage(config.layer.link, 0, 0);
+		}
 
 		//apply
 		this.bulgePinch_general(mouse, params.power, params.radius, params.bulge);
@@ -68,6 +77,7 @@ class BulgePinch_class extends Base_tools_class {
 		//register tmp canvas for faster redraw
 		config.layer.link_canvas = this.tmpCanvas;
 		config.need_render = true;
+		this.announce_session_change();
 	}
 
 	is_webgl2_available() {
@@ -76,34 +86,69 @@ class BulgePinch_class extends Base_tools_class {
 	}
 
 	mouseup(e) {
-		if (this.started == false) {
-			return;
-		}
-		if (!config.layer || config.layer.locked || config.layer.type != 'image') {
-			if (config.layer) {
-				delete config.layer.link_canvas;
-			}
+		if (this.started == false) return;
+		this.started = false;
+	}
+
+	has_session() {
+		return this.sessionLayerId != null && this.tmpCanvas != null;
+	}
+
+	clear_session_preview() {
+		const layer = this.sessionLayerId == null ? null : app.Layers.get_layer(this.sessionLayerId);
+		if (layer && layer.link_canvas === this.tmpCanvas) delete layer.link_canvas;
+		config.need_render = true;
+	}
+
+	announce_session_change() {
+		window.dispatchEvent(new CustomEvent('photo-studio-liquify-preview-change'));
+	}
+
+	discard_session() {
+		this.clear_session_preview();
+		if (this.tmpCanvas) {
 			this.tmpCanvas.width = 1;
 			this.tmpCanvas.height = 1;
-			this.tmpCanvas = null;
-			this.tmpCanvasCtx = null;
-			this.started = false;
-			return;
 		}
-		delete config.layer.link_canvas;
-
-		app.State.do_action(
-			new app.Actions.Bundle_action('bulge_pinch_tool', 'Bulge/Pinch Tool', [
-				new app.Actions.Update_layer_image_action(this.tmpCanvas)
-			])
-		);
-
-		//decrease memory
-		this.tmpCanvas.width = 1;
-		this.tmpCanvas.height = 1;
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
+		this.sessionLayerId = null;
 		this.started = false;
+		this.announce_session_change();
+	}
+
+	cancel_session() {
+		if (!this.has_session()) return false;
+		this.discard_session();
+		return true;
+	}
+
+	async apply_session() {
+		if (!this.has_session()) return false;
+		const layer = app.Layers.get_layer(this.sessionLayerId);
+		if (!layer || layer.locked || layer.type != 'image') {
+			this.discard_session();
+			alertify.error('请选择未锁定的图片图层后使用液化。');
+			return false;
+		}
+		const canvas = this.tmpCanvas;
+		const layerId = this.sessionLayerId;
+		this.clear_session_preview();
+		try {
+			await app.State.do_action(
+				new app.Actions.Bundle_action('bulge_pinch_tool', 'Liquify Apply', [
+					new app.Actions.Update_layer_image_action(canvas, layerId)
+				])
+			);
+		}
+		finally {
+			this.discard_session();
+		}
+		return true;
+	}
+
+	on_leave() {
+		this.cancel_session();
 	}
 
 	bulgePinch_general(mouse, power, radius, bulge) {
@@ -124,7 +169,8 @@ class BulgePinch_class extends Base_tools_class {
 		mouse_x = Math.round(mouse_x);
 		mouse_y = Math.round(mouse_y);
 
-		power = power / 100;
+		const density = Math.max(1, Math.min(100, Number(this.getParams().density) || 50));
+		power = power / 100 * density / 100;
 		if (power > 1) {
 			//max 100%
 			power = 1;

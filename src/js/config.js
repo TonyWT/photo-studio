@@ -443,9 +443,11 @@ config.TOOLS = [
 	{
 		name: 'bulge_pinch',
 		title: 'Bulge/Pinch Tool',
+		on_leave: 'on_leave',
 		attributes: {
 			radius: 80,
 			power: 50,
+			density: 50,
 			bulge: true,
 		},
 	},
