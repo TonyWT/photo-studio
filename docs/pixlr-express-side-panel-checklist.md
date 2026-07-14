@@ -172,7 +172,7 @@
 | 编号 | 截图可见项 | 决策 | 当前状态 | 最低验收 |
 | --- | --- | --- | --- | --- |
 | D-00 | Add new layer / New empty paint layer | 保留 | 可用 | 顶部入口创建命名为“新建空白绘制图层”的本地空白图层，随后可承接画笔等工具；创建与 Undo 已由 Chromium E2E 验证 |
-| D-01 ～ D-05 | Draw 的 5 个工具图标 | 保留 | 可用：首屏严格按 Brush、Eraser、Pen、Fill、Shape 顺序呈现；Pen 映射到本地 Pencil 画布工具。取色与渐变不是删减，收纳到后续“其他本地工具”；Eraser、Pen、Fill、Gradient、Rectangle 均有像素/撤销验证，Eyedropper 仅本地取色且无历史 | Chromium E2E 断言首屏仅五入口、Pen 激活 Pencil；其余本地工具仍有独立流程验证 |
+| D-01 ～ D-05 | Draw 的 5 个工具图标 | 保留 | 可用：首屏严格按 Brush、Eraser、Pen、Fill、Shape 顺序呈现，并使用仓库内对应图标；Pen 映射到本地 Pencil 画布工具。取色与渐变不是删减，收纳到后续“其他本地工具”；Eraser、Pen、Fill、Gradient、Rectangle 均有像素/撤销验证，Eyedropper 仅本地取色且无历史 | Chromium E2E 断言首屏仅五入口、五张图标资源映射、Pen 激活 Pencil；其余本地工具仍有独立流程验证 |
 | D-06 | 颜色选择器 | 保留 | 可用 | 颜色会同步到画笔、形状描边与渐变前景；调色板与输入框均由 Chromium E2E 验证 |
 | D-07 | Brush 预览/笔刷选择与模式 | 保留 | 可用 | 提供柔边、硬圆本地预设，以及 Plain、Parallel、Sketchy、Shaded、Furry、Trail、Crayon、Ink 八种确定性本地笔刷模式；模式保存在图层参数中，画布、项目恢复和导出使用同一渲染路径。Sketchy 与 Plain 像素差异、Undo 已由 Chromium E2E 验证；不复制 Pixlr 笔刷素材 |
 | D-08 | Size | 保留 | 可用 | 尺寸同步到画笔、铅笔、橡皮和形状；真实笔触像素与 Undo 已由 Chromium E2E 覆盖 |

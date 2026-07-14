@@ -68,7 +68,10 @@ body.photo-studio-editor .studio-control-group { display: grid; grid-template-co
 body.photo-studio-editor .studio-control-group-two { grid-template-columns: repeat(2, 1fr); }
 body.photo-studio-editor .studio-control-group-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 body.photo-studio-editor .studio-control-group-five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-body.photo-studio-editor .studio-control-group-five button { min-width: 0; padding: 4px 1px; font-size: 10px; }
+body.photo-studio-editor .studio-control-group-five button { display: grid; min-width: 0; min-height: 40px; place-items: center; padding: 4px; }
+body.photo-studio-editor .studio-control-group-five button img { width: 21px; height: 21px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .86; }
+body.photo-studio-editor .studio-control-group-five button:hover img,
+body.photo-studio-editor .studio-control-group-five button.is-selected img { opacity: 1; }
 body.photo-studio-editor .studio-cutout-tool-section { display: grid; gap: 8px; padding: 10px 0; border-bottom: 1px solid #3a3a3a; }
 body.photo-studio-editor .studio-cutout-tool-section > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-cutout-tool-section + .studio-control-group { margin-top: 10px; }

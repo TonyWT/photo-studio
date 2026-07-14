@@ -2255,11 +2255,11 @@ function renderEditorToolControls(key) {
       <section class="studio-drawing-tools" aria-label="本地绘制工具">
         <strong>工具</strong>
         <div class="studio-control-group studio-control-group-five" data-testid="drawing-primary-tools">
-          <button type="button" data-testid="drawing-brush" data-core-tool="brush">画笔</button>
-          <button type="button" data-testid="drawing-eraser" data-core-tool="erase">橡皮</button>
-          <button type="button" data-testid="drawing-pen" data-core-tool="pencil">笔</button>
-          <button type="button" data-testid="drawing-fill" data-core-tool="fill">填充</button>
-          <button type="button" data-testid="drawing-shape" data-core-tool="shape">形状</button>
+          <button type="button" data-testid="drawing-brush" data-core-tool="brush" aria-label="画笔" title="画笔"><img src="../images/icons/brush.svg" alt=""><span class="sr_only">画笔</span></button>
+          <button type="button" data-testid="drawing-eraser" data-core-tool="erase" aria-label="橡皮" title="橡皮"><img src="../images/icons/erase.svg" alt=""><span class="sr_only">橡皮</span></button>
+          <button type="button" data-testid="drawing-pen" data-core-tool="pencil" aria-label="笔" title="笔"><img src="../images/icons/pencil.svg" alt=""><span class="sr_only">笔</span></button>
+          <button type="button" data-testid="drawing-fill" data-core-tool="fill" aria-label="填充" title="填充"><img src="../images/icons/fill.svg" alt=""><span class="sr_only">填充</span></button>
+          <button type="button" data-testid="drawing-shape" data-core-tool="shape" aria-label="形状" title="形状"><img src="../images/icons/shape.svg" alt=""><span class="sr_only">形状</span></button>
         </div>
       </section>
       <label class="studio-control-color">颜色
