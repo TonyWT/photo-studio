@@ -544,40 +544,37 @@ test('手动 Cutout 的三角、星形与心形选区会生成对应本地遮罩
     await page.mouse.up();
     await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe(name);
   };
+  const alphaSum = () => page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const c = document.createElement('canvas'); c.width = image.naturalWidth; c.height = image.naturalHeight;
+    const context = c.getContext('2d'); context.drawImage(image, 0, 0);
+    return context.getImageData(0, 0, c.width, c.height).data
+      .filter((_, index) => index % 4 === 3)
+      .reduce((sum, value) => sum + value, 0);
+  });
+  const keepAndUndo = async (beforeAlpha) => {
+    const historyBefore = await page.evaluate(() => window.State.action_history.length);
+    await page.getByTestId('cutout-keep-selection').click();
+    await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThan(historyBefore);
+    expect(await alphaSum()).toBeLessThan(beforeAlpha);
+    await page.locator('[data-editor-history="undo"]').click();
+    await expect.poll(alphaSum).toBe(beforeAlpha);
+  };
 
   await expect(page.getByTestId('cutout-mode-triangle')).toBeVisible();
   await expect(page.getByTestId('cutout-mode-star')).toBeVisible();
   await expect(page.getByTestId('cutout-mode-heart')).toBeVisible();
 
   await drawShape('triangle');
-  const alphaBefore = await page.evaluate(() => {
-    const image = window.AppConfig.layer.link;
-    const c = document.createElement('canvas'); c.width = image.naturalWidth; c.height = image.naturalHeight;
-    const context = c.getContext('2d'); context.drawImage(image, 0, 0);
-    return context.getImageData(0, 0, c.width, c.height).data.filter((_, index) => index % 4 === 3).reduce((sum, value) => sum + value, 0);
-  });
-  const historyBefore = await page.evaluate(() => window.State.action_history.length);
-  await page.getByTestId('cutout-keep-selection').click();
-  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThan(historyBefore);
-  const alphaAfterKeep = await page.evaluate(() => {
-    const image = window.AppConfig.layer.link;
-    const c = document.createElement('canvas'); c.width = image.naturalWidth; c.height = image.naturalHeight;
-    const context = c.getContext('2d'); context.drawImage(image, 0, 0);
-    return context.getImageData(0, 0, c.width, c.height).data.filter((_, index) => index % 4 === 3).reduce((sum, value) => sum + value, 0);
-  });
-  expect(alphaAfterKeep).toBeLessThan(alphaBefore);
-  await page.locator('[data-editor-history="undo"]').click();
-  await expect.poll(() => page.evaluate(() => {
-    const image = window.AppConfig.layer.link;
-    const c = document.createElement('canvas'); c.width = image.naturalWidth; c.height = image.naturalHeight;
-    const context = c.getContext('2d'); context.drawImage(image, 0, 0);
-    return context.getImageData(0, 0, c.width, c.height).data.filter((_, index) => index % 4 === 3).reduce((sum, value) => sum + value, 0);
-  })).toBe(alphaBefore);
+  const alphaBefore = await alphaSum();
+  await keepAndUndo(alphaBefore);
 
   await page.getByTestId('cutout-reset-selection').click();
   await drawShape('star');
+  await keepAndUndo(alphaBefore);
   await page.getByTestId('cutout-reset-selection').click();
   await drawShape('heart');
+  await keepAndUndo(alphaBefore);
 });
 
 test('自定义 Cutout 选区在缩放平移下使用世界坐标，不串扰核心选区，并精确写入遮罩', async ({ page }) => {
