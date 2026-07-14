@@ -49,6 +49,21 @@ class Image_colorCorrections_class {
 				{name: "param_h", title: "Hue:", value: defaults.param_h ?? "0", range: [-180, 180]},
 				{},
 				{name: "param_l", title: "Luminance:", value: defaults.param_l ?? "0", range: [-100, 100]},
+				{name: "param_black", title: "Black:", value: defaults.param_black ?? "0", range: [-100, 100]},
+				{name: "param_white", title: "White:", value: defaults.param_white ?? "0", range: [-100, 100]},
+				{name: "param_highlights", title: "Highlights:", value: defaults.param_highlights ?? "0", range: [-100, 100]},
+				{name: "param_shadows", title: "Shadows:", value: defaults.param_shadows ?? "0", range: [-100, 100]},
+				{},
+				{name: "param_sharpen", title: "Sharpen:", value: defaults.param_sharpen ?? "0", range: [0, 100]},
+				{name: "param_clarity", title: "Clarity:", value: defaults.param_clarity ?? "0", range: [0, 100]},
+				{name: "param_smooth", title: "Smooth:", value: defaults.param_smooth ?? "0", range: [0, 100]},
+				{name: "param_blur", title: "Blur:", value: defaults.param_blur ?? "0", range: [0, 100]},
+				{name: "param_grain", title: "Grain:", value: defaults.param_grain ?? "0", range: [0, 100]},
+				{},
+				{name: "param_vignette", title: "Vignette:", value: defaults.param_vignette ?? "0", range: [0, 100]},
+				{name: "param_glamour", title: "Glamour:", value: defaults.param_glamour ?? "0", range: [0, 100]},
+				{name: "param_bloom", title: "Bloom:", value: defaults.param_bloom ?? "0", range: [0, 100]},
+				{name: "param_dehaze", title: "Dehaze:", value: defaults.param_dehaze ?? "0", range: [0, 100]},
 				{},
 				{name: "param_red", title: "Red channel:", value: defaults.param_red ?? "0", range: [-255, 255]},
 				{name: "param_green", title: "Green channel:", value: defaults.param_green ?? "0", range: [-255, 255]},
@@ -154,6 +169,76 @@ class Image_colorCorrections_class {
 		if(params.param_red != 0 || params.param_green != 0 || params.param_blue != 0) {
 			var data = this.ImageFilters.ColorTransformFilter(data, 1, 1, 1, 1,
 				params.param_red, params.param_green, params.param_blue, 1);
+		}
+
+		// The remaining Adjust controls deliberately use a deterministic local
+		// pixel pass.  It keeps preview, exported pixels and undo in the same
+		// browser-only pipeline without introducing a remote image service.
+		var advanced = [
+			'param_black', 'param_white', 'param_highlights', 'param_shadows',
+			'param_sharpen', 'param_clarity', 'param_smooth', 'param_blur',
+			'param_grain', 'param_vignette', 'param_glamour', 'param_bloom', 'param_dehaze',
+		].some((key) => Number(params[key] || 0) !== 0);
+		if (advanced) {
+			var clamp = (value) => Math.max(0, Math.min(255, Math.round(value)));
+			var source = new Uint8ClampedArray(data.data);
+			var width = data.width;
+			var height = data.height;
+			var black = Number(params.param_black || 0);
+			var white = Number(params.param_white || 0);
+			var highlights = Number(params.param_highlights || 0);
+			var shadows = Number(params.param_shadows || 0);
+			var sharpen = Number(params.param_sharpen || 0) / 100;
+			var clarity = Number(params.param_clarity || 0) / 100;
+			var smooth = Number(params.param_smooth || 0) / 100;
+			var blur = Number(params.param_blur || 0) / 100;
+			var grain = Number(params.param_grain || 0) / 100;
+			var vignette = Number(params.param_vignette || 0) / 100;
+			var glamour = Number(params.param_glamour || 0) / 100;
+			var bloom = Number(params.param_bloom || 0) / 100;
+			var dehaze = Number(params.param_dehaze || 0) / 100;
+			var blurMix = Math.min(0.82, (smooth * 0.38) + (blur * 0.44));
+			for (var y = 0; y < height; y++) {
+				for (var x = 0; x < width; x++) {
+					var offset = (x + y * width) * 4;
+					if (source[offset + 3] === 0) continue;
+					var sumR = 0, sumG = 0, sumB = 0, count = 0;
+					for (var oy = -1; oy <= 1; oy++) {
+						for (var ox = -1; ox <= 1; ox++) {
+							var nx = Math.max(0, Math.min(width - 1, x + ox));
+							var ny = Math.max(0, Math.min(height - 1, y + oy));
+							var neighbor = (nx + ny * width) * 4;
+							sumR += source[neighbor]; sumG += source[neighbor + 1]; sumB += source[neighbor + 2]; count++;
+						}
+					}
+					var r = source[offset], g = source[offset + 1], b = source[offset + 2];
+					var avgR = sumR / count, avgG = sumG / count, avgB = sumB / count;
+					r = r * (1 - blurMix) + avgR * blurMix;
+					g = g * (1 - blurMix) + avgG * blurMix;
+					b = b * (1 - blurMix) + avgB * blurMix;
+					var luminance = (r + g + b) / 765;
+					var shadowWeight = Math.pow(1 - luminance, 1.4);
+					var highlightWeight = Math.pow(luminance, 1.4);
+					var tonalDelta = (black * shadowWeight + shadows * shadowWeight + white * highlightWeight + highlights * highlightWeight) * 0.62;
+					var localContrast = 1 + clarity * 0.38 + dehaze * 0.28;
+					r = 127.5 + (r - 127.5) * localContrast + tonalDelta;
+					g = 127.5 + (g - 127.5) * localContrast + tonalDelta;
+					b = 127.5 + (b - 127.5) * localContrast + tonalDelta;
+					r += (source[offset] - avgR) * sharpen * 0.7;
+					g += (source[offset + 1] - avgG) * sharpen * 0.7;
+					b += (source[offset + 2] - avgB) * sharpen * 0.7;
+					var centeredX = (x / Math.max(1, width - 1)) * 2 - 1;
+					var centeredY = (y / Math.max(1, height - 1)) * 2 - 1;
+					var edge = Math.min(1, Math.sqrt(centeredX * centeredX + centeredY * centeredY));
+					var vignetteFactor = 1 - vignette * edge * edge * 0.62;
+					var sheen = glamour * (1 - Math.abs(luminance - 0.62) * 1.8) * 26 + bloom * highlightWeight * 30;
+					var noiseSeed = ((x + 1) * 73856093) ^ ((y + 1) * 19349663);
+					var noise = (((noiseSeed >>> 0) % 101) - 50) * grain * 0.24;
+					data.data[offset] = clamp((r + sheen + noise) * vignetteFactor);
+					data.data[offset + 1] = clamp((g + sheen + noise) * vignetteFactor);
+					data.data[offset + 2] = clamp((b + sheen + noise) * vignetteFactor);
+				}
+			}
 		}
 
 		return data;

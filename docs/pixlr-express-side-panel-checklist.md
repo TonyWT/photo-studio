@@ -117,9 +117,9 @@
 | J-10 | Exposure | 保留 | 可用 | 滑杆值进入本地 Luminance 预览与 Apply |
 | J-11 | Contrast | 保留 | 可用 | 滑杆值进入本地 Contrast 预览与 Apply |
 | J-12 | Color / Light 分组折叠或设置入口 | 保留 | 可用 | Color/Light 分组、对应高级入口和重置/预览应用入口已提供 |
-| J-13 | 截图下方未显示的 Light 项 | 待取证 | 未枚举 | 完整滚动取证后逐项新增 |
-| J-14 | Details 分组 | 保留 | 可用 | 打开本地 Sharpen 参数对话框；确认后产生像素历史、Undo 精确恢复，Chromium E2E 已覆盖 |
-| J-15 | Scene 分组 | 保留 | 可用 | 打开本地 Color Corrections 场景参数；确认后产生像素历史、Undo 精确恢复，Chromium E2E 已覆盖 |
+| J-13 | Light 下方的 Black、White、Highlights、Shadows | 保留 | 可用：均为面板内独立本地滑杆，进入同一非破坏预览/确认会话，确认后写入单次图层历史 | Chromium E2E 设置四项值、确认像素变化、Undo 精确恢复；取证：当前公开发布包的 `adjust-content` |
+| J-14 | Details 分组 | 保留 | 可用：Sharpen、Clarity、Smooth、Blur、Grain 均为独立本地滑杆；平滑/模糊使用 3×3 局部采样，锐化、清晰度与颗粒均参与确定性像素管线 | Chromium E2E 覆盖五项传入预览会话、确认像素变化与 Undo |
+| J-15 | Scene 分组 | 保留 | 可用：Vignette、Glamour、Bloom、Dehaze 均为独立本地滑杆；以暗角、局部高光、亮部辉光和局部对比度的确定性浏览器像素处理实现 | Chromium E2E 覆盖四项传入预览会话、确认像素变化与 Undo |
 | J-16 | Cancel / Apply / Compare / Reset | 保留 | 可用 | 预览无历史、应用单次历史 |
 
 ## S-04 Effect 与 S-05 Filter
@@ -140,7 +140,7 @@
 | F-04 | Dispersion | 保留 | 可用 | 本地像素结果/撤销 |
 | F-05 | Glitch | 保留 | 可用 | 本地像素结果/撤销 |
 | F-06 | Colorize | 保留 | 可用 | 本地像素结果/撤销 |
-| F-07 | 截图下方继续滚动的 Filter 卡片 | 待取证 | 未枚举 | 完整滚动取证后逐项新增 |
+| F-07 | 截图下方继续滚动的 Filter 卡片 | 保留 | 已核实为 F-04 ～ F-06：Dispersion、Glitch、Colorize；当前 Pixlr Express 发布包明确只注册 `hdr-content`、`focus-content`、`reflect-content`、`dispersion-content`、`glitch-content`、`colorize-content` 六个非 AI Filter 工作区，不存在第七张非 AI Filter 卡 | 六张卡入口、参数对话框、像素变更与 Undo 已由 Chromium E2E 覆盖；取证：2026-07-14 抓取的当前公开发布包 `/tmp/pixlr-express.js` |
 | F-08 | 每张 Filter 卡的缩略预览/参数 | 保留 | 可用 | 六张卡都由当前本地图片生成预览；每项均打开本地参数对话框，应用后产生像素历史、Undo 恢复原图，Chromium E2E 已覆盖 |
 
 ## S-06 Liquify 与 S-07 Retouch

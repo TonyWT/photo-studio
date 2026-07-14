@@ -86,6 +86,19 @@ const ADJUST_PANEL_DEFAULTS = Object.freeze({
   brightness: 0,
   exposure: 0,
   contrast: 0,
+  black: 0,
+  white: 0,
+  highlights: 0,
+  shadows: 0,
+  sharpen: 0,
+  clarity: 0,
+  smooth: 0,
+  blur: 0,
+  grain: 0,
+  vignette: 0,
+  glamour: 0,
+  bloom: 0,
+  dehaze: 0,
 });
 let adjustPanelValues = { ...ADJUST_PANEL_DEFAULTS };
 const TEXT_STYLE_PRESETS = Object.freeze([
@@ -239,6 +252,19 @@ function getAdjustPreviewDefaults() {
     param_s: values.saturation,
     param_h: values.hue,
     param_l: values.exposure,
+    param_black: values.black,
+    param_white: values.white,
+    param_highlights: values.highlights,
+    param_shadows: values.shadows,
+    param_sharpen: values.sharpen,
+    param_clarity: values.clarity,
+    param_smooth: values.smooth,
+    param_blur: values.blur,
+    param_grain: values.grain,
+    param_vignette: values.vignette,
+    param_glamour: values.glamour,
+    param_bloom: values.bloom,
+    param_dehaze: values.dehaze,
     param_red: Math.max(-255, Math.min(255, values.temperature + values.tint)),
     param_green: Math.max(-255, Math.min(255, -values.tint)),
     param_blue: Math.max(-255, Math.min(255, -values.temperature + values.tint)),
@@ -1609,11 +1635,26 @@ function renderEditorToolControls(key) {
         ${renderAdjustRange({ key: 'brightness', label: 'Brightness' })}
         ${renderAdjustRange({ key: 'exposure', label: 'Exposure' })}
         ${renderAdjustRange({ key: 'contrast', label: 'Contrast' })}
+        ${renderAdjustRange({ key: 'black', label: 'Black' })}
+        ${renderAdjustRange({ key: 'white', label: 'White' })}
+        ${renderAdjustRange({ key: 'highlights', label: 'Highlights' })}
+        ${renderAdjustRange({ key: 'shadows', label: 'Shadows' })}
       </section>
-      <div class="studio-control-group studio-control-group-two" aria-label="细节与场景">
-        <button type="button" data-testid="adjust-details">Details</button>
-        <button type="button" data-testid="adjust-scene">Scene</button>
-      </div>
+      <section class="studio-adjust-section" aria-label="Details">
+        <div class="studio-adjust-section-heading"><strong>Details</strong><button type="button" data-testid="adjust-details">高级细节</button></div>
+        ${renderAdjustRange({ key: 'sharpen', label: 'Sharpen', min: 0, max: 100 })}
+        ${renderAdjustRange({ key: 'clarity', label: 'Clarity', min: 0, max: 100 })}
+        ${renderAdjustRange({ key: 'smooth', label: 'Smooth', min: 0, max: 100 })}
+        ${renderAdjustRange({ key: 'blur', label: 'Blur', min: 0, max: 100 })}
+        ${renderAdjustRange({ key: 'grain', label: 'Grain', min: 0, max: 100 })}
+      </section>
+      <section class="studio-adjust-section" aria-label="Scene">
+        <div class="studio-adjust-section-heading"><strong>Scene</strong><button type="button" data-testid="adjust-scene">高级场景</button></div>
+        ${renderAdjustRange({ key: 'vignette', label: 'Vignette', min: 0, max: 100 })}
+        ${renderAdjustRange({ key: 'glamour', label: 'Glamour', min: 0, max: 100 })}
+        ${renderAdjustRange({ key: 'bloom', label: 'Bloom', min: 0, max: 100 })}
+        ${renderAdjustRange({ key: 'dehaze', label: 'Dehaze', min: 0, max: 100 })}
+      </section>
       <div class="studio-control-group studio-control-group-two" aria-label="调整应用">
         <button type="button" data-testid="adjust-reset-panel">重置</button>
         <button type="button" data-testid="adjust-preview-apply">预览并应用</button>
