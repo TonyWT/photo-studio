@@ -358,16 +358,24 @@ test('手动 Cutout 可切换魔术橡皮并调整本地容差', async ({ page }
   await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'magic_erase').attributes.power)).toBe(37);
 });
 
-test('手动 Cutout 提供真实的柔化、全局取样与选区移除操作', async ({ page }) => {
+test('手动 Cutout 提供 None、Light、Medium 柔化、全局取样与选区移除操作', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
   await expect(page).toHaveURL(/\/editor\/$/);
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-cutout').click();
   await expect(page.getByTestId('editor-tool-panel')).toBeVisible();
-  await page.getByTestId('cutout-soft-edge').uncheck();
+  await page.getByTestId('cutout-softness-none').click();
   await page.getByTestId('cutout-global-sample').check();
   await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'magic_erase').attributes)).toMatchObject({ anti_aliasing: false, contiguous: true });
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().softness)).toBe('none');
+  await page.getByTestId('cutout-softness-light').click();
+  await expect(page.getByTestId('cutout-softness-light')).toHaveClass(/is-selected/);
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().softness)).toBe('light');
+  await page.getByTestId('cutout-softness-medium').click();
+  await expect(page.getByTestId('cutout-softness-medium')).toHaveClass(/is-selected/);
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().softness)).toBe('medium');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'magic_erase').attributes.anti_aliasing)).toBe(true);
   await page.evaluate(() => {
     window.app.GUI.GUI_tools.tools_modules.selection.object.selection = { x: 0, y: 0, width: 1, height: 1 };
   });
@@ -375,6 +383,44 @@ test('手动 Cutout 提供真实的柔化、全局取样与选区移除操作', 
   await page.getByTestId('cutout-remove-selection').click();
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThan(historyBefore);
   await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.selection.object.selection.width)).toBeNull();
+});
+
+test('手动 Cutout 的 Light 和 Medium 会在本地遮罩边缘产生可验证的 alpha 羽化', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-cutout').click();
+  const setRectangle = () => page.evaluate(() => {
+    window.app.GUI.GUI_tools.tools_modules.selection.object.selection = { x: 1200, y: 900, width: 1000, height: 800 };
+    window.AppConfig.need_render = true;
+  });
+  const alphaAt = (x, y) => page.evaluate(({ x, y }) => {
+    const image = window.AppConfig.layer.link;
+    const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+    return context.getImageData(x, y, 1, 1).data[3];
+  }, { x, y });
+
+  await setRectangle();
+  await page.getByTestId('cutout-softness-none').click();
+  await page.getByTestId('cutout-keep-selection').click();
+  await expect.poll(() => alphaAt(1196, 1300)).toBe(0);
+  await expect.poll(() => alphaAt(1200, 1300)).toBe(255);
+  await page.locator('[data-editor-history="undo"]').click();
+
+  await setRectangle();
+  await page.getByTestId('cutout-softness-light').click();
+  await page.getByTestId('cutout-keep-selection').click();
+  await expect.poll(() => alphaAt(1199, 1300)).toBeGreaterThan(0);
+  await expect.poll(() => alphaAt(1199, 1300)).toBeLessThan(255);
+  await page.locator('[data-editor-history="undo"]').click();
+
+  await setRectangle();
+  await page.getByTestId('cutout-softness-medium').click();
+  await page.getByTestId('cutout-keep-selection').click();
+  await expect.poll(() => alphaAt(1196, 1300)).toBeGreaterThan(0);
+  await expect.poll(() => alphaAt(1196, 1300)).toBeLessThan(255);
 });
 
 test('手动 Cutout 的套索、椭圆、加减选、反选与 Keep/Remove 均本地可撤销', async ({ page }) => {

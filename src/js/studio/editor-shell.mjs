@@ -7,6 +7,7 @@ let cutoutSelection = {
   mode: 'selection',
   operation: 'replace',
   inverted: false,
+  softness: 'none',
   regions: [],
 };
 let cutoutPointer = null;
@@ -182,12 +183,27 @@ function currentCutoutRegions() {
 
 function resetCutoutSelection() {
   const previousMode = cutoutSelection.mode;
-  cutoutSelection = { mode: 'selection', operation: 'replace', inverted: false, regions: [] };
+  cutoutSelection = {
+    mode: 'selection', operation: 'replace', inverted: false, softness: 'none', regions: [],
+  };
   const selection = getCoreToolModule('selection');
   // A custom mask must never mutate miniPaint's rectangle-selection state.
   // Only an explicit reset while using the native rectangle mode clears it.
   if (previousMode === 'selection') selection?.clear_selection?.();
   window.AppConfig.need_render = true;
+}
+
+function softenCutoutMask(mask, softness) {
+  const radius = softness === 'medium' ? 8 : softness === 'light' ? 3 : 0;
+  if (!radius) return mask;
+  const softened = document.createElement('canvas');
+  softened.width = mask.width;
+  softened.height = mask.height;
+  const context = softened.getContext('2d');
+  context.filter = `blur(${radius}px)`;
+  context.drawImage(mask, 0, 0);
+  context.filter = 'none';
+  return softened;
 }
 
 function addCutoutRegion(region) {
@@ -302,7 +318,8 @@ function createCutoutMask(regions, layer, inverted) {
     drawCutoutRegion(context, region, layer);
   }
   context.globalCompositeOperation = 'source-over';
-  if (!inverted) return mask;
+  const preparedMask = softenCutoutMask(mask, cutoutSelection.softness);
+  if (!inverted) return preparedMask;
   const inverse = document.createElement('canvas');
   inverse.width = mask.width;
   inverse.height = mask.height;
@@ -310,7 +327,7 @@ function createCutoutMask(regions, layer, inverted) {
   inverseContext.fillStyle = '#fff';
   inverseContext.fillRect(0, 0, inverse.width, inverse.height);
   inverseContext.globalCompositeOperation = 'destination-out';
-  inverseContext.drawImage(mask, 0, 0);
+  inverseContext.drawImage(preparedMask, 0, 0);
   return inverse;
 }
 
@@ -1081,6 +1098,11 @@ function renderEditorToolControls(key) {
       <button type="button"${modeClass('magic_erase')} data-cutout-mode="magic_erase" data-testid="cutout-mode-magic">魔术橡皮</button>
       <button type="button"${modeClass('erase')} data-cutout-mode="erase" data-testid="cutout-mode-erase">橡皮画笔</button>
     </div>
+    <div class="studio-control-group studio-control-group-three" aria-label="选区柔化">
+      <button type="button"${cutoutSelection.softness === 'none' ? ' class="is-selected"' : ''} data-cutout-softness="none" data-testid="cutout-softness-none">None</button>
+      <button type="button"${cutoutSelection.softness === 'light' ? ' class="is-selected"' : ''} data-cutout-softness="light" data-testid="cutout-softness-light">Light</button>
+      <button type="button"${cutoutSelection.softness === 'medium' ? ' class="is-selected"' : ''} data-cutout-softness="medium" data-testid="cutout-softness-medium">Medium</button>
+    </div>
     <label class="studio-control-range">容差 <output data-cutout-tolerance-output>15</output>
       <input type="range" min="1" max="100" value="15" data-testid="cutout-tolerance">
     </label>
@@ -1112,12 +1134,16 @@ function renderEditorToolControls(key) {
     output.value = String(value);
     output.textContent = String(value);
   });
-  const softEdge = target.querySelector('[data-testid="cutout-soft-edge"]');
   const globalSample = target.querySelector('[data-testid="cutout-global-sample"]');
-  softEdge.checked = findToolConfig('magic_erase')?.attributes?.anti_aliasing !== false;
   globalSample.checked = findToolConfig('magic_erase')?.attributes?.contiguous === true;
-  softEdge.addEventListener('change', () => setToolAttribute('magic_erase', 'anti_aliasing', softEdge.checked));
   globalSample.addEventListener('change', () => setToolAttribute('magic_erase', 'contiguous', globalSample.checked));
+  target.querySelectorAll('[data-cutout-softness]').forEach((button) => {
+    button.addEventListener('click', () => {
+      cutoutSelection.softness = button.dataset.cutoutSoftness;
+      setToolAttribute('magic_erase', 'anti_aliasing', cutoutSelection.softness !== 'none');
+      target.querySelectorAll('[data-cutout-softness]').forEach((item) => item.classList.toggle('is-selected', item === button));
+    });
+  });
   target.querySelector('[data-testid="cutout-remove-selection"]')?.addEventListener('click', () => applyCutoutSelection('remove'));
   target.querySelector('[data-testid="cutout-keep-selection"]')?.addEventListener('click', () => applyCutoutSelection('keep'));
   target.querySelector('[data-testid="cutout-reset-selection"]')?.addEventListener('click', () => {

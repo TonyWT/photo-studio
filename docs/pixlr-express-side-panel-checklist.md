@@ -63,9 +63,9 @@
 | K-11 | 星形 | 保留 | 可用 | 本地星形遮罩可建立；形状状态由 E2E 验证 |
 | K-12 | 心形 | 保留 | 可用 | 本地心形遮罩可建立；形状状态由 E2E 验证 |
 | K-13 | 直线/自由形状 | 保留 | 部分可用 | 路径/套索掩码与撤销 |
-| K-14 | Softness: None | 保留 | 可用 | 0 px 羽化 |
-| K-15 | Softness: Light | 保留 | 部分可用 | 固定羽化半径和 alpha 基准 |
-| K-16 | Softness: Medium | 保留 | 部分可用 | 固定羽化半径和 alpha 基准 |
+| K-14 | Softness: None | 保留 | 可用 | 0 px 羽化，边界 alpha 基准已验证 |
+| K-15 | Softness: Light | 保留 | 可用 | 3 px 本地遮罩羽化，边缘 alpha 基准已验证 |
+| K-16 | Softness: Medium | 保留 | 可用 | 8 px 本地遮罩羽化，边缘 alpha 基准已验证 |
 | K-17 | Hint removed 开关 | 保留 | 待取证 | 先确认准确交互后实现 |
 | K-18 | Invert cutout | 保留 | 可用 | alpha 反选与撤销 |
 | K-19 | Reset cutout | 保留 | 可用 | 清除临时选区且无多余历史 |
