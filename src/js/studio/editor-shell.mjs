@@ -2189,7 +2189,9 @@ function renderEditorToolControls(key) {
       <small>本地可编辑</small>
     </button>`).join('');
     target.innerHTML = `
-      <button type="button" data-testid="text-create" data-core-tool="text">添加文字</button>
+      <button type="button" class="studio-text-create" data-testid="text-create" data-core-tool="text">
+        <span><strong>添加新文字</strong><small>默认文字</small></span>
+      </button>
       <div class="studio-text-preset-grid" aria-label="原创本地文字预设">${textPresetCards}</div>
       <label class="studio-control-select">字体
         <select data-testid="text-font">${fonts.map((name) => `<option value="${name}" ${name === font ? 'selected' : ''}>${name}</option>`).join('')}</select>

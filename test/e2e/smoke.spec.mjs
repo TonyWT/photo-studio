@@ -3850,6 +3850,14 @@ test('Text 面板提供本机字体与完整样式控件，并写回文字工具
   });
 });
 
+test('Text 的新增文字入口明确展示默认文字说明', async ({ page }) => {
+  await page.goto('/editor/');
+  await page.getByTestId('tool-text').click();
+  const create = page.getByTestId('text-create');
+  await expect(create).toContainText('添加新文字');
+  await expect(create).toContainText('默认文字');
+});
+
 test('Text 提供原创本地样式预设卡，并真实写回可编辑文字工具配置', async ({ page }) => {
   await page.goto('/editor/');
   await page.getByTestId('tool-text').click();
