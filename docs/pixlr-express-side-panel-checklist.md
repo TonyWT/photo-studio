@@ -108,7 +108,7 @@
 | J-01 | Auto | 保留 | 可用 | 像素变化与撤销 |
 | J-02 | B&W | 保留 | 可用 | 灰阶像素与撤销 |
 | J-03 | Pop | 保留 | 可用 | 像素变化与撤销 |
-| J-04 | Vibrance | 保留 | 部分可用 | 面板值映射到本地 Saturation 预览；独立 vibrance 算法待补 |
+| J-04 | Vibrance | 保留 | 可用 | 独立本地像素算法优先扩展低饱和颜色；不再折叠到 Saturation，导出与 Undo 像素结果由 Chromium E2E 验证 |
 | J-05 | Saturation | 保留 | 可用 | 滑杆值进入本地 Compare/Reset/Apply 对话框 |
 | J-06 | Temperature | 保留 | 可用 | 滑杆值映射到本地 RGB 色温预览与 Apply |
 | J-07 | Tint | 保留 | 可用 | 滑杆值映射到本地 RGB 色调预览与 Apply |

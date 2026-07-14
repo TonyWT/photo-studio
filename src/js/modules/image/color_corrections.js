@@ -44,6 +44,7 @@ class Image_colorCorrections_class {
 			params: [
 				{name: "param_b", title: "Brightness:", value: defaults.param_b ?? "0", range: [-100, 100]},
 				{name: "param_c", title: "Contrast:", value: defaults.param_c ?? "0", range: [-100, 100]},
+				{name: "param_v", title: "Vibrance:", value: defaults.param_v ?? "0", range: [-100, 100]},
 				{name: "param_s", title: "Saturation:", value: defaults.param_s ?? "0", range: [-100, 100]},
 				{name: "param_h", title: "Hue:", value: defaults.param_h ?? "0", range: [-180, 180]},
 				{},
@@ -120,6 +121,30 @@ class Image_colorCorrections_class {
 	 * @returns {*}
 	 */
 	do_corrections(data, params) {
+		// Vibrance differs from saturation: it preferentially expands muted
+		// colours and leaves already-saturated pixels comparatively stable.
+		// This is deliberately kept in the local pixel pipeline (rather than a
+		// CSS filter) so the exported raster and undo history contain the same
+		// deterministic result as the preview.
+		if (params.param_v != 0) {
+			var vibrance = Math.max(-1, Math.min(1, Number(params.param_v) / 100));
+			for (var i = 0; i < data.data.length; i += 4) {
+				var r = data.data[i];
+				var g = data.data[i + 1];
+				var b = data.data[i + 2];
+				var max = Math.max(r, g, b);
+				var min = Math.min(r, g, b);
+				var chroma = max - min;
+				var saturation = max === 0 ? 0 : chroma / max;
+				var weight = vibrance >= 0 ? 1 - saturation : saturation;
+				var factor = 1 + vibrance * weight;
+				var average = (r + g + b) / 3;
+				data.data[i] = Math.max(0, Math.min(255, Math.round(average + (r - average) * factor)));
+				data.data[i + 1] = Math.max(0, Math.min(255, Math.round(average + (g - average) * factor)));
+				data.data[i + 2] = Math.max(0, Math.min(255, Math.round(average + (b - average) * factor)));
+			}
+		}
+
 		//luminance
 		if(params.param_l != 0) {
 			var data = this.ImageFilters.HSLAdjustment(data, 0, 0, params.param_l);

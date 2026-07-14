@@ -233,7 +233,10 @@ function getAdjustPreviewDefaults() {
   return {
     param_b: values.brightness,
     param_c: values.contrast,
-    param_s: Math.max(-100, Math.min(100, Math.round(values.saturation + values.vibrance / 2))),
+    // Vibrance intentionally remains an independent parameter.  Folding it
+    // into saturation made the two sliders indistinguishable at export time.
+    param_v: values.vibrance,
+    param_s: values.saturation,
     param_h: values.hue,
     param_l: values.exposure,
     param_red: Math.max(-255, Math.min(255, values.temperature + values.tint)),
