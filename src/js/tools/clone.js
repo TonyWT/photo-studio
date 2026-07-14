@@ -18,7 +18,7 @@ class Clone_class extends Base_tools_class {
 		this.started = false;
 		this.clone_coords = null;
 		this.stroke_clone_coords = null;
-		this.aligned_clone_coords = null;
+		this.aligned_offset = null;
 		this.pressTimer = null;
 	}
 
@@ -142,7 +142,7 @@ class Clone_class extends Base_tools_class {
 				x: mouse_x,
 				y: mouse_y,
 			};
-			this.aligned_clone_coords = null;
+			this.aligned_offset = null;
 			alertify.success('Source coordinates saved.');
 		}
 	}
@@ -170,7 +170,7 @@ class Clone_class extends Base_tools_class {
 			x: mouse_x,
 			y: mouse_y,
 		};
-		this.aligned_clone_coords = null;
+		this.aligned_offset = null;
 		alertify.success('Source coordinates saved.');
 	}
 
@@ -223,12 +223,24 @@ class Clone_class extends Base_tools_class {
 				return;
 			}
 		}
-		// With Aligned enabled, the next stroke resumes from where the previous
-		// stroke's source ended. Without it every stroke restarts at the sampled
-		// point, matching the conventional clone-stamp interaction.
-		this.stroke_clone_coords = params.aligned && this.aligned_clone_coords
-			? {...this.aligned_clone_coords}
-			: {...this.clone_coords};
+		// Aligned clone sampling keeps one source-to-destination offset across
+		// strokes. Without it every new stroke begins at the sampled point.
+		var start_x = this.adaptSize(Math.round(mouse.x) - layer.x, 'width');
+		var start_y = this.adaptSize(Math.round(mouse.y) - layer.y, 'height');
+		if (params.aligned) {
+			if (this.aligned_offset === null) {
+				this.aligned_offset = {
+					x: this.clone_coords.x - start_x,
+					y: this.clone_coords.y - start_y,
+				};
+			}
+			this.stroke_clone_coords = {
+				x: start_x + this.aligned_offset.x,
+				y: start_y + this.aligned_offset.y,
+			};
+		} else {
+			this.stroke_clone_coords = {...this.clone_coords};
+		}
 		this.started = true;
 
 		//get canvas from layer
@@ -269,18 +281,6 @@ class Clone_class extends Base_tools_class {
 	mouseup(e) {
 		if (this.started == false) {
 			return;
-		}
-		var params = this.getParams();
-		if (params.aligned && this.stroke_clone_coords) {
-			var mouse = this.get_mouse_info(e);
-			var end_x = this.adaptSize(Math.round(mouse.x) - config.layer.x, 'width');
-			var end_y = this.adaptSize(Math.round(mouse.y) - config.layer.y, 'height');
-			var start_x = this.adaptSize(Math.round(mouse.click_x) - config.layer.x, 'width');
-			var start_y = this.adaptSize(Math.round(mouse.click_y) - config.layer.y, 'height');
-			this.aligned_clone_coords = {
-				x: Math.round(this.stroke_clone_coords.x + end_x - start_x),
-				y: Math.round(this.stroke_clone_coords.y + end_y - start_y),
-			};
 		}
 		delete config.layer.link_canvas;
 
