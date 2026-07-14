@@ -1,7 +1,7 @@
 import { isNativeProjectDocument, isSupportedImage, normalizeProjectName, projectStore } from './project-store.mjs';
 
 export const MANUAL_CUTOUT_TOOLS = ['selection', 'magic_erase', 'erase'];
-const CUTOUT_SHAPE_MODES = new Set(['lasso', 'ellipse']);
+const CUTOUT_SHAPE_MODES = new Set(['lasso', 'ellipse', 'triangle', 'star', 'heart']);
 
 let cutoutSelection = {
   mode: 'selection',
@@ -233,6 +233,45 @@ function drawCutoutRegion(context, region, layer) {
     const end = map({ x: region.x + region.width, y: region.y + region.height });
     context.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2,
       Math.abs(end.x - start.x) / 2, Math.abs(end.y - start.y) / 2, 0, 0, Math.PI * 2);
+  } else if (region.shape === 'triangle' || region.shape === 'star' || region.shape === 'heart') {
+    const centerX = region.x + region.width / 2;
+    const centerY = region.y + region.height / 2;
+    const points = [];
+    if (region.shape === 'triangle') {
+      points.push(
+        { x: centerX, y: region.y },
+        { x: region.x + region.width, y: region.y + region.height },
+        { x: region.x, y: region.y + region.height },
+      );
+    } else if (region.shape === 'star') {
+      const outerX = region.width / 2;
+      const outerY = region.height / 2;
+      for (let index = 0; index < 10; index += 1) {
+        const radius = index % 2 === 0 ? 1 : 0.45;
+        const angle = -Math.PI / 2 + index * Math.PI / 5;
+        points.push({
+          x: centerX + Math.cos(angle) * outerX * radius,
+          y: centerY + Math.sin(angle) * outerY * radius,
+        });
+      }
+    } else {
+      // A 32-point parametric path gives the familiar heart contour while
+      // remaining a regular browser-local canvas mask (no model inference).
+      for (let index = 0; index < 32; index += 1) {
+        const angle = index * Math.PI * 2 / 32;
+        const x = 16 * Math.sin(angle) ** 3;
+        const y = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle)
+          - 2 * Math.cos(3 * angle) - Math.cos(4 * angle));
+        points.push({
+          x: centerX + x * region.width / 32,
+          y: centerY + y * region.height / 34,
+        });
+      }
+    }
+    const [first, ...rest] = points.map(map);
+    context.moveTo(first.x, first.y);
+    rest.forEach((point) => context.lineTo(point.x, point.y));
+    context.closePath();
   } else {
     const start = map({ x: region.x, y: region.y });
     const end = map({ x: region.x + region.width, y: region.y + region.height });
@@ -402,14 +441,14 @@ function bindCutoutCanvasGestures() {
     const region = cutoutSelection.mode === 'lasso'
       ? { shape: 'lasso', points: [...gesture.points, point] }
       : {
-        shape: 'ellipse',
+        shape: cutoutSelection.mode,
         x: Math.min(gesture.start.x, point.x),
         y: Math.min(gesture.start.y, point.y),
         width: Math.abs(point.x - gesture.start.x),
         height: Math.abs(point.y - gesture.start.y),
       };
     if ((region.shape === 'lasso' && region.points.length < 4)
-      || (region.shape === 'ellipse' && (!region.width || !region.height))) return;
+      || (region.shape !== 'lasso' && (!region.width || !region.height))) return;
     addCutoutRegion(region);
   };
   canvas.addEventListener('touchstart', (event) => {
@@ -1031,11 +1070,14 @@ function renderEditorToolControls(key) {
     const modeClass = (mode) => cutoutSelection.mode === mode ? ' class="is-selected"' : '';
     const operationClass = (operation) => cutoutSelection.operation === operation ? ' class="is-selected"' : '';
     target.innerHTML = `
-    ${customMaskDisabled ? '<p class="studio-control-hint studio-control-warning" data-testid="cutout-rotation-warning">当前图片图层已旋转。为避免错误的遮罩几何，矩形、套索、椭圆和 Keep/Remove 已禁用；请先将图层旋转归零。</p>' : ''}
+    ${customMaskDisabled ? '<p class="studio-control-hint studio-control-warning" data-testid="cutout-rotation-warning">当前图片图层已旋转。为避免错误的遮罩几何，形状选区和 Keep/Remove 已禁用；请先将图层旋转归零。</p>' : ''}
     <div class="studio-control-group" aria-label="手动抠图模式">
       <button type="button"${modeClass('selection')}${disabledAttribute} data-cutout-mode="selection" data-testid="cutout-mode-selection">矩形选区</button>
       <button type="button"${modeClass('lasso')}${disabledAttribute} data-cutout-mode="lasso" data-testid="cutout-mode-lasso">自由套索</button>
       <button type="button"${modeClass('ellipse')}${disabledAttribute} data-cutout-mode="ellipse" data-testid="cutout-mode-ellipse">椭圆选区</button>
+      <button type="button"${modeClass('triangle')}${disabledAttribute} data-cutout-mode="triangle" data-testid="cutout-mode-triangle">三角选区</button>
+      <button type="button"${modeClass('star')}${disabledAttribute} data-cutout-mode="star" data-testid="cutout-mode-star">星形选区</button>
+      <button type="button"${modeClass('heart')}${disabledAttribute} data-cutout-mode="heart" data-testid="cutout-mode-heart">心形选区</button>
       <button type="button"${modeClass('magic_erase')} data-cutout-mode="magic_erase" data-testid="cutout-mode-magic">魔术橡皮</button>
       <button type="button"${modeClass('erase')} data-cutout-mode="erase" data-testid="cutout-mode-erase">橡皮画笔</button>
     </div>
