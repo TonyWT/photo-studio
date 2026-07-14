@@ -248,6 +248,7 @@ const EFFECT_CATEGORIES = Object.freeze(EFFECT_CATEGORY_DEFINITIONS.map((categor
   })),
 })));
 let activeEffectCategoryId = null;
+let activeEffectRecipeId = null;
 
 const EXPORT_TYPES = Object.freeze({
   png: 'PNG - Portable Network Graphics',
@@ -2036,7 +2037,7 @@ function renderEditorToolControls(key) {
       <span class="studio-effect-category-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
       <span class="studio-effect-category-copy"><strong>${category.label}</strong><small>${category.effects.length} 个本地效果</small></span>
     </button>`).join('');
-    const effectCards = activeCategory?.effects.map((effect) => `<button type="button" class="studio-effect-preset studio-effect-preset--${activeCategory.previewClass}" data-testid="effect-preset-${activeCategory.id}-${effect.id}" data-effect-category="${activeCategory.id}" data-effect-recipe="${effect.id}"${effectDisabled}>
+    const effectCards = activeCategory?.effects.map((effect) => `<button type="button" class="studio-effect-preset studio-effect-preset--${activeCategory.previewClass}${activeEffectRecipeId === effect.id ? ' is-selected' : ''}" aria-pressed="${activeEffectRecipeId === effect.id}" data-testid="effect-preset-${activeCategory.id}-${effect.id}" data-effect-category="${activeCategory.id}" data-effect-recipe="${effect.id}"${effectDisabled}>
       <span>${effect.label}</span><small>本地预览与应用</small>
     </button>`).join('') ?? '';
     target.innerHTML = `
@@ -2047,23 +2048,41 @@ function renderEditorToolControls(key) {
         <button type="button" data-testid="effect-contrast"${effectDisabled}>对比度</button>
         <button type="button" data-testid="effect-blur"${effectDisabled}>模糊</button>
       </div>
+      <footer class="studio-effect-panel-footer" data-testid="effect-panel-footer" aria-label="效果操作">
+        <button type="button" data-testid="effect-cancel">取消</button>
+        <button type="button" data-testid="effect-apply"${activeEffectRecipeId && !effectDisabled ? '' : ' disabled'}>应用</button>
+      </footer>
     `;
     target.querySelectorAll('.studio-effect-category[data-testid]')?.forEach((button) => {
       button.addEventListener('click', () => {
         if (!activeImageLayerIsEditable()) return;
         activeEffectCategoryId = button.dataset.testid.replace('effect-category-', '');
+        activeEffectRecipeId = null;
         renderEditorToolControls('effect');
       });
     });
     target.querySelector('[data-testid="effect-category-back"]')?.addEventListener('click', () => {
       activeEffectCategoryId = null;
+      activeEffectRecipeId = null;
       renderEditorToolControls('effect');
     });
     target.querySelectorAll('[data-effect-recipe]').forEach((button) => {
       button.addEventListener('click', () => {
         if (!activeImageLayerIsEditable()) return;
-        invokeEditorModule('effects/local_presets', 'preset', button.dataset.effectRecipe, button.querySelector('span')?.textContent || '本地效果');
+        activeEffectRecipeId = button.dataset.effectRecipe;
+        renderEditorToolControls('effect');
       });
+    });
+    target.querySelector('[data-testid="effect-cancel"]')?.addEventListener('click', () => {
+      activeEffectCategoryId = null;
+      activeEffectRecipeId = null;
+      renderEditorToolControls('effect');
+    });
+    target.querySelector('[data-testid="effect-apply"]')?.addEventListener('click', () => {
+      if (!activeImageLayerIsEditable() || !activeCategory || !activeEffectRecipeId) return;
+      const selected = activeCategory.effects.find((effect) => effect.id === activeEffectRecipeId);
+      if (!selected) return;
+      invokeEditorModule('effects/local_presets', 'preset', selected.id, selected.label);
     });
     target.querySelector('[data-testid="effect-browser"]')?.addEventListener('click', () => {
       if (activeImageLayerIsEditable()) invokeEditorModule('effects/browser', 'browser');

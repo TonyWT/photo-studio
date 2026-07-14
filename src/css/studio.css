@@ -145,6 +145,13 @@ body.photo-studio-editor .studio-crop-panel-footer button { min-height: 36px; bo
 body.photo-studio-editor .studio-crop-panel-footer button:hover { border-color: #bbb; color: #fff; background: #383838; }
 body.photo-studio-editor .studio-crop-panel-footer button[data-testid="crop-apply"] { border-color: #00a9df; background: #00a9df; }
 body.photo-studio-editor .studio-crop-panel-footer button[data-testid="crop-apply"]:hover { border-color: #19b9ec; background: #19b9ec; }
+body.photo-studio-editor .studio-tool-controls:has(.studio-effect-panel-footer) { padding-bottom: 62px; }
+body.photo-studio-editor .studio-effect-panel-footer { position: fixed; z-index: 26; bottom: 56px; left: 58px; display: grid; box-sizing: border-box; width: 344px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 10px 14px; border-top: 1px solid #414141; background: #252525; box-shadow: 0 -8px 16px rgba(0, 0, 0, .24); }
+body.photo-studio-editor .studio-effect-panel-footer button { min-height: 36px; border: 1px solid #8a8a8a; border-radius: 20px; color: #e6e6e6; background: #2c2c2c; font: 600 13px/1 inherit; cursor: pointer; }
+body.photo-studio-editor .studio-effect-panel-footer button:hover:not(:disabled) { border-color: #bbb; color: #fff; background: #383838; }
+body.photo-studio-editor .studio-effect-panel-footer button:disabled { visibility: visible; opacity: .46; cursor: not-allowed; }
+body.photo-studio-editor .studio-effect-panel-footer button[data-testid="effect-apply"] { border-color: #00a9df; background: #00a9df; }
+body.photo-studio-editor .studio-effect-panel-footer button[data-testid="effect-apply"]:hover:not(:disabled) { border-color: #19b9ec; background: #19b9ec; }
 body.photo-studio-editor .studio-retouch-section { display: grid; gap: 7px; padding: 9px; border: 1px solid #383838; border-radius: 7px; background: #282828; }
 body.photo-studio-editor .studio-retouch-section > strong { color: #dedede; font-size: 12px; }
 body.photo-studio-editor .studio-retouch-section .studio-control-group-four button { min-width: 0; padding: 4px 2px; font-size: 10px; }
