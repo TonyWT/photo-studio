@@ -2899,6 +2899,102 @@ test('Drawing 填充会写入本地像素，并可通过撤销精确恢复', asy
   await expect.poll(centerPixel).toEqual(before);
 });
 
+test('Drawing 渐变会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'gradient-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-gradient').click();
+  await expect(page.locator('#tools_container .gradient')).toHaveClass(/active/);
+
+  const regionHash = () => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    const pixels = context.getImageData(80, 100, 100, 40).data;
+    let hash = 2166136261;
+    for (const pixel of pixels) hash = Math.imul(hash ^ pixel, 16777619);
+    return hash >>> 0;
+  });
+  const before = await regionHash();
+  const history = await page.evaluate(() => window.State.action_history.length);
+  const canvas = page.locator('#canvas_minipaint');
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  await canvas.hover({ position: { x: 100, y: 120 } });
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + 170, canvasBox.y + 120, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
+  await expect.poll(regionHash).not.toBe(before);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(regionHash).toBe(before);
+});
+
+test('Drawing 形状会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'shape-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-shape').click();
+  const shapeDialog = page.getByRole('dialog');
+  await expect(shapeDialog.getByRole('heading', { name: '形状' })).toBeVisible();
+  await shapeDialog.locator('canvas[data-key="rectangle"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe('rectangle');
+
+  const regionHash = () => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    const pixels = context.getImageData(100, 100, 80, 80).data;
+    let hash = 2166136261;
+    for (const pixel of pixels) hash = Math.imul(hash ^ pixel, 16777619);
+    return hash >>> 0;
+  });
+  const before = await regionHash();
+  const history = await page.evaluate(() => window.State.action_history.length);
+  const canvas = page.locator('#canvas_minipaint');
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  await canvas.hover({ position: { x: 100, y: 100 } });
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + 170, canvasBox.y + 170, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
+  await expect.poll(regionHash).not.toBe(before);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(regionHash).toBe(before);
+});
+
 test('Drawing 填充不会修改锁定图片图层或写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
