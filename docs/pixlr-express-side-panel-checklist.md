@@ -118,8 +118,8 @@
 | J-11 | Contrast | 保留 | 可用 | 滑杆值进入本地 Contrast 预览与 Apply |
 | J-12 | Color / Light 分组折叠或设置入口 | 保留 | 可用 | Color/Light 分组、对应高级入口和重置/预览应用入口已提供 |
 | J-13 | 截图下方未显示的 Light 项 | 待取证 | 未枚举 | 完整滚动取证后逐项新增 |
-| J-14 | Details 分组 | 保留 | 部分可用 | 锐化/清晰度等真实本地像素结果 |
-| J-15 | Scene 分组 | 保留 | 部分可用 | 真实本地像素结果 |
+| J-14 | Details 分组 | 保留 | 可用 | 打开本地 Sharpen 参数对话框；确认后产生像素历史、Undo 精确恢复，Chromium E2E 已覆盖 |
+| J-15 | Scene 分组 | 保留 | 可用 | 打开本地 Color Corrections 场景参数；确认后产生像素历史、Undo 精确恢复，Chromium E2E 已覆盖 |
 | J-16 | Cancel / Apply / Compare / Reset | 保留 | 可用 | 预览无历史、应用单次历史 |
 
 ## S-04 Effect 与 S-05 Filter
@@ -172,11 +172,11 @@
 | 编号 | 截图可见项 | 决策 | 当前状态 | 最低验收 |
 | --- | --- | --- | --- | --- |
 | D-01 ～ D-05 | Draw 的 5 个工具图标 | 待取证 | 部分可用：Brush、Eraser、Eyedropper、Pencil、Fill、Gradient 与 Rectangle Shape 均已接入；Eraser、Pencil、Fill、Gradient、Rectangle 有本地像素/撤销验证，Eyedropper 仅本地取色且无历史 | 逐一确认截图中每个图标的准确名称/映射，并为其余 Shape 建立像素基准 |
-| D-06 | 颜色选择器 | 保留 | 部分可用 | 颜色写入笔触/填充 |
-| D-07 | Brush 预览/笔刷选择 | 保留 | 部分可用：柔边、硬圆两个原创本地预设会写入尺寸与柔化参数 | 原创本地笔刷缩略预览与更多笔尖的像素基准 |
-| D-08 | Size | 保留 | 部分可用 | 笔刷直径像素基准 |
-| D-09 | Softness | 保留 | 部分可用：画笔已实现 0～100% 本地软边 | 硬边/软边外缘像素与 Undo 基准；其余绘制工具的柔化另行验收 |
-| D-10 | Transparency | 保留 | 部分可用 | alpha 合成基准 |
+| D-06 | 颜色选择器 | 保留 | 可用 | 颜色会同步到画笔、形状描边与渐变前景；调色板与输入框均由 Chromium E2E 验证 |
+| D-07 | Brush 预览/笔刷选择 | 保留 | 可用 | 提供原创的柔边、硬圆本地预设，均写入尺寸与柔化参数；不复制 Pixlr 笔刷素材 |
+| D-08 | Size | 保留 | 可用 | 尺寸同步到画笔、铅笔、橡皮和形状；真实笔触像素与 Undo 已由 Chromium E2E 覆盖 |
+| D-09 | Softness | 保留 | 可用 | 画笔支持 0～100% 本地软边；硬边/软边外缘像素差异及 Undo 已由 Chromium E2E 覆盖 |
+| D-10 | Transparency | 保留 | 可用 | 1～100% alpha 写入画笔本地合成；配置值、实际笔触和 Undo 已由 Chromium E2E 覆盖 |
 | D-11 | 调色板色样 | 保留 | 可用 | 11 枚本地色样可同步画笔颜色、形状描边和渐变前景色；Chromium E2E 已验证 |
 | D-12 | Shape：方形、圆形、三角、星形、心形、直线 | 保留 | 可用 | 六项快捷入口均切换到 miniPaint 对应本地画布工具；Chromium E2E 已逐项验证。笔刷纹理不是参考截图的必需保留项 |
 | D-13 | Close | 保留 | 可用 | 工具状态收口 |
