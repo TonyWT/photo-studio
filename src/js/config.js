@@ -479,6 +479,11 @@ config.TOOLS = [
 			radius: 80,
 			power: 50,
 			density: 50,
+			mode: {
+				value: 'bulge',
+				values: ['push', 'bulge', 'pinch', 'twirl_left', 'twirl_right', 'restore'],
+			},
+			high_quality: false,
 			bulge: true,
 			push: false,
 		},

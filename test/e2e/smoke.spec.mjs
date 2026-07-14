@@ -2746,11 +2746,16 @@ test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安�
 
   await expect(page.getByTestId('liquify-mode-bulge')).toBeVisible();
   await expect(page.getByTestId('liquify-mode-pinch')).toBeVisible();
+  await expect(page.getByTestId('liquify-mode-push')).toBeVisible();
+  await expect(page.getByTestId('liquify-mode-twirl-left')).toBeVisible();
+  await expect(page.getByTestId('liquify-mode-twirl-right')).toBeVisible();
+  await expect(page.getByTestId('liquify-mode-restore')).toBeVisible();
   await expect(page.getByTestId('liquify-radius')).toHaveAttribute('min', '1');
   await expect(page.getByTestId('liquify-radius')).toHaveAttribute('max', '500');
   await expect(page.getByTestId('liquify-strength')).toHaveAttribute('min', '1');
   await expect(page.getByTestId('liquify-strength')).toHaveAttribute('max', '100');
   await expect(page.getByTestId('liquify-density')).toHaveAttribute('min', '1');
+  await expect(page.getByTestId('liquify-high-quality')).not.toBeChecked();
   await expect(page.getByTestId('liquify-apply')).toBeDisabled();
   await expect(page.getByTestId('liquify-cancel')).toBeDisabled();
 
@@ -2759,9 +2764,14 @@ test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安�
     await expect(page.getByTestId('liquify-status')).toContainText('仅本地 WebGL2 可用');
     await expect(page.getByTestId('liquify-mode-bulge')).toBeDisabled();
     await expect(page.getByTestId('liquify-mode-pinch')).toBeDisabled();
+    await expect(page.getByTestId('liquify-mode-push')).toBeDisabled();
+    await expect(page.getByTestId('liquify-mode-twirl-left')).toBeDisabled();
+    await expect(page.getByTestId('liquify-mode-twirl-right')).toBeDisabled();
+    await expect(page.getByTestId('liquify-mode-restore')).toBeDisabled();
     await expect(page.getByTestId('liquify-radius')).toBeDisabled();
     await expect(page.getByTestId('liquify-strength')).toBeDisabled();
     await expect(page.getByTestId('liquify-density')).toBeDisabled();
+    await expect(page.getByTestId('liquify-high-quality')).toBeDisabled();
     return;
   }
 
@@ -2772,6 +2782,7 @@ test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安�
   await page.getByTestId('liquify-density').fill('42');
   await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'bulge_pinch').attributes)).toMatchObject({
     bulge: false,
+    mode: { value: 'pinch' },
     radius: 123,
     power: 67,
     density: 42,
@@ -2781,9 +2792,23 @@ test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安�
   const sourceBefore = await page.evaluate(() => window.AppConfig.layer.link.src);
   await page.locator('#canvas_minipaint').click({ position: { x: 500, y: 300 } });
   await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.link_canvas))).toBe(true);
+  await expect.poll(() => page.evaluate(() => {
+    const tool = window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object;
+    return window.AppConfig.layer.link_canvas !== tool.tmpCanvas;
+  })).toBe(true);
   await expect(page.getByTestId('liquify-apply')).toBeEnabled();
   await expect(page.getByTestId('liquify-cancel')).toBeEnabled();
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+  await page.getByTestId('liquify-high-quality').check();
+  await expect.poll(() => page.evaluate(() => {
+    const tool = window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object;
+    return window.AppConfig.layer.link_canvas === tool.tmpCanvas;
+  })).toBe(true);
+  await page.getByTestId('liquify-high-quality').uncheck();
+  await expect.poll(() => page.evaluate(() => {
+    const tool = window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object;
+    return window.AppConfig.layer.link_canvas !== tool.tmpCanvas;
+  })).toBe(true);
   await page.getByTestId('liquify-cancel').click();
   await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.link_canvas))).toBe(false);
   await expect(page.getByTestId('liquify-apply')).toBeDisabled();
@@ -2800,9 +2825,12 @@ test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安�
   await page.getByTestId('layer-lock').click();
   await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.locked))).toBe(true);
   await expect(page.getByTestId('liquify-mode-pinch')).toBeDisabled();
+  await expect(page.getByTestId('liquify-mode-twirl-left')).toBeDisabled();
+  await expect(page.getByTestId('liquify-mode-restore')).toBeDisabled();
   await expect(page.getByTestId('liquify-radius')).toBeDisabled();
   await expect(page.getByTestId('liquify-strength')).toBeDisabled();
   await expect(page.getByTestId('liquify-density')).toBeDisabled();
+  await expect(page.getByTestId('liquify-high-quality')).toBeDisabled();
   const lockedHistoryLength = await page.evaluate(() => window.State.action_history.length);
   await page.locator('#canvas_minipaint').click({ position: { x: 500, y: 300 } });
   await page.waitForTimeout(100);
@@ -2850,6 +2878,37 @@ test('Liquify 推移沿笔触暂存本地预览，并只在应用时写入一次
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).toBe(before.preview);
   await page.locator('[data-editor-history="redo"]').click();
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).toBe(applied);
+});
+
+test('Liquify 左右旋与恢复模式均写入本地临时会话，而非远程处理', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-liquify').click();
+  await expect(page.getByTestId('liquify-mode-twirl-left')).toBeVisible();
+  const webgl2Available = await page.evaluate(() => document.body.dataset.liquifyAcceleration === 'webgl2');
+  if (!webgl2Available) {
+    await expect(page.getByTestId('liquify-mode-twirl-left')).toBeDisabled();
+    return;
+  }
+
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const originalPreview = await page.evaluate(() => document.getElementById('canvas_preview').toDataURL());
+  for (const [testId, mode] of [
+    ['liquify-mode-twirl-left', 'twirl_left'],
+    ['liquify-mode-twirl-right', 'twirl_right'],
+    ['liquify-mode-restore', 'restore'],
+  ]) {
+    await page.getByTestId(testId).click();
+    await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'bulge_pinch').attributes.mode.value)).toBe(mode);
+    await page.locator('#canvas_minipaint').click({ position: { x: bounds.width * 0.5, y: bounds.height * 0.5 } });
+    await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object.has_session())).toBe(true);
+    await page.getByTestId('liquify-cancel').click();
+    await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).toBe(originalPreview);
+  }
 });
 
 test('选区进入锁定图层的不可用液化时，会按标准工具生命周期清理临时选区', async ({ page }) => {

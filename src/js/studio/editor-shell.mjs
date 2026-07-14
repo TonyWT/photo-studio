@@ -1140,17 +1140,20 @@ function renderEditorToolControls(key) {
     const radius = Number(attributes.radius) || 80;
     const power = Number(attributes.power) || 50;
     const density = Number(attributes.density) || 50;
-    const bulge = attributes.bulge !== false;
-	const push = Boolean(attributes.push);
+    const mode = attributes.mode?.value ?? (attributes.push ? 'push' : attributes.bulge === false ? 'pinch' : 'bulge');
+	const highQuality = Boolean(attributes.high_quality);
     const liquifyTool = getCoreToolModule('bulge_pinch');
     const previewActive = Boolean(liquifyTool?.has_session?.());
     const disabled = availability.enabled ? '' : 'disabled';
     target.innerHTML = `
       <p class="studio-control-status ${availability.enabled ? 'is-available' : 'is-unavailable'}" data-testid="liquify-status">${previewActive ? '液化预览中：继续点按可叠加，应用后写入一次历史。' : availability.message}</p>
-      <div class="studio-control-group" aria-label="液化模式">
-        <button type="button" class="${!push && bulge ? 'is-selected' : ''}" aria-pressed="${!push && bulge}" data-testid="liquify-mode-bulge" ${disabled}>膨胀</button>
-        <button type="button" class="${!push && !bulge ? 'is-selected' : ''}" aria-pressed="${!push && !bulge}" data-testid="liquify-mode-pinch" ${disabled}>收缩</button>
-        <button type="button" class="${push ? 'is-selected' : ''}" aria-pressed="${push}" data-testid="liquify-mode-push" ${disabled}>推移</button>
+      <div class="studio-control-group studio-liquify-mode-grid" aria-label="液化模式">
+        <button type="button" class="${mode === 'push' ? 'is-selected' : ''}" aria-pressed="${mode === 'push'}" data-testid="liquify-mode-push" ${disabled}>推移</button>
+        <button type="button" class="${mode === 'bulge' ? 'is-selected' : ''}" aria-pressed="${mode === 'bulge'}" data-testid="liquify-mode-bulge" ${disabled}>膨胀</button>
+        <button type="button" class="${mode === 'pinch' ? 'is-selected' : ''}" aria-pressed="${mode === 'pinch'}" data-testid="liquify-mode-pinch" ${disabled}>收缩</button>
+        <button type="button" class="${mode === 'twirl_left' ? 'is-selected' : ''}" aria-pressed="${mode === 'twirl_left'}" data-testid="liquify-mode-twirl-left" ${disabled}>左旋</button>
+        <button type="button" class="${mode === 'twirl_right' ? 'is-selected' : ''}" aria-pressed="${mode === 'twirl_right'}" data-testid="liquify-mode-twirl-right" ${disabled}>右旋</button>
+        <button type="button" class="${mode === 'restore' ? 'is-selected' : ''}" aria-pressed="${mode === 'restore'}" data-testid="liquify-mode-restore" ${disabled}>恢复</button>
       </div>
       <label class="studio-control-range">半径 <output data-liquify-radius-output>${radius}px</output>
         <input type="range" min="1" max="500" value="${radius}" data-testid="liquify-radius" ${disabled}>
@@ -1161,6 +1164,7 @@ function renderEditorToolControls(key) {
       <label class="studio-control-range">密度 <output data-liquify-density-output>${density}%</output>
         <input type="range" min="1" max="100" value="${density}" data-testid="liquify-density" ${disabled}>
       </label>
+      <label class="studio-control-check studio-liquify-quality"><input type="checkbox" data-testid="liquify-high-quality" ${highQuality ? 'checked' : ''} ${disabled}>高质量预览</label>
       <div class="studio-control-group studio-control-group-two" aria-label="液化预览操作">
         <button type="button" data-testid="liquify-cancel" ${previewActive && availability.enabled ? '' : 'disabled'}>取消预览</button>
         <button type="button" data-testid="liquify-apply" ${previewActive && availability.enabled ? '' : 'disabled'}>应用液化</button>
@@ -1173,6 +1177,7 @@ function renderEditorToolControls(key) {
     const radiusOutput = target.querySelector('[data-liquify-radius-output]');
     const strengthOutput = target.querySelector('[data-liquify-strength-output]');
     const densityOutput = target.querySelector('[data-liquify-density-output]');
+	const qualityInput = target.querySelector('[data-testid="liquify-high-quality"]');
     radiusInput.addEventListener('input', () => {
       setToolAttribute('bulge_pinch', 'radius', Number(radiusInput.value));
       radiusOutput.textContent = `${radiusInput.value}px`;
@@ -1185,20 +1190,27 @@ function renderEditorToolControls(key) {
       setToolAttribute('bulge_pinch', 'density', Number(densityInput.value));
       densityOutput.textContent = `${densityInput.value}%`;
     });
-    target.querySelector('[data-testid="liquify-mode-bulge"]')?.addEventListener('click', () => {
-      setToolAttribute('bulge_pinch', 'bulge', true);
-	  setToolAttribute('bulge_pinch', 'push', false);
-      renderEditorToolControls('liquify');
-    });
-    target.querySelector('[data-testid="liquify-mode-pinch"]')?.addEventListener('click', () => {
-      setToolAttribute('bulge_pinch', 'bulge', false);
-	  setToolAttribute('bulge_pinch', 'push', false);
-      renderEditorToolControls('liquify');
-    });
-	target.querySelector('[data-testid="liquify-mode-push"]')?.addEventListener('click', () => {
-	  setToolAttribute('bulge_pinch', 'push', true);
-	  renderEditorToolControls('liquify');
+	qualityInput?.addEventListener('change', () => {
+	  setToolAttribute('bulge_pinch', 'high_quality', qualityInput.checked);
+	  liquifyTool?.refresh_preview?.();
 	});
+    const setLiquifyMode = (nextMode) => {
+      setToolAttributeValue('bulge_pinch', 'mode', nextMode);
+      // Keep old saved projects and existing integration points compatible.
+      setToolAttribute('bulge_pinch', 'push', nextMode === 'push');
+      setToolAttribute('bulge_pinch', 'bulge', nextMode !== 'pinch');
+      renderEditorToolControls('liquify');
+    };
+    [
+      ['liquify-mode-push', 'push'],
+      ['liquify-mode-bulge', 'bulge'],
+      ['liquify-mode-pinch', 'pinch'],
+      ['liquify-mode-twirl-left', 'twirl_left'],
+      ['liquify-mode-twirl-right', 'twirl_right'],
+      ['liquify-mode-restore', 'restore'],
+    ].forEach(([testId, nextMode]) => {
+      target.querySelector(`[data-testid="${testId}"]`)?.addEventListener('click', () => setLiquifyMode(nextMode));
+    });
     target.querySelector('[data-testid="liquify-cancel"]')?.addEventListener('click', () => {
       liquifyTool?.cancel_session?.();
       renderEditorToolControls('liquify');

@@ -17,6 +17,12 @@ class BulgePinch_class extends Base_tools_class {
 		this.name = 'bulge_pinch';
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
+		this.previewCanvas = null;
+		this.previewCanvasCtx = null;
+		this.previewDownsampleCanvas = null;
+		this.previewDownsampleCtx = null;
+		this.sourceCanvas = null;
+		this.sourceCanvasCtx = null;
 		this.started = false;
 		this.sessionLayerId = null;
 		this.lastPushPoint = null;
@@ -71,16 +77,28 @@ class BulgePinch_class extends Base_tools_class {
 			this.tmpCanvas.width = config.layer.width_original;
 			this.tmpCanvas.height = config.layer.height_original;
 			this.tmpCanvasCtx.drawImage(config.layer.link, 0, 0);
+			this.sourceCanvas = document.createElement('canvas');
+			this.sourceCanvas.width = this.tmpCanvas.width;
+			this.sourceCanvas.height = this.tmpCanvas.height;
+			this.sourceCanvasCtx = this.sourceCanvas.getContext("2d", {willReadFrequently: true});
+			this.sourceCanvasCtx.drawImage(config.layer.link, 0, 0);
 		}
 
-		if (params.push) {
+		const mode = this.get_mode(params);
+		if (mode === 'push') {
 			this.lastPushPoint = this.get_layer_canvas_point(mouse);
+		} else if (mode === 'twirl_left' || mode === 'twirl_right') {
+			this.twirl_general(mouse, params.power, params.radius, params.density, mode === 'twirl_left' ? -1 : 1);
+		} else if (mode === 'restore') {
+			this.restore_general(mouse, params.radius, params.density);
 		} else {
-			this.bulgePinch_general(mouse, params.power, params.radius, params.bulge);
+			this.bulgePinch_general(mouse, params.power, params.radius, mode !== 'pinch');
 		}
 
-		//register tmp canvas for faster redraw
-		config.layer.link_canvas = this.tmpCanvas;
+		// The editable source stays full resolution. The optional fast preview is
+		// deliberately separate so switching preview quality can never lower the
+		// pixels committed by Apply.
+		this.refresh_preview(params);
 		config.need_render = true;
 		this.announce_session_change();
 	}
@@ -99,10 +117,11 @@ class BulgePinch_class extends Base_tools_class {
 	mousemove(e) {
 		const mouse = this.get_mouse_info(e);
 		const params = this.getParams();
-		if (!this.started || !params.push || !mouse.is_drag || !mouse.click_valid || !this.tmpCanvas) return;
+		if (!this.started || this.get_mode(params) !== 'push' || !mouse.is_drag || !mouse.click_valid || !this.tmpCanvas) return;
 		const point = this.get_layer_canvas_point(mouse);
 		if (this.lastPushPoint) this.push_general(this.lastPushPoint, point, params.radius, params.density);
 		this.lastPushPoint = point;
+		this.refresh_preview(params);
 		config.need_render = true;
 		this.announce_session_change();
 	}
@@ -113,8 +132,37 @@ class BulgePinch_class extends Base_tools_class {
 
 	clear_session_preview() {
 		const layer = this.sessionLayerId == null ? null : app.Layers.get_layer(this.sessionLayerId);
-		if (layer && layer.link_canvas === this.tmpCanvas) delete layer.link_canvas;
+		if (layer && (layer.link_canvas === this.tmpCanvas || layer.link_canvas === this.previewCanvas)) delete layer.link_canvas;
 		config.need_render = true;
+	}
+
+	refresh_preview(params = this.getParams()) {
+		if (!this.tmpCanvas || this.sessionLayerId == null) return false;
+		const layer = app.Layers.get_layer(this.sessionLayerId);
+		if (!layer) return false;
+		if (params.high_quality) {
+			layer.link_canvas = this.tmpCanvas;
+			config.need_render = true;
+			return true;
+		}
+		if (!this.previewCanvas) {
+			this.previewCanvas = document.createElement('canvas');
+			this.previewCanvas.width = this.tmpCanvas.width;
+			this.previewCanvas.height = this.tmpCanvas.height;
+			this.previewCanvasCtx = this.previewCanvas.getContext('2d');
+			this.previewDownsampleCanvas = document.createElement('canvas');
+			this.previewDownsampleCanvas.width = Math.max(1, Math.round(this.tmpCanvas.width / 2));
+			this.previewDownsampleCanvas.height = Math.max(1, Math.round(this.tmpCanvas.height / 2));
+			this.previewDownsampleCtx = this.previewDownsampleCanvas.getContext('2d');
+		}
+		this.previewDownsampleCtx.clearRect(0, 0, this.previewDownsampleCanvas.width, this.previewDownsampleCanvas.height);
+		this.previewDownsampleCtx.drawImage(this.tmpCanvas, 0, 0, this.previewDownsampleCanvas.width, this.previewDownsampleCanvas.height);
+		this.previewCanvasCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
+		this.previewCanvasCtx.imageSmoothingEnabled = true;
+		this.previewCanvasCtx.drawImage(this.previewDownsampleCanvas, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
+		layer.link_canvas = this.previewCanvas;
+		config.need_render = true;
+		return true;
 	}
 
 	announce_session_change() {
@@ -129,6 +177,24 @@ class BulgePinch_class extends Base_tools_class {
 		}
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
+		if (this.previewCanvas) {
+			this.previewCanvas.width = 1;
+			this.previewCanvas.height = 1;
+		}
+		if (this.previewDownsampleCanvas) {
+			this.previewDownsampleCanvas.width = 1;
+			this.previewDownsampleCanvas.height = 1;
+		}
+		this.previewCanvas = null;
+		this.previewCanvasCtx = null;
+		this.previewDownsampleCanvas = null;
+		this.previewDownsampleCtx = null;
+		if (this.sourceCanvas) {
+			this.sourceCanvas.width = 1;
+			this.sourceCanvas.height = 1;
+		}
+		this.sourceCanvas = null;
+		this.sourceCanvasCtx = null;
 		this.sessionLayerId = null;
 		this.started = false;
 		this.lastPushPoint = null;
@@ -194,6 +260,58 @@ class BulgePinch_class extends Base_tools_class {
 		this.fx_filter.draw(texture).bulgePinch(mouse_x, mouse_y, radius, power).update();	//effect
 		this.tmpCanvasCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
 		this.tmpCanvasCtx.drawImage(this.fx_filter, 0, 0);
+	}
+
+	get_mode(params) {
+		const configured = params.mode?.value ?? params.mode;
+		if (typeof configured === 'string' && configured.length > 0) return configured;
+		if (params.push) return 'push';
+		return params.bulge === false ? 'pinch' : 'bulge';
+	}
+
+	twirl_general(mouse, power, radius, density, direction) {
+		if (this.fx_filter == false) this.fx_filter = glfx.canvas();
+		const point = this.get_layer_canvas_point(mouse);
+		const intensity = Math.max(0.01, Math.min(1, Number(power) / 100 || 0.5));
+		const falloff = Math.max(0.01, Math.min(1, Number(density) / 100 || 0.5));
+		const texture = this.fx_filter.texture(this.tmpCanvas);
+		this.fx_filter.draw(texture).swirl(point.x, point.y, radius, direction * intensity * falloff * Math.PI).update();
+		this.tmpCanvasCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
+		this.tmpCanvasCtx.drawImage(this.fx_filter, 0, 0);
+	}
+
+	/** Restore only the affected disc from the image that opened this session.
+	 * This keeps the operation local and temporary until the normal Apply action.
+	 */
+	restore_general(mouse, radius, density) {
+		if (!this.sourceCanvasCtx || !this.tmpCanvasCtx) return;
+		const point = this.get_layer_canvas_point(mouse);
+		const radiusX = Math.max(1, Math.round(this.adaptSize(radius, 'width')));
+		const radiusY = Math.max(1, Math.round(this.adaptSize(radius, 'height')));
+		const left = Math.max(0, Math.floor(point.x - radiusX));
+		const top = Math.max(0, Math.floor(point.y - radiusY));
+		const right = Math.min(this.tmpCanvas.width, Math.ceil(point.x + radiusX));
+		const bottom = Math.min(this.tmpCanvas.height, Math.ceil(point.y + radiusY));
+		const width = right - left;
+		const height = bottom - top;
+		if (width <= 0 || height <= 0) return;
+		const current = this.tmpCanvasCtx.getImageData(left, top, width, height);
+		const original = this.sourceCanvasCtx.getImageData(left, top, width, height);
+		const strength = Math.max(0, Math.min(1, Number(density) / 100 || 0.5));
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+				const nx = (left + x - point.x) / radiusX;
+				const ny = (top + y - point.y) / radiusY;
+				const distance = Math.sqrt(nx * nx + ny * ny);
+				if (distance >= 1) continue;
+				const alpha = (1 - distance) * (1 - distance) * strength;
+				const index = (y * width + x) * 4;
+				for (let channel = 0; channel < 4; channel++) {
+					current.data[index + channel] = Math.round(current.data[index + channel] * (1 - alpha) + original.data[index + channel] * alpha);
+				}
+			}
+		}
+		this.tmpCanvasCtx.putImageData(current, left, top);
 	}
 
 	get_layer_canvas_point(mouse) {
