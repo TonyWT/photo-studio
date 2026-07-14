@@ -141,7 +141,7 @@
 | F-05 | Glitch | 保留 | 可用 | 本地像素结果/撤销 |
 | F-06 | Colorize | 保留 | 可用 | 本地像素结果/撤销 |
 | F-07 | 截图下方继续滚动的 Filter 卡片 | 待取证 | 未枚举 | 完整滚动取证后逐项新增 |
-| F-08 | 每张 Filter 卡的缩略预览/参数 | 保留 | 部分可用 | 以当前本地图片生成六张卡片预览；参数与 Apply/Cancel 继续复用本地对话框 |
+| F-08 | 每张 Filter 卡的缩略预览/参数 | 保留 | 可用 | 六张卡都由当前本地图片生成预览；每项均打开本地参数对话框，应用后产生像素历史、Undo 恢复原图，Chromium E2E 已覆盖 |
 
 ## S-06 Liquify 与 S-07 Retouch
 
@@ -162,7 +162,7 @@
 | R-05 | Spot 方法 | 保留 | 可用 | 本地确定性邻域中值修复、三档质量、单次历史与 Undo 已由 E2E 验证 |
 | R-06 | Object 方法 | **排除** | 已移除 | Pixlr 官方当前将 Object Healing 归为 AI 辅助对象修复；不提供入口、模型或远程请求。来源：<https://pixlr.com/tools/heal-tool/> |
 | R-07 | Size | 保留 | 可用 | 半径影响范围 |
-| R-08 | Clone / repair / blur / sharpen / dodge / burn 子工具 | 保留 | 部分可用 | Spot、Clone、Blur、Sharpen、Dodge/Burn 均为本地笔刷；Dodge/Burn 已有暗部/中间调/高光范围并实际参与像素权重。Clone 可切换当前/下一图层来源、连续采样（Aligned），右键或长按采样点；连续采样的跨笔像素基准仍待补 |
+| R-08 | Clone / repair / blur / sharpen / dodge / burn 子工具 | 保留 | 可用 | Spot、Clone、Blur、Sharpen、Dodge/Burn 均为本地笔刷；Dodge/Burn 已有暗部/中间调/高光范围并实际参与像素权重。Clone 可切换当前/下一图层来源、连续采样（Aligned），右键或长按采样点；Aligned 跨笔偏移、Blur/Sharpen 实际像素写入及 Undo 均由 Chromium E2E 覆盖 |
 | R-09 | 锁定图层禁用 | 保留 | 可用 | UI 与动作双重拦截 |
 | R-10 | Close | 保留 | 可用 | 工具生命周期清理 |
 | R-11 | Repair 的 Speed / Balanced / Quality | 保留 | 可用 | 三档均为本地确定性中值采样窗口（3×3 / 5×5 / 7×7），不调用模型；切换与 Spot 修复由 E2E 验证 |

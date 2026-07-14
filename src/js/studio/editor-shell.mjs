@@ -1932,7 +1932,7 @@ function renderEditorToolControls(key) {
 	const repairAttributes = findToolConfig('repair')?.attributes ?? {};
 	const dodgeBurnAttributes = findToolConfig('dodge_burn')?.attributes ?? {};
     const size = Number(blurAttributes.size ?? cloneAttributes.size ?? 30);
-    const strength = Math.round(Math.max(0, Math.min(1, Number(blurAttributes.strength ?? 1))) * 100);
+    const strength = Math.round(Math.max(1, Math.min(100, Number(blurAttributes.strength ?? 50))));
 	const dodgeBurnStrength = Number(dodgeBurnAttributes.strength ?? 50);
 	const dodgeBurnMode = dodgeBurnAttributes.mode?.value ?? 'dodge';
 	const dodgeBurnRange = dodgeBurnAttributes.range?.value ?? 'mid';
@@ -2006,7 +2006,7 @@ function renderEditorToolControls(key) {
       target.querySelector('[data-retouch-size-output]').textContent = `${nextSize}px`;
     });
     strengthInput?.addEventListener('input', () => {
-      const nextStrength = Number(strengthInput.value) / 100;
+      const nextStrength = Number(strengthInput.value);
       setToolAttribute('blur', 'strength', nextStrength);
       target.querySelector('[data-retouch-strength-output]').textContent = `${strengthInput.value}%`;
     });

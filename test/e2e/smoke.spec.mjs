@@ -2781,7 +2781,7 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
     blurStrength: window.AppConfig.TOOLS.find((tool) => tool.name === 'blur').attributes.strength,
     cloneSource: window.AppConfig.TOOLS.find((tool) => tool.name === 'clone').attributes.source_layer.value,
     cloneAligned: window.AppConfig.TOOLS.find((tool) => tool.name === 'clone').attributes.aligned,
-  }))).toEqual({ cloneSize: 21, blurSize: 21, sharpenSize: 21, desaturateSize: 21, blurStrength: 0.64, cloneSource: 'Previous', cloneAligned: true });
+  }))).toEqual({ cloneSize: 21, blurSize: 21, sharpenSize: 21, desaturateSize: 21, blurStrength: 64, cloneSource: 'Previous', cloneAligned: true });
   await page.getByTestId('retouch-desaturate').click();
   await expect(page.locator('#tools_container .desaturate')).toHaveClass(/active/);
   await page.evaluate(() => {
@@ -2844,6 +2844,47 @@ test('Retouch Clone 的 Aligned 跨笔保持采样偏移', async ({ page }) => {
   });
   expect(pixels[0]).toEqual([255, 0, 0, 255]);
   expect(pixels[1].some((value, index) => index % 4 === 2 && value === 255)).toBe(true);
+});
+
+test('Retouch Blur 与 Sharpen 都会写入本地像素，并可分别撤销', async ({ page }) => {
+  await openHome(page);
+  const fixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270; canvas.height = 270;
+    const context = canvas.getContext('2d');
+    const gradient = context.createRadialGradient(135, 135, 4, 135, 135, 105);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.18, '#e4e4e4');
+    gradient.addColorStop(0.55, '#5a5a5a');
+    gradient.addColorStop(1, '#101010');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({ name: 'retouch-detail.png', mimeType: 'image/png', buffer: Buffer.from(fixture, 'base64') });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-retouch').click();
+  await page.locator('.studio-retouch-advanced > summary').click();
+  const canvas = page.locator('#canvas_minipaint');
+
+  for (const testId of ['retouch-blur', 'retouch-sharpen']) {
+    await page.getByTestId(testId).click();
+    await expect(page.locator(`#tools_container .${testId === 'retouch-blur' ? 'blur' : 'sharpen'}`)).toHaveClass(/active/);
+    await page.getByTestId('retouch-size').fill('90');
+    if (testId === 'retouch-blur') await page.getByTestId('retouch-blur-strength').fill('18');
+    const before = await page.evaluate(() => ({
+      history: window.State.action_history.length,
+      index: window.State.action_history_index,
+      hash: window.AppConfig.layer.link.src,
+    }));
+    await canvas.click({ position: { x: 135, y: 135 } });
+    await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+    await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link.src)).not.toBe(before.hash);
+    await page.locator('[data-editor-history="undo"]').click();
+    await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+    await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link.src)).toBe(before.hash);
+  }
 });
 
 test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', async ({ page }) => {

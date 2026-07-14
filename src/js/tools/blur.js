@@ -109,6 +109,11 @@ class Blur_class extends Base_tools_class {
 
 	blur_general(type, mouse, size, strength) {
 		var ctx = this.tmpCanvasCtx;
+		// StackBlur requires an integer radius. The workbench exposes strength as
+		// a 1–100 percent value, so convert it to a bounded 1–20 px radius here
+		// instead of passing a fractional value into StackBlur's linked stack.
+		var strength_percent = Math.max(1, Math.min(100, Number(strength) || 1));
+		var radius = Math.max(1, Math.round(strength_percent / 5));
 		var mouse_x = Math.round(mouse.x) - config.layer.x;
 		var mouse_y = Math.round(mouse.y) - config.layer.y;
 
@@ -135,7 +140,7 @@ class Blur_class extends Base_tools_class {
 		}
 
 		var imageData = ctx.getImageData(center_x, center_y, size_w, size_h);
-		var filtered = ImageFilters.StackBlur(imageData, strength); //add effect
+		var filtered = ImageFilters.StackBlur(imageData, radius); //add effect
 		this.Helper.image_round(this.tmpCanvasCtx, mouse_x, mouse_y, size_w, size_h, filtered);
 	}
 
