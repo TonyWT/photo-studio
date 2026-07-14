@@ -3009,6 +3009,22 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(lockedHistoryLength);
 });
 
+test('Retouch 首屏按参考的 Repair、Clone、Detail、Toning 四类本地工作流排序', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'retouch.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-retouch').click();
+  const primary = page.locator('.studio-retouch-primary [data-testid]');
+  await expect(primary).toHaveCount(4);
+  await expect(primary.nth(0)).toHaveAttribute('data-testid', 'retouch-repair');
+  await expect(primary.nth(1)).toHaveAttribute('data-testid', 'retouch-clone');
+  await expect(primary.nth(2)).toHaveAttribute('data-testid', 'retouch-blur');
+  await expect(primary.nth(3)).toHaveAttribute('data-testid', 'retouch-dodge');
+  await expect(primary.nth(2)).toContainText('细节');
+  await expect(primary.nth(3)).toContainText('明暗');
+});
+
 test('Retouch Clone 的 Aligned 跨笔保持采样偏移', async ({ page }) => {
   await openHome(page);
   const fixture = await page.evaluate(() => {

@@ -2133,11 +2133,11 @@ function renderEditorToolControls(key) {
     target.innerHTML = `
       <section class="studio-retouch-section" aria-label="本地修饰工具">
         <strong>工具</strong>
-        <div class="studio-control-group studio-control-group-four">
-          <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-repair" data-core-tool="repair"${disabled}>Spot 修复</button>
+        <div class="studio-control-group studio-control-group-four studio-retouch-primary">
+          <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-repair" data-core-tool="repair"${disabled}>修复</button>
           <button type="button" class="${activeRetouchTool === 'clone' ? 'is-selected' : ''}" data-testid="retouch-clone" data-core-tool="clone"${disabled}>克隆</button>
-          <button type="button" class="${activeRetouchTool === 'blur' ? 'is-selected' : ''}" data-testid="retouch-blur" data-core-tool="blur"${disabled}>柔化</button>
-          <button type="button" class="${activeRetouchTool === 'desaturate' ? 'is-selected' : ''}" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>去色</button>
+          <button type="button" class="${activeRetouchTool === 'blur' ? 'is-selected' : ''}" data-testid="retouch-blur" data-core-tool="blur"${disabled}>细节</button>
+          <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>明暗</button>
         </div>
       </section>
       <section class="studio-retouch-section" aria-label="Spot 修复方法">
@@ -2174,10 +2174,10 @@ function renderEditorToolControls(key) {
           </select>
         </label>
 		<label class="studio-control-check"><input type="checkbox" data-testid="retouch-clone-aligned" ${cloneAligned ? 'checked' : ''} ${disabled}>连续采样（Aligned）</label>
-        <div class="studio-control-group studio-control-group-two" aria-label="其他本地修饰工具">
+        <div class="studio-control-group studio-control-group-four" aria-label="其他本地修饰工具">
           <button type="button" class="${activeRetouchTool === 'sharpen' ? 'is-selected' : ''}" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
-		  <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>减淡</button>
 		  <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'burn' ? 'is-selected' : ''}" data-testid="retouch-burn" data-core-tool="dodge_burn"${disabled}>加深</button>
+          <button type="button" class="${activeRetouchTool === 'desaturate' ? 'is-selected' : ''}" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>局部去色</button>
         </div>
         <p class="studio-control-hint">仅可在未锁定的图片图层上修饰；每次笔触都会写入本地历史。克隆工具可按住 Alt/Option 设定来源。</p>
       </details>

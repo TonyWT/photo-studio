@@ -158,7 +158,7 @@
 | L-09 | Density | 保留 | 可用 | 笔刷衰减/密度生效 |
 | L-10 | High quality preview | 保留 | 可用 | 关闭时以临时图层的半分辨率本地预览加速，开启时直接显示全分辨率临时画布；Apply 始终提交全分辨率源，切换语义已由 E2E 验证 |
 | L-11 | Close | 保留 | 可用 | 清理临时预览、无意外历史 |
-| R-01 ～ R-04 | Retouch 4 个工具图标 | 待取证 | 部分可用 | 图标名称、Spot/Object 方法与局部像素基准逐一确认 |
+| R-01 ～ R-04 | Retouch 4 个工具图标 | 保留 | 可用：当前参考公开结构为 Heal/Repair、Clone、Detail（Blur/Sharpen）、Toning（Dodge/Burn）；本项目首屏已按“修复、克隆、细节、明暗”同序组织四类本地工作流。局部去色保留为扩展本地功能，不占用参考首屏四格 | Chromium E2E 覆盖首屏顺序、Spot 修复、克隆、细节和明暗的真实像素/撤销；Object 为 AI，见 R-06 排除 |
 | R-05 | Spot 方法 | 保留 | 可用 | 本地确定性邻域中值修复、三档质量、单次历史与 Undo 已由 E2E 验证 |
 | R-06 | Object 方法 | **排除** | 已移除 | Pixlr 官方当前将 Object Healing 归为 AI 辅助对象修复；不提供入口、模型或远程请求。来源：<https://pixlr.com/tools/heal-tool/> |
 | R-07 | Size | 保留 | 可用 | 半径影响范围 |
