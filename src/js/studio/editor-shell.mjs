@@ -1766,6 +1766,19 @@ function renderEditorToolControls(key) {
     };
     const straighten = Number(transform.straighten) || 0;
     target.innerHTML = `
+      <div class="studio-control-group studio-control-group-two" aria-label="裁剪输出尺寸">
+        <label class="studio-control-number">宽度
+          <input type="number" min="1" max="${window.AppConfig?.WIDTH ?? 1}" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
+        </label>
+        <label class="studio-control-number">高度
+          <input type="number" min="1" max="${window.AppConfig?.HEIGHT ?? 1}" value="${cropHeight}" data-testid="crop-output-height" ${disabled}>
+        </label>
+      </div>
+      <div class="studio-control-group" aria-label="裁剪拉直">
+        <label class="studio-control-range">拉直 <output data-testid="crop-straighten-value">${straighten.toFixed(1).replace(/\.0$/, '')}°</output>
+          <input type="range" min="-45" max="45" step="0.1" value="${straighten}" data-testid="crop-straighten" ${disabled}>
+        </label>
+      </div>
       <section class="studio-crop-aspect" aria-label="裁剪比例">
         <label class="studio-control-check studio-crop-aspect-toggle">选择比例
           <input type="checkbox" role="switch" ${cropAspectEnabled ? 'checked' : ''} data-testid="crop-aspect-enabled" ${disabled}>
@@ -1784,34 +1797,21 @@ function renderEditorToolControls(key) {
           </label>
         </div>
       </section>
-      <div class="studio-control-group studio-control-group-two" aria-label="裁剪输出尺寸">
-        <label class="studio-control-number">宽度
-          <input type="number" min="1" max="${window.AppConfig?.WIDTH ?? 1}" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
-        </label>
-        <label class="studio-control-number">高度
-          <input type="number" min="1" max="${window.AppConfig?.HEIGHT ?? 1}" value="${cropHeight}" data-testid="crop-output-height" ${disabled}>
-        </label>
-      </div>
       <div class="studio-control-group studio-control-group-two" aria-label="裁剪图层变换">
         <button type="button" data-testid="crop-rotate-left" ${disabled}>向左 90°</button>
         <button type="button" data-testid="crop-rotate-right" ${disabled}>向右 90°</button>
         <button type="button" class="${transform.flip_horizontal ? 'is-selected' : ''}" aria-pressed="${transform.flip_horizontal}" data-testid="crop-flip-horizontal" ${disabled}>水平翻转</button>
         <button type="button" class="${transform.flip_vertical ? 'is-selected' : ''}" aria-pressed="${transform.flip_vertical}" data-testid="crop-flip-vertical" ${disabled}>垂直翻转</button>
       </div>
-      <div class="studio-control-group" aria-label="裁剪拉直">
-        <label class="studio-control-range">拉直 <output data-testid="crop-straighten-value">${straighten.toFixed(1).replace(/\.0$/, '')}°</output>
-          <input type="range" min="-45" max="45" step="0.1" value="${straighten}" data-testid="crop-straighten" ${disabled}>
-        </label>
-      </div>
-      <footer class="studio-crop-panel-footer" data-testid="crop-panel-footer" aria-label="裁剪操作">
-        <button type="button" data-testid="crop-cancel">取消</button>
-        <button type="button" data-testid="crop-apply" ${disabled}>应用</button>
-      </footer>
       <div class="studio-control-group studio-control-group-two" aria-label="图片与画布尺寸">
         <button type="button" data-testid="crop-image-size" ${disabled}>图片尺寸</button>
         <button type="button" data-testid="crop-canvas-size" ${disabled}>画布尺寸</button>
       </div>
       <p class="studio-control-hint">在画布上拖出区域后应用；按住 Command 或 Ctrl 可保持原始比例。旋转和翻转会暂存到本次裁剪会话，应用时与裁剪合并为一个撤销步骤。</p>
+      <footer class="studio-crop-panel-footer" data-testid="crop-panel-footer" aria-label="裁剪操作">
+        <button type="button" data-testid="crop-cancel">取消</button>
+        <button type="button" data-testid="crop-apply" ${disabled}>应用</button>
+      </footer>
     `;
     target.querySelector('[data-testid="crop-apply"]')?.addEventListener('click', async () => {
       if (cropDocumentIsEditable()) await crop?.on_params_update();

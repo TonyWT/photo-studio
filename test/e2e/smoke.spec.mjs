@@ -1967,6 +1967,19 @@ test('Crop 固定操作区将取消和应用固定在编辑器状态栏上方', 
   await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
   await page.getByTestId('tool-crop').click();
 
+  const controlOrder = await page.locator('[data-editor-tool-controls]').evaluate((root) => [
+    'crop-output-width',
+    'crop-straighten',
+    'crop-aspect-enabled',
+    'crop-rotate-left',
+    'crop-image-size',
+    'crop-panel-footer',
+  ].map((testId) => {
+    const element = root.querySelector(`[data-testid="${testId}"]`);
+    return [...root.querySelectorAll('[data-testid]')].indexOf(element);
+  }));
+  expect(controlOrder).toEqual([...controlOrder].sort((left, right) => left - right));
+
   const footer = page.getByTestId('crop-panel-footer');
   await expect(footer).toBeVisible();
   await expect(footer.locator('button')).toHaveCount(2);
