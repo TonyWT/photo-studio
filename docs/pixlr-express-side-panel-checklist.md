@@ -141,7 +141,7 @@
 | F-05 | Glitch | 保留 | 可用 | 本地像素结果/撤销 |
 | F-06 | Colorize | 保留 | 可用 | 本地像素结果/撤销 |
 | F-07 | 截图下方继续滚动的 Filter 卡片 | 保留 | 已核实为 F-04 ～ F-06：Dispersion、Glitch、Colorize；当前 Pixlr Express 发布包明确只注册 `hdr-content`、`focus-content`、`reflect-content`、`dispersion-content`、`glitch-content`、`colorize-content` 六个非 AI Filter 工作区，不存在第七张非 AI Filter 卡 | 六张卡入口、参数对话框、像素变更与 Undo 已由 Chromium E2E 覆盖；取证：2026-07-14 抓取的当前公开发布包 `/tmp/pixlr-express.js` |
-| F-08 | 每张 Filter 卡的缩略预览/参数 | 保留 | 可用 | 六张卡都由当前本地图片生成预览；每项均打开本地参数对话框，应用后产生像素历史、Undo 恢复原图，Chromium E2E 已覆盖 |
+| F-08 | 每张 Filter 卡的缩略预览/参数 | 保留 | 可用 | 六张卡都由当前本地图片生成预览，且有与类别对应的本地 Font Awesome 图标；每项均打开本地参数对话框，应用后产生像素历史、Undo 恢复原图，Chromium E2E 已覆盖 |
 
 ## S-06 Liquify 与 S-07 Retouch
 

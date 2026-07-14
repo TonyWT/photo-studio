@@ -1,6 +1,6 @@
 # Photo Studio
 
-本地优先、无 AI、无 Element 的桌面网页图片编辑器。编辑内核来自 [miniPaint](https://github.com/viliusle/miniPaint)，其 MIT 许可见 [MIT-LICENSE.txt](MIT-LICENSE.txt)。Liquify、Retouch 与 Adjust 工具格图标来自 Font Awesome Free 6.7.2（CC BY 4.0）。
+本地优先、无 AI、无 Element 的桌面网页图片编辑器。编辑内核来自 [miniPaint](https://github.com/viliusle/miniPaint)，其 MIT 许可见 [MIT-LICENSE.txt](MIT-LICENSE.txt)。Liquify、Retouch、Adjust 与 Filter 的本地图标来自 Font Awesome Free 6.7.2（CC BY 4.0）。
 
 ## 能力边界
 

@@ -2137,15 +2137,15 @@ function renderEditorToolControls(key) {
       ? layer.link.src
       : '';
     const filterCards = [
-      ['filter-hdr', 'HDR', '提升局部明暗与照片层次。'],
-      ['filter-focus-bokeh', 'Focus / Bokeh', '创建局部焦点和背景虚化。'],
-      ['filter-reflect', 'Reflect', '在本地图片上构建反射效果。'],
-      ['filter-dispersion', 'Dispersion', '生成本地像素分散效果。'],
-      ['filter-glitch', 'Glitch', '生成本地故障艺术效果。'],
-      ['filter-colorize', 'Colorize', '以可配置色彩重新着色。'],
-    ].map(([testId, title, description]) => `<button type="button" class="studio-filter-card studio-filter-card--${testId.replace('filter-', '')}" data-testid="${testId}"${filterDisabled}>
+      ['filter-hdr', 'HDR', '提升局部明暗与照片层次。', 'filter-hdr.svg'],
+      ['filter-focus-bokeh', 'Focus / Bokeh', '创建局部焦点和背景虚化。', 'filter-focus-bokeh.svg'],
+      ['filter-reflect', 'Reflect', '在本地图片上构建反射效果。', 'filter-reflect.svg'],
+      ['filter-dispersion', 'Dispersion', '生成本地像素分散效果。', 'filter-dispersion.svg'],
+      ['filter-glitch', 'Glitch', '生成本地故障艺术效果。', 'filter-glitch.svg'],
+      ['filter-colorize', 'Colorize', '以可配置色彩重新着色。', 'filter-colorize.svg'],
+    ].map(([testId, title, description, icon]) => `<button type="button" class="studio-filter-card studio-filter-card--${testId.replace('filter-', '')}" data-testid="${testId}"${filterDisabled}>
       <span class="studio-filter-card-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
-      <span class="studio-filter-card-copy"><strong>${title}</strong><small>${description}</small></span>
+      <span class="studio-filter-card-copy"><strong>${title}</strong><small>${description}</small><span class="studio-filter-card-icon"><img src="../images/icons/${icon}" alt="" aria-hidden="true"></span></span>
     </button>`).join('');
     target.innerHTML = `
       <p class="studio-control-hint">所有滤镜均在当前浏览器中本地处理，应用后可通过底部撤销恢复。</p>
