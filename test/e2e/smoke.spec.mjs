@@ -2803,6 +2803,49 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(lockedHistoryLength);
 });
 
+test('Retouch Clone 的 Aligned 跨笔保持采样偏移', async ({ page }) => {
+  await openHome(page);
+  const fixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270; canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#000'; context.fillRect(0, 0, 270, 270);
+    context.fillStyle = '#f00'; context.fillRect(40, 120, 25, 30);
+    context.fillStyle = '#00f'; context.fillRect(65, 120, 25, 30);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({ name: 'aligned-clone.png', mimeType: 'image/png', buffer: Buffer.from(fixture, 'base64') });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig?.layer?.link))).toBe(true);
+  await page.getByTestId('tool-retouch').click();
+  await page.getByTestId('retouch-clone').click();
+  await page.evaluate(() => {
+    const attributes = window.AppConfig.TOOLS.find((tool) => tool.name === 'clone').attributes;
+    attributes.size = 20; attributes.anti_aliasing = false; attributes.aligned = true;
+    attributes.source_layer.value = 'Current';
+    const clone = window.app.GUI.GUI_tools.tools_modules.clone.object;
+    clone.clone_coords = { x: 50, y: 135 };
+    clone.aligned_offset = null;
+  });
+  const canvas = page.locator('#canvas_minipaint');
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+  await canvas.click({ position: { x: 150, y: 135 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore + 1);
+  await canvas.click({ position: { x: 175, y: 135 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore + 2);
+  const pixels = await page.evaluate(() => {
+    const source = window.AppConfig.layer.link;
+    const copy = document.createElement('canvas'); copy.width = source.naturalWidth; copy.height = source.naturalHeight;
+    const context = copy.getContext('2d', { willReadFrequently: true }); context.drawImage(source, 0, 0);
+    return [
+      Array.from(context.getImageData(150, 135, 1, 1).data),
+      Array.from(context.getImageData(160, 120, 30, 30).data),
+    ];
+  });
+  expect(pixels[0]).toEqual([255, 0, 0, 255]);
+  expect(pixels[1].some((value, index) => index % 4 === 2 && value === 255)).toBe(true);
+});
+
 test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', async ({ page }) => {
   await openHome(page);
   const repairFixture = await page.evaluate(() => {

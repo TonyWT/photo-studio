@@ -18,6 +18,7 @@ class Clone_class extends Base_tools_class {
 		this.started = false;
 		this.clone_coords = null;
 		this.stroke_clone_coords = null;
+		this.stroke_start_coords = null;
 		this.aligned_offset = null;
 		this.pressTimer = null;
 	}
@@ -227,6 +228,7 @@ class Clone_class extends Base_tools_class {
 		// strokes. Without it every new stroke begins at the sampled point.
 		var start_x = this.adaptSize(Math.round(mouse.x) - layer.x, 'width');
 		var start_y = this.adaptSize(Math.round(mouse.y) - layer.y, 'height');
+		this.stroke_start_coords = {x: start_x, y: start_y};
 		if (params.aligned) {
 			if (this.aligned_offset === null) {
 				this.aligned_offset = {
@@ -322,8 +324,9 @@ class Clone_class extends Base_tools_class {
 
 		//add data
 		var source_coords = this.stroke_clone_coords || this.clone_coords;
-		var x_from = Math.round(source_coords.x - (mouse.click_x - mouse_x));
-		var y_from = Math.round(source_coords.y - (mouse.click_y - mouse_y));
+		var stroke_start = this.stroke_start_coords || {x: mouse_x, y: mouse_y};
+		var x_from = Math.round(source_coords.x + mouse_x - stroke_start.x);
+		var y_from = Math.round(source_coords.y + mouse_y - stroke_start.y);
 		if (params.anti_aliasing == false) {
 			ctx_source.arc(half, half, half, 0, Math.PI * 2, false);
 			ctx_source.clip();
@@ -331,8 +334,8 @@ class Clone_class extends Base_tools_class {
 		if (params.source_layer.value == 'Previous') {
 			var previous_layer = this.Base_layers.find_previous(config.layer.id);
 
-			x_from = Math.round(source_coords.x - (mouse.click_x - mouse_x)) - previous_layer.x + config.layer.x;
-			y_from = Math.round(source_coords.y - (mouse.click_y - mouse_y)) - previous_layer.y + config.layer.y;
+			x_from = Math.round(source_coords.x + mouse_x - stroke_start.x) - previous_layer.x + config.layer.x;
+			y_from = Math.round(source_coords.y + mouse_y - stroke_start.y) - previous_layer.y + config.layer.y;
 
 			ctx_source.drawImage(previous_layer.link, x_from - half, y_from - half, w, h, 0, 0, w, h);
 		}
