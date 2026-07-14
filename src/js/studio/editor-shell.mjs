@@ -1807,11 +1807,11 @@ function renderEditorToolControls(key) {
           </label>
         </div>
       </section>
-      <div class="studio-control-group studio-control-group-two" aria-label="裁剪图层变换">
-        <button type="button" data-testid="crop-rotate-left" ${disabled}>向左 90°</button>
-        <button type="button" data-testid="crop-rotate-right" ${disabled}>向右 90°</button>
-        <button type="button" class="${transform.flip_horizontal ? 'is-selected' : ''}" aria-pressed="${transform.flip_horizontal}" data-testid="crop-flip-horizontal" ${disabled}>水平翻转</button>
-        <button type="button" class="${transform.flip_vertical ? 'is-selected' : ''}" aria-pressed="${transform.flip_vertical}" data-testid="crop-flip-vertical" ${disabled}>垂直翻转</button>
+      <div class="studio-control-group studio-control-group-two studio-crop-transform-grid" aria-label="裁剪图层变换">
+        <button type="button" aria-label="向左旋转 90°" title="向左旋转 90°" data-testid="crop-rotate-left" ${disabled}><img src="../images/icons/crop-rotate-left.svg" alt=""><span class="sr_only">向左旋转 90°</span></button>
+        <button type="button" aria-label="向右旋转 90°" title="向右旋转 90°" data-testid="crop-rotate-right" ${disabled}><img src="../images/icons/crop-rotate-right.svg" alt=""><span class="sr_only">向右旋转 90°</span></button>
+        <button type="button" class="${transform.flip_horizontal ? 'is-selected' : ''}" aria-pressed="${transform.flip_horizontal}" aria-label="水平翻转" title="水平翻转" data-testid="crop-flip-horizontal" ${disabled}><img src="../images/icons/crop-flip-horizontal.svg" alt=""><span class="sr_only">水平翻转</span></button>
+        <button type="button" class="${transform.flip_vertical ? 'is-selected' : ''}" aria-pressed="${transform.flip_vertical}" aria-label="垂直翻转" title="垂直翻转" data-testid="crop-flip-vertical" ${disabled}><img src="../images/icons/crop-flip-vertical.svg" alt=""><span class="sr_only">垂直翻转</span></button>
       </div>
       <div class="studio-control-group studio-control-group-two" aria-label="图片与画布尺寸">
         <button type="button" data-testid="crop-image-size" ${disabled}>图片尺寸</button>

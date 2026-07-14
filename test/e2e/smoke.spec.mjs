@@ -2097,6 +2097,29 @@ test('Crop 固定操作区将取消和应用固定在编辑器状态栏上方', 
   await expect(page.getByTestId('editor-tool-panel')).toBeHidden();
 });
 
+test('Crop 的旋转与翻转首屏使用四个有名称的图标工具格', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'crop-transform-icons.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-crop').click();
+
+  for (const [testId, label] of [
+    ['crop-rotate-left', '向左旋转 90°'],
+    ['crop-rotate-right', '向右旋转 90°'],
+    ['crop-flip-horizontal', '水平翻转'],
+    ['crop-flip-vertical', '垂直翻转'],
+  ]) {
+    const control = page.getByTestId(testId);
+    await expect(control).toHaveAttribute('aria-label', label);
+    await expect(control).toHaveAttribute('title', label);
+    await expect(control.locator('img')).toHaveCount(1);
+    await expect(control.locator('img')).toHaveAttribute('alt', '');
+    await expect(control.locator('.sr_only')).toHaveText(label);
+    await expect(control).toHaveCSS('min-height', '40px');
+  }
+});
+
 test('裁剪后的 PNG 导出可解码，并保留当前画布的精确 RGBA 像素', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'export-crop.png', mimeType: 'image/png', buffer: samplePng });
