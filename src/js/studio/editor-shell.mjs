@@ -129,6 +129,46 @@ const TEXT_STYLE_PRESETS = Object.freeze([
     italic: false, underline: true, align: 'center', stroke: '#57534e', stroke_size: 1,
     shadow_enabled: true, shadow_color: '#292524', shadow_blur: 4,
   },
+  {
+    id: 'capsule', label: 'IDEAS', font: 'Arial', size: 58, fill: '#f8fafc', bold: true,
+    italic: false, underline: false, align: 'center', stroke: '#7c3aed', stroke_size: 3,
+    shadow_enabled: true, shadow_color: '#3b0764', shadow_blur: 7,
+  },
+  {
+    id: 'market', label: 'MARKET', font: 'Verdana', size: 45, fill: '#fb923c', bold: true,
+    italic: false, underline: false, align: 'left', stroke: '#431407', stroke_size: 2,
+    shadow_enabled: false, shadow_color: '#000000', shadow_blur: 4,
+  },
+  {
+    id: 'quiet', label: 'quiet', font: 'Verdana', size: 52, fill: '#d8b4fe', bold: false,
+    italic: true, underline: false, align: 'center', stroke: '#3b0764', stroke_size: 1,
+    shadow_enabled: true, shadow_color: '#2e1065', shadow_blur: 5,
+  },
+  {
+    id: 'orbit', label: 'ORBIT', font: 'Arial', size: 54, fill: '#67e8f9', bold: true,
+    italic: true, underline: false, align: 'center', stroke: '#164e63', stroke_size: 2,
+    shadow_enabled: true, shadow_color: '#155e75', shadow_blur: 6,
+  },
+  {
+    id: 'outline', label: 'OUTLINE', font: 'Verdana', size: 38, fill: '#18181b', bold: true,
+    italic: false, underline: false, align: 'center', stroke: '#f4f4f5', stroke_size: 2,
+    shadow_enabled: false, shadow_color: '#000000', shadow_blur: 4,
+  },
+  {
+    id: 'serif', label: 'SERIF', font: 'Verdana', size: 50, fill: '#fde68a', bold: true,
+    italic: false, underline: false, align: 'center', stroke: '#78350f', stroke_size: 1,
+    shadow_enabled: true, shadow_color: '#451a03', shadow_blur: 4,
+  },
+  {
+    id: 'stamp', label: 'STAMP', font: 'Arial', size: 43, fill: '#fca5a5', bold: true,
+    italic: false, underline: false, align: 'center', stroke: '#7f1d1d', stroke_size: 2,
+    shadow_enabled: false, shadow_color: '#000000', shadow_blur: 4,
+  },
+  {
+    id: 'focus', label: 'FOCUS', font: 'Arial', size: 48, fill: '#bef264', bold: true,
+    italic: false, underline: true, align: 'center', stroke: '#365314', stroke_size: 1,
+    shadow_enabled: true, shadow_color: '#1a2e05', shadow_blur: 3,
+  },
 ]);
 let activeTextPresetId = null;
 const EFFECT_CATEGORIES = Object.freeze([
@@ -1457,6 +1497,10 @@ function renderEditorToolControls(key) {
         <button type="button"${familyClass('lasso')}${disabledAttribute} data-cutout-mode="lasso" data-testid="cutout-mode-lasso">套索</button>
       </div>
     </section>
+    <div class="studio-control-group studio-control-group-two" aria-label="抠图模式">
+      <button type="button" aria-pressed="${cutoutSelection.intent === 'keep'}"${cutoutSelection.intent === 'keep' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="keep" data-testid="cutout-keep-selection">保留</button>
+      <button type="button" aria-pressed="${cutoutSelection.intent === 'remove'}"${cutoutSelection.intent === 'remove' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="remove" data-testid="cutout-remove-selection">移除</button>
+    </div>
     ${cutoutFamily === 'shape' ? `
       <section class="studio-cutout-tool-section" aria-label="形状选区">
         <strong>形状</strong>
@@ -1499,10 +1543,6 @@ function renderEditorToolControls(key) {
       <span>Hint removed</span><span class="studio-cutout-hint-toggle-knob" aria-hidden="true"></span>
     </button>
     ` : ''}
-    <div class="studio-control-group studio-control-group-two" aria-label="抠图模式">
-      <button type="button" aria-pressed="${cutoutSelection.intent === 'keep'}"${cutoutSelection.intent === 'keep' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="keep" data-testid="cutout-keep-selection">保留</button>
-      <button type="button" aria-pressed="${cutoutSelection.intent === 'remove'}"${cutoutSelection.intent === 'remove' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="remove" data-testid="cutout-remove-selection">移除</button>
-    </div>
     <button type="button" class="studio-cutout-full-action${cutoutSelection.inverted ? ' is-selected' : ''}" aria-pressed="${cutoutSelection.inverted}" data-testid="cutout-invert">反选抠图</button>
     <div class="studio-cutout-primary-actions" aria-label="抠图应用">
       <button type="button" data-testid="cutout-reset-selection">重置抠图</button>

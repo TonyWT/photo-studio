@@ -4004,7 +4004,8 @@ test('Text 提供原创本地样式预设卡，并真实写回可编辑文字工
   await page.goto('/editor/');
   await page.getByTestId('tool-text').click();
   const presets = page.locator('.studio-text-preset');
-  await expect(presets).toHaveCount(8);
+  await expect(presets).toHaveCount(16);
+  await expect(page.getByTestId('text-preset-capsule')).toBeVisible();
   await page.getByTestId('text-preset-poster').click();
   await expect(page.getByTestId('text-preset-poster')).toHaveClass(/is-selected/);
   await expect(page.getByTestId('text-font')).toHaveValue('Arial');
@@ -4026,6 +4027,11 @@ test('Text 提供原创本地样式预设卡，并真实写回可编辑文字工
   })).toEqual({
     font: 'Arial', size: 72, fill: '#22d3ee', bold: true, stroke: '#082f49', strokeSize: 2,
   });
+  await page.getByTestId('text-preset-capsule').click();
+  await expect(page.getByTestId('text-preset-capsule')).toHaveClass(/is-selected/);
+  await expect(page.getByTestId('text-size')).toHaveValue('58');
+  await expect(page.getByTestId('text-fill')).toHaveValue('#f8fafc');
+  await expect(page.getByTestId('text-stroke-size')).toHaveValue('3');
 });
 
 test('Text 可在画布创建文本层、通过本地 textarea 写入并撤销历史', async ({ page }) => {
