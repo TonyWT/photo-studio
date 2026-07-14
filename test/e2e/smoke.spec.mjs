@@ -2862,6 +2862,56 @@ test('Retouch 加深笔刷会局部压暗并提供可撤销的本地像素修改
   await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
 });
 
+test('Retouch 减淡/加深提供 Dark、Mid、Light 色调范围，并写入本地笔刷参数', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'tone-range.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-retouch').click();
+  await page.locator('.studio-retouch-advanced > summary').click();
+  await page.getByTestId('retouch-tone-dark').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'dodge_burn').attributes.range.value)).toBe('dark');
+  await page.getByTestId('retouch-tone-mid').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'dodge_burn').attributes.range.value)).toBe('mid');
+  await page.getByTestId('retouch-tone-light').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'dodge_burn').attributes.range.value)).toBe('light');
+});
+
+test('Retouch 的色调范围会影响 Dodge 的本地像素权重', async ({ page }) => {
+  await openHome(page);
+  const fixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270; canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(230, 230, 230)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({ name: 'tone-weight.png', mimeType: 'image/png', buffer: Buffer.from(fixture, 'base64') });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-retouch').click();
+  await page.locator('.studio-retouch-advanced > summary').click();
+  await page.getByTestId('retouch-dodge').click();
+  await page.getByTestId('retouch-size').fill('30');
+  await page.getByTestId('retouch-dodge-burn-strength').fill('100');
+  const readCenter = () => page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true }); context.drawImage(image, 0, 0);
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  });
+
+  await page.getByTestId('retouch-tone-dark').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 135, y: 135 } });
+  await expect.poll(readCenter).toEqual([230, 230, 230, 255]);
+  await page.locator('[data-editor-history="undo"]').click();
+
+  await page.getByTestId('retouch-tone-light').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 135, y: 135 } });
+  await expect.poll(async () => (await readCenter())[0]).toBeGreaterThan(230);
+});
+
 test('Liquify 面板回写本地内核参数，并按 WebGL2 与锁定状态安全执行', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);
@@ -3117,6 +3167,34 @@ test('Drawing 会激活画笔并将颜色、尺寸、不透明度和柔化写入
     size: window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.size,
     softness: window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.softness,
   }))).toEqual({ color: '#d946ef', alpha: 107, size: 18, softness: 35 });
+});
+
+test('Drawing 调色板色样会写入本地颜色状态并同步形状与渐变前景色', async ({ page }) => {
+  await page.goto('/editor/');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-palette-red').click();
+  await expect(page.getByTestId('drawing-color')).toHaveValue('#ef4444');
+  await expect.poll(() => page.evaluate(() => ({
+    color: window.AppConfig.COLOR,
+    shape: window.AppConfig.TOOLS.find((tool) => tool.name === 'shape').attributes.stroke,
+    gradient: window.AppConfig.TOOLS.find((tool) => tool.name === 'gradient').attributes.color_1,
+  }))).toEqual({ color: '#ef4444', shape: '#ef4444', gradient: '#ef4444' });
+});
+
+test('Drawing 形状快捷项会切换到对应的本地画布工具', async ({ page }) => {
+  await page.goto('/editor/');
+  await page.getByTestId('tool-drawing').click();
+  for (const [testId, tool] of [
+    ['drawing-shape-rectangle', 'rectangle'],
+    ['drawing-shape-ellipse', 'ellipse'],
+    ['drawing-shape-triangle', 'triangle'],
+    ['drawing-shape-star', 'star'],
+    ['drawing-shape-heart', 'heart'],
+    ['drawing-shape-line', 'line'],
+  ]) {
+    await page.getByTestId(testId).click();
+    await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe(tool);
+  }
 });
 
 test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {

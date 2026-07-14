@@ -473,6 +473,10 @@ config.TOOLS = [
 				value: 'dodge',
 				values: ['dodge', 'burn'],
 			},
+			range: {
+				value: 'mid',
+				values: ['dark', 'mid', 'light'],
+			},
 		},
 	},
 	{

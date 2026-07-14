@@ -21,6 +21,12 @@ const CROP_OUTPUT_PRESETS = Object.freeze([
   ['2480x3508', 'A4（2480×3508）'], ['1748x2480', 'A5（1748×2480）'],
   ['1240x1748', 'A6（1240×1748）'], ['2550x3300', 'Letter（2550×3300）'],
 ]);
+const DRAWING_PALETTE = Object.freeze([
+  ['red', '#ef4444', '珊瑚红'], ['orange', '#f97316', '橙色'], ['yellow', '#facc15', '亮黄'],
+  ['lime', '#a3e635', '青柠'], ['green', '#22c55e', '绿色'], ['cyan', '#22d3ee', '青色'],
+  ['blue', '#3b82f6', '蓝色'], ['purple', '#a855f7', '紫色'], ['pink', '#ec4899', '粉色'],
+  ['white', '#f8fafc', '白色'], ['black', '#111827', '近黑'],
+]);
 
 let cutoutSelection = {
   mode: 'selection',
@@ -1926,6 +1932,7 @@ function renderEditorToolControls(key) {
     const strength = Math.round(Math.max(0, Math.min(1, Number(blurAttributes.strength ?? 1))) * 100);
 	const dodgeBurnStrength = Number(dodgeBurnAttributes.strength ?? 50);
 	const dodgeBurnMode = dodgeBurnAttributes.mode?.value ?? 'dodge';
+	const dodgeBurnRange = dodgeBurnAttributes.range?.value ?? 'mid';
 	const repairQuality = repairAttributes.quality?.value ?? repairAttributes.quality ?? 'balanced';
 	const activeRetouchTool = window.AppConfig?.TOOL?.name ?? 'clone';
     const source = cloneAttributes.source_layer?.value ?? 'Current';
@@ -1961,6 +1968,11 @@ function renderEditorToolControls(key) {
 		<label class="studio-control-range">减淡/加深强度 <output data-retouch-dodge-burn-strength-output>${dodgeBurnStrength}%</output>
 		  <input type="range" min="1" max="100" value="${dodgeBurnStrength}" data-testid="retouch-dodge-burn-strength" ${disabled}>
 		</label>
+		<div class="studio-control-group studio-control-group-three" aria-label="减淡加深色调范围">
+		  <button type="button" class="${dodgeBurnRange === 'dark' ? 'is-selected' : ''}" data-testid="retouch-tone-dark" data-retouch-tone="dark"${disabled}>暗部</button>
+		  <button type="button" class="${dodgeBurnRange === 'mid' ? 'is-selected' : ''}" data-testid="retouch-tone-mid" data-retouch-tone="mid"${disabled}>中间调</button>
+		  <button type="button" class="${dodgeBurnRange === 'light' ? 'is-selected' : ''}" data-testid="retouch-tone-light" data-retouch-tone="light"${disabled}>高光</button>
+		</div>
         <label class="studio-control-select">克隆来源
           <select data-testid="retouch-clone-source" ${disabled}>
             <option value="Current" ${source === 'Current' ? 'selected' : ''}>当前图层</option>
@@ -2015,6 +2027,12 @@ function renderEditorToolControls(key) {
 	target.querySelector('[data-testid="retouch-burn"]')?.addEventListener('click', () => {
 	  setToolAttributeValue('dodge_burn', 'mode', 'burn');
 	});
+	target.querySelectorAll('[data-retouch-tone]').forEach((button) => {
+	  button.addEventListener('click', () => {
+		setToolAttributeValue('dodge_burn', 'range', button.dataset.retouchTone);
+		target.querySelectorAll('[data-retouch-tone]').forEach((candidate) => candidate.classList.toggle('is-selected', candidate === button));
+	  });
+	});
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
       button.addEventListener('click', async () => {
         if (!await activateCoreTool(button.dataset.coreTool)) return;
@@ -2034,6 +2052,12 @@ function renderEditorToolControls(key) {
       <label class="studio-control-color">颜色
         <input type="color" value="${color}" data-testid="drawing-color">
       </label>
+      <section class="studio-drawing-palette" aria-label="本地调色板">
+        <strong>色样</strong>
+        <div class="studio-drawing-palette-swatches">
+          ${DRAWING_PALETTE.map(([id, value, label]) => `<button type="button" class="${color.toLowerCase() === value ? 'is-selected' : ''}" style="--drawing-swatch:${value}" data-testid="drawing-palette-${id}" aria-label="${label}" title="${label}"></button>`).join('')}
+        </div>
+      </section>
       <label class="studio-control-range">笔触尺寸 <output data-drawing-size-output>${brushSize}px</output>
         <input type="range" min="1" max="100" value="${brushSize}" data-testid="drawing-size">
       </label>
@@ -2056,6 +2080,17 @@ function renderEditorToolControls(key) {
         <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">渐变</button>
         <button type="button" data-testid="drawing-shape" data-core-tool="shape">形状</button>
       </div>
+      <section class="studio-drawing-shapes" aria-label="本地形状快捷项">
+        <strong>形状</strong>
+        <div class="studio-control-group studio-control-group-three">
+          <button type="button" data-testid="drawing-shape-rectangle" data-core-tool="rectangle">方形</button>
+          <button type="button" data-testid="drawing-shape-ellipse" data-core-tool="ellipse">圆形</button>
+          <button type="button" data-testid="drawing-shape-triangle" data-core-tool="triangle">三角</button>
+          <button type="button" data-testid="drawing-shape-star" data-core-tool="star">星形</button>
+          <button type="button" data-testid="drawing-shape-heart" data-core-tool="heart">心形</button>
+          <button type="button" data-testid="drawing-shape-line" data-core-tool="line">直线</button>
+        </div>
+      </section>
     `;
     const colorInput = target.querySelector('[data-testid="drawing-color"]');
     const sizeInput = target.querySelector('[data-testid="drawing-size"]');
@@ -2063,10 +2098,18 @@ function renderEditorToolControls(key) {
     const opacityInput = target.querySelector('[data-testid="drawing-opacity"]');
     const sizeOutput = target.querySelector('[data-drawing-size-output]');
     const opacityOutput = target.querySelector('[data-drawing-opacity-output]');
-    colorInput.addEventListener('input', () => {
-      window.AppConfig.COLOR = colorInput.value;
-      setToolAttribute('shape', 'stroke', colorInput.value);
-      setToolAttribute('gradient', 'color_1', colorInput.value);
+    const applyDrawingColor = (nextColor) => {
+      colorInput.value = nextColor;
+      window.AppConfig.COLOR = nextColor;
+      setToolAttribute('shape', 'stroke', nextColor);
+      setToolAttribute('gradient', 'color_1', nextColor);
+      target.querySelectorAll('[data-testid^="drawing-palette-"]').forEach((button) => {
+        button.classList.toggle('is-selected', button.style.getPropertyValue('--drawing-swatch').toLowerCase() === nextColor.toLowerCase());
+      });
+    };
+    colorInput.addEventListener('input', () => applyDrawingColor(colorInput.value));
+    target.querySelectorAll('[data-testid^="drawing-palette-"]').forEach((button) => {
+      button.addEventListener('click', () => applyDrawingColor(button.style.getPropertyValue('--drawing-swatch')));
     });
     sizeInput.addEventListener('input', () => {
       const size = Number(sizeInput.value);

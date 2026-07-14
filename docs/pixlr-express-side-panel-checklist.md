@@ -162,7 +162,7 @@
 | R-05 | Spot 方法 | 保留 | 可用 | 本地确定性邻域中值修复、三档质量、单次历史与 Undo 已由 E2E 验证 |
 | R-06 | Object 方法 | **排除** | 已移除 | Pixlr 官方当前将 Object Healing 归为 AI 辅助对象修复；不提供入口、模型或远程请求。来源：<https://pixlr.com/tools/heal-tool/> |
 | R-07 | Size | 保留 | 可用 | 半径影响范围 |
-| R-08 | Clone / repair / dodge / burn 等保留子工具 | 保留 | 部分可用 | 每个局部像素与撤销基准 |
+| R-08 | Clone / repair / blur / sharpen / dodge / burn 子工具 | 保留 | 部分可用 | Spot、Clone、Blur、Sharpen、Dodge/Burn 均为本地笔刷；Dodge/Burn 已有暗部/中间调/高光范围并实际参与像素权重。Clone 的 Paint/Source 与 Aligned 交互仍待补齐 |
 | R-09 | 锁定图层禁用 | 保留 | 可用 | UI 与动作双重拦截 |
 | R-10 | Close | 保留 | 可用 | 工具生命周期清理 |
 | R-11 | Repair 的 Speed / Balanced / Quality | 保留 | 可用 | 三档均为本地确定性中值采样窗口（3×3 / 5×5 / 7×7），不调用模型；切换与 Spot 修复由 E2E 验证 |
@@ -177,8 +177,8 @@
 | D-08 | Size | 保留 | 部分可用 | 笔刷直径像素基准 |
 | D-09 | Softness | 保留 | 部分可用：画笔已实现 0～100% 本地软边 | 硬边/软边外缘像素与 Undo 基准；其余绘制工具的柔化另行验收 |
 | D-10 | Transparency | 保留 | 部分可用 | alpha 合成基准 |
-| D-11 | 调色板色样 | 保留 | 待补 | 选择后写入工具状态 |
-| D-12 | 笔刷形状/纹理入口 | 保留 | 待取证 | 先取得准确交互后实现 |
+| D-11 | 调色板色样 | 保留 | 可用 | 11 枚本地色样可同步画笔颜色、形状描边和渐变前景色；Chromium E2E 已验证 |
+| D-12 | Shape：方形、圆形、三角、星形、心形、直线 | 保留 | 可用 | 六项快捷入口均切换到 miniPaint 对应本地画布工具；Chromium E2E 已逐项验证。笔刷纹理不是参考截图的必需保留项 |
 | D-13 | Close | 保留 | 可用 | 工具状态收口 |
 | T-01 | Add new text | 保留 | 可用 | 新建可编辑文字层与撤销 |
 | T-02 | 默认文字说明 | 保留 | 部分可用 | 新建层默认值明确且可编辑 |

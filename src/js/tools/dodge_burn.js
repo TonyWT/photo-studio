@@ -88,14 +88,21 @@ class DodgeBurn_class extends Base_tools_class {
 		const imageData = this.tmpCanvasCtx.getImageData(left, top, width, height);
 		const strength = Math.max(0, Math.min(1, Number(params.strength) / 100 || 0.5));
 		const isDodge = params.mode?.value !== 'burn';
+		const range = params.range?.value ?? 'mid';
 		for (let y = 0; y < height; y++) {
 			for (let x = 0; x < width; x++) {
 				const distanceX = (left + x - centerX) / radiusX;
 				const distanceY = (top + y - centerY) / radiusY;
 				const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 				if (distance >= 1) continue;
-				const amount = strength * (1 - distance) * (1 - distance);
 				const index = (y * width + x) * 4;
+				const luminance = (imageData.data[index] * 0.2126 + imageData.data[index + 1] * 0.7152 + imageData.data[index + 2] * 0.0722) / 255;
+				const tonalWeight = range === 'dark'
+					? Math.max(0, Math.min(1, (0.62 - luminance) / 0.62))
+					: range === 'light'
+						? Math.max(0, Math.min(1, (luminance - 0.38) / 0.62))
+						: Math.max(0, 1 - Math.abs(luminance - 0.5) / 0.5);
+				const amount = strength * tonalWeight * (1 - distance) * (1 - distance);
 				for (let channel = 0; channel < 3; channel++) {
 					const value = imageData.data[index + channel];
 					imageData.data[index + channel] = isDodge
