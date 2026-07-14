@@ -326,6 +326,29 @@ test('编辑器只暴露手动 Cutout 工具组合', async ({ page }) => {
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
 });
 
+test('手动 Cutout 首屏以四个有名称的图标工具格呈现', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'cutout-tool-icons.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-cutout').click();
+
+  for (const [testId, label] of [
+    ['cutout-tool-shape', '形状选区'],
+    ['cutout-mode-magic', '魔术选区'],
+    ['cutout-mode-erase', '画笔抠图'],
+    ['cutout-mode-lasso', '自由套索'],
+  ]) {
+    const control = page.getByTestId(testId);
+    await expect(control).toHaveAttribute('aria-label', label);
+    await expect(control).toHaveAttribute('title', label);
+    await expect(control.locator('img')).toHaveCount(1);
+    await expect(control.locator('img')).toHaveAttribute('alt', '');
+    await expect(control.locator('.sr_only')).toHaveText(label);
+    await expect(control).toHaveCSS('min-height', '40px');
+  }
+});
+
 test('编辑器提供 Pixlr 风格的非 AI 工作台骨架', async ({ page }) => {
   await page.goto('/editor/');
   await expect(page.getByTestId('editor-tool-rail')).toBeVisible();

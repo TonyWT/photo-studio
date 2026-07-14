@@ -79,6 +79,10 @@ body.photo-studio-editor .studio-control-group.studio-liquify-mode-grid button.i
 body.photo-studio-editor .studio-cutout-tool-section { display: grid; gap: 8px; padding: 10px 0; border-bottom: 1px solid #3a3a3a; }
 body.photo-studio-editor .studio-cutout-tool-section > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-cutout-tool-section + .studio-control-group { margin-top: 10px; }
+body.photo-studio-editor .studio-control-group.studio-cutout-tool-grid button { display: grid; min-height: 40px; place-items: center; padding: 4px; }
+body.photo-studio-editor .studio-control-group.studio-cutout-tool-grid button img { width: 20px; height: 20px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .86; }
+body.photo-studio-editor .studio-control-group.studio-cutout-tool-grid button:hover img,
+body.photo-studio-editor .studio-control-group.studio-cutout-tool-grid button.is-selected img { opacity: 1; }
 body.photo-studio-editor .studio-cutout-hint-toggle { display: flex; width: 100%; min-height: 36px; align-items: center; justify-content: space-between; padding: 0 10px; border: 1px solid #474747; border-radius: 5px; color: #c8c8c8; background: #303030; font: 12px/1 inherit; cursor: pointer; }
 body.photo-studio-editor .studio-cutout-hint-toggle:hover { border-color: #666; color: #fff; }
 body.photo-studio-editor .studio-cutout-hint-toggle-knob { position: relative; width: 30px; height: 16px; border-radius: 10px; background: #595959; transition: background .12s ease; }
