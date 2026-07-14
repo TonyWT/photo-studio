@@ -1275,6 +1275,27 @@ test('Adjust 首屏以三个有名称的图标快捷调整呈现 Auto、B&W、Po
   }
 });
 
+test('Adjust 的 Color 与 Light 分组以有名称的图标操作呈现', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'adjust-section-icons.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-adjust').click();
+
+  for (const [testId, label, icon] of [
+    ['adjust-color', '高级色彩', 'adjust-pop.svg'],
+    ['adjust-light', '高级光线', 'adjust-bw.svg'],
+  ]) {
+    const control = page.getByTestId(testId);
+    await expect(control).toHaveAttribute('aria-label', label);
+    await expect(control).toHaveAttribute('title', label);
+    await expect(control.locator('img')).toHaveAttribute('src', new RegExp(`/images/icons/${icon}$`));
+    await expect(control.locator('img')).toHaveAttribute('alt', '');
+    await expect(control.locator('.sr_only')).toHaveText(label);
+    await expect(control).toHaveCSS('min-height', '28px');
+  }
+});
+
 test('Adjust 面板提供 Color、Light 的对应滑杆，并将面板值带入本地预览和重置', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);

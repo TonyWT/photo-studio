@@ -55,4 +55,6 @@
 20. 2026-07-15：以用户的 Crop 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-3241fff8-a541-45be-a1c1-fc1f40185d54.png` 与本地 `2048 × 960` 状态截图合并为 `/tmp/crop-reference-vs-local-icons.png`。Rotate & flip 的四项已从文字按钮改为本地 Font Awesome 图标工具格，保留中文无障碍名称、悬浮提示和既有本地旋转/翻转会话映射。工具格的图标、名称和 40px 最低高度由 Chromium E2E 锁定。中英文文案、图标形制、面板精细间距仍有 P2 差异，完整视觉验收继续保持 blocked。
 21. 2026-07-15：以用户的 Cutout 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-c847fbaa-b8dc-408a-bbfa-ba4fe4a9b227.png` 与本地 `2048 × 960` 状态截图合并为 `/tmp/cutout-reference-vs-local-icons.png`。在明确移除 AI Cutout 的前提下，形状、魔术、画笔、自由套索四项保留手动工具已从文字改为仓库内本地图标格，保留中文无障碍名称、悬浮提示和既有的本地遮罩/像素编辑映射。参考与实现的图标形制、文案和深层参数密度仍有 P2 差异；本轮不改变完整视觉验收的 blocked 状态。
 
+22. 2026-07-15：以用户的 Adjust 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-e0c8a20b-5d10-449a-a8f2-30d329a2c3c2.png` 与本地 `2048 × 960` 状态截图合并为 `/tmp/adjust-reference-vs-local-section-icons.png`。Color 的设置和 Light 的半明暗入口已从文字按钮收敛为同层级本地图标，并保留中文无障碍名称、提示和现有本地参数预览流程。高级 Details/Scene 的图标密度、分组间距与精细字重仍是 P2 差异；完整视觉验收继续保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。

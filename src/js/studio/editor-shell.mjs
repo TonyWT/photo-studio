@@ -1670,7 +1670,7 @@ function renderEditorToolControls(key) {
         <button type="button" aria-label="Pop" title="Pop" data-testid="adjust-pop"><img src="../images/icons/adjust-pop.svg" alt=""><span class="studio-adjust-shortcut-label">Pop</span></button>
       </div>
       <section class="studio-adjust-section" aria-label="Color">
-        <div class="studio-adjust-section-heading"><strong>Color</strong><button type="button" data-testid="adjust-color">高级色彩</button></div>
+        <div class="studio-adjust-section-heading"><strong>Color</strong><button type="button" class="studio-adjust-section-icon-button" aria-label="高级色彩" title="高级色彩" data-testid="adjust-color"><img src="../images/icons/adjust-pop.svg" alt=""><span class="sr_only">高级色彩</span></button></div>
         ${renderAdjustRange({ key: 'vibrance', label: 'Vibrance' })}
         ${renderAdjustRange({ key: 'saturation', label: 'Saturation' })}
         ${renderAdjustRange({ key: 'temperature', label: 'Temperature' })}
@@ -1678,7 +1678,7 @@ function renderEditorToolControls(key) {
         ${renderAdjustRange({ key: 'hue', label: 'Hue', min: -180, max: 180 })}
       </section>
       <section class="studio-adjust-section" aria-label="Light">
-        <div class="studio-adjust-section-heading"><strong>Light</strong><button type="button" data-testid="adjust-light">高级光线</button></div>
+        <div class="studio-adjust-section-heading"><strong>Light</strong><button type="button" class="studio-adjust-section-icon-button" aria-label="高级光线" title="高级光线" data-testid="adjust-light"><img src="../images/icons/adjust-bw.svg" alt=""><span class="sr_only">高级光线</span></button></div>
         ${renderAdjustRange({ key: 'brightness', label: 'Brightness' })}
         ${renderAdjustRange({ key: 'exposure', label: 'Exposure' })}
         ${renderAdjustRange({ key: 'contrast', label: 'Contrast' })}

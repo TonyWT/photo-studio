@@ -116,7 +116,7 @@
 | J-09 | Brightness | 保留 | 可用 | 滑杆值进入本地 Brightness 预览与 Apply |
 | J-10 | Exposure | 保留 | 可用 | 滑杆值进入本地 Luminance 预览与 Apply |
 | J-11 | Contrast | 保留 | 可用 | 滑杆值进入本地 Contrast 预览与 Apply |
-| J-12 | Color / Light 分组折叠或设置入口 | 保留 | 可用 | Color/Light 分组、对应高级入口和重置/预览应用入口已提供 |
+| J-12 | Color / Light 分组折叠或设置入口 | 保留 | 可用：Color/Light 的高级入口已收敛为有名称、提示和本地图标的按钮 | Color/Light 分组、对应高级入口和重置/预览应用入口已提供；图标与无障碍名称由 Chromium E2E 验证 |
 | J-13 | Light 下方的 Black、White、Highlights、Shadows | 保留 | 可用：均为面板内独立本地滑杆，进入同一非破坏预览/确认会话，确认后写入单次图层历史 | Chromium E2E 设置四项值、确认像素变化、Undo 精确恢复；取证：当前公开发布包的 `adjust-content` |
 | J-14 | Details 分组 | 保留 | 可用：Sharpen、Clarity、Smooth、Blur、Grain 均为独立本地滑杆；平滑/模糊使用 3×3 局部采样，锐化、清晰度与颗粒均参与确定性像素管线 | Chromium E2E 覆盖五项传入预览会话、确认像素变化与 Undo |
 | J-15 | Scene 分组 | 保留 | 可用：Vignette、Glamour、Bloom、Dehaze 均为独立本地滑杆；以暗角、局部高光、亮部辉光和局部对比度的确定性浏览器像素处理实现 | Chromium E2E 覆盖四项传入预览会话、确认像素变化与 Undo |
