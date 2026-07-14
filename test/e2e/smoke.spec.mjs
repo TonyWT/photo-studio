@@ -2146,8 +2146,59 @@ test('Crop 比例菜单提供竖版比例与本地输出尺寸预设', async ({ 
   await expect(page.getByTestId('crop-output-width')).toHaveValue('1920');
   await expect(page.getByTestId('crop-output-height')).toHaveValue('1080');
   await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.selection)).toEqual({
-    x: 960, y: 900, width: 1920, height: 1080,
+    x: 0, y: 360, width: 3840, height: 2160,
   });
+});
+
+test('Crop 比例菜单保留参考的 3:4 Profile 和完整社交输出尺寸', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-crop').click();
+  await page.getByTestId('crop-aspect-enabled').check();
+
+  await page.getByTestId('crop-aspect-ratio').selectOption('3:4');
+  await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.crop.object.selection)).toEqual({
+    x: 840, y: 0, width: 2160, height: 2880,
+  });
+
+  const preset = page.getByTestId('crop-output-preset');
+  await expect(preset.locator('option')).toHaveCount(26);
+  await preset.selectOption('851x315');
+  await expect(page.getByTestId('crop-output-width')).toHaveValue('851');
+  await expect(page.getByTestId('crop-output-height')).toHaveValue('315');
+  await preset.selectOption('2560x1440');
+  await expect(page.getByTestId('crop-output-width')).toHaveValue('2560');
+  await expect(page.getByTestId('crop-output-height')).toHaveValue('1440');
+  await preset.selectOption('2400x3300');
+  await expect(page.getByTestId('crop-output-width')).toHaveValue('2400');
+  await expect(page.getByTestId('crop-output-height')).toHaveValue('3300');
+  await page.getByTestId('crop-apply').click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([2400, 3300]);
+});
+
+test('Crop 输出尺寸预设作为单个撤销动作恢复原始画布', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.app?.GUI?.GUI_tools?.tools_modules?.crop))).toBe(true);
+  await page.getByTestId('tool-crop').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe('crop');
+  await page.getByTestId('crop-aspect-enabled').check();
+  const before = await page.evaluate(() => ({
+    width: window.AppConfig.WIDTH,
+    height: window.AppConfig.HEIGHT,
+    history: window.State.action_history.length,
+  }));
+
+  await page.getByTestId('crop-output-preset').selectOption('2400x3300');
+  await page.getByTestId('crop-apply').click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([2400, 3300]);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([before.width, before.height]);
 });
 
 test('Crop 输出宽高会更新临时选区并在应用后写入画布尺寸', async ({ page }) => {

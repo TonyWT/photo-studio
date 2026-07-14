@@ -78,7 +78,7 @@ class Image_resize_class {
 		document.getElementById("pop_data_width").select();
 	}
 
-	async do_resize(params) {
+	async do_resize(params, action_options = {}) {
 		//validate
 		if (isNaN(params.width) && isNaN(params.height) && isNaN(params.width_percent) && isNaN(params.height_percent)) {
 			alertify.error('Missing at least 1 size parameter.');
@@ -108,7 +108,8 @@ class Image_resize_class {
 			actions = actions.concat(await this.resize_layer(config.layer, params));
 		}
 		return app.State.do_action(
-			new app.Actions.Bundle_action('resize_layers', 'Resize Layers', actions)
+			new app.Actions.Bundle_action('resize_layers', 'Resize Layers', actions),
+			action_options
 		);
 	}
 

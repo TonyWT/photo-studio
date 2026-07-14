@@ -4,22 +4,26 @@ export const MANUAL_CUTOUT_TOOLS = ['selection', 'magic_erase', 'erase'];
 const CUTOUT_SHAPE_MODES = new Set(['lasso', 'ellipse', 'triangle', 'star', 'heart', 'line']);
 const CROP_ASPECT_OPTIONS = Object.freeze([
   ['none', '无约束'], ['original', '原始比例'], ['1:1', '1:1（方形）'],
-  ['4:3', '4:3（显示器）'], ['14:9', '14:9'], ['16:9', '16:9（宽屏）'],
+  ['4:3', '4:3（显示器）'], ['3:4', '3:4（个人资料）'], ['14:9', '14:9'], ['16:9', '16:9（宽屏）'],
   ['9:16', '9:16（竖版）'], ['16:10', '16:10'], ['2:1', '2:1'],
   ['3:1', '3:1（全景）'], ['4:1', '4:1'], ['3:2', '3:2（35mm）'],
   ['5:4', '5:4'], ['7:5', '7:5'], ['19:10', '19:10'],
   ['21:9', '21:9（电影宽屏）'], ['32:9', '32:9（超宽）'],
 ]);
 const CROP_OUTPUT_PRESETS = Object.freeze([
-  ['180x180', 'Facebook 头像（180×180）'], ['820x312', 'Facebook 封面（820×312）'],
-  ['1200x630', 'Facebook 帖子（1200×630）'], ['1080x1080', 'Instagram 帖子（1080×1080）'],
-  ['1080x1920', 'Instagram Story（1080×1920）'], ['400x400', 'Twitter 头像（400×400）'],
-  ['1500x500', 'Twitter 头图（1500×500）'], ['1280x720', 'YouTube 缩略图（1280×720）'],
+  ['180x180', 'Facebook 头像（180×180）'], ['851x315', 'Facebook 封面（851×315）'],
+  ['1200x900', 'Facebook 帖子（1200×900）'], ['1280x720', 'Facebook 广告（1280×720）'],
+  ['180x180', 'Instagram 头像（180×180）'], ['1080x1080', 'Instagram 帖子（1080×1080）'],
+  ['1080x1920', 'Instagram Story（1080×1920）'], ['150x150', 'Twitter 头像（150×150）'],
+  ['1500x500', 'Twitter 头图（1500×500）'], ['1024x512', 'Twitter 图片（1024×512）'],
+  ['1200x628', 'Twitter 卡片（1200×628）'], ['1200x675', 'Twitter 广告（1200×675）'],
+  ['800x800', 'YouTube 头像（800×800）'], ['2560x1440', 'YouTube 频道图（2560×1440）'],
+  ['1280x720', 'YouTube 缩略图（1280×720）'],
   ['1024x768', 'Web mini（1024×768）'], ['1280x800', 'Web small（1280×800）'],
   ['1366x768', 'Web common（1366×768）'], ['1440x900', 'Web medium（1440×900）'],
   ['1920x1080', 'Full HD（1920×1080）'], ['3840x2160', 'Ultra HD（3840×2160）'],
   ['2480x3508', 'A4（2480×3508）'], ['1748x2480', 'A5（1748×2480）'],
-  ['1240x1748', 'A6（1240×1748）'], ['2550x3300', 'Letter（2550×3300）'],
+  ['1280x1748', 'A6（1280×1748）'], ['2400x3300', 'Letter（2400×3300）'],
 ]);
 const DRAWING_PALETTE = Object.freeze([
   ['red', '#ef4444', '珊瑚红'], ['orange', '#f97316', '橙色'], ['yellow', '#facc15', '亮黄'],
@@ -48,6 +52,7 @@ let cutoutCoreEventShieldActive = false;
 let retouchAdvancedOpen = false;
 let cropAspectEnabled = false;
 let cropAspectRatio = null;
+let cropOutputSize = null;
 
 function hasUnsupportedCutoutRotation(layer = window.AppConfig?.layer) {
   const rotation = Number(layer?.rotate ?? 0);
@@ -1389,10 +1394,11 @@ function setCenteredCropOutputDimension(dimension, value) {
 function syncCropOutputInputs(target) {
   const selection = cropSelectionOrCanvas();
   if (!selection || !target) return;
+  const output = cropOutputSize ?? selection;
   const width = target.querySelector('[data-testid="crop-output-width"]');
   const height = target.querySelector('[data-testid="crop-output-height"]');
-  if (width) width.value = String(Math.round(selection.width));
-  if (height) height.value = String(Math.round(selection.height));
+  if (width) width.value = String(Math.round(output.width));
+  if (height) height.value = String(Math.round(output.height));
 }
 
 function renderEditorToolControls(key) {
@@ -1748,8 +1754,8 @@ function renderEditorToolControls(key) {
   if (key === 'crop') {
     const crop = getCoreToolModule('crop');
     const cropSelection = cropSelectionOrCanvas();
-    const cropWidth = Math.round(cropSelection?.width ?? window.AppConfig?.WIDTH ?? 1);
-    const cropHeight = Math.round(cropSelection?.height ?? window.AppConfig?.HEIGHT ?? 1);
+    const cropWidth = Math.round(cropOutputSize?.width ?? cropSelection?.width ?? window.AppConfig?.WIDTH ?? 1);
+    const cropHeight = Math.round(cropOutputSize?.height ?? cropSelection?.height ?? window.AppConfig?.HEIGHT ?? 1);
     const originalRatio = (window.AppConfig?.WIDTH ?? 1) / Math.max(1, window.AppConfig?.HEIGHT ?? 1);
     const selectedAspectValue = cropAspectEnabled
       ? (CROP_ASPECT_OPTIONS.find(([value]) => {
@@ -1769,10 +1775,10 @@ function renderEditorToolControls(key) {
     target.innerHTML = `
       <div class="studio-control-group studio-control-group-two" aria-label="裁剪输出尺寸">
         <label class="studio-control-number">宽度
-          <input type="number" min="1" max="${window.AppConfig?.WIDTH ?? 1}" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
+          <input type="number" min="1" max="32768" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
         </label>
         <label class="studio-control-number">高度
-          <input type="number" min="1" max="${window.AppConfig?.HEIGHT ?? 1}" value="${cropHeight}" data-testid="crop-output-height" ${disabled}>
+          <input type="number" min="1" max="32768" value="${cropHeight}" data-testid="crop-output-height" ${disabled}>
         </label>
       </div>
       <div class="studio-control-group" aria-label="裁剪拉直">
@@ -1792,8 +1798,8 @@ function renderEditorToolControls(key) {
           </label>
           <label class="studio-control-select">输出尺寸
             <select data-testid="crop-output-preset" ${disabled}>
-              <option value="">自定义</option>
-              ${CROP_OUTPUT_PRESETS.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
+              <option value="" ${cropOutputSize ? '' : 'selected'}>自定义</option>
+              ${CROP_OUTPUT_PRESETS.map(([value, label]) => `<option value="${value}" ${value === `${cropOutputSize?.width}x${cropOutputSize?.height}` ? 'selected' : ''}>${label}</option>`).join('')}
             </select>
           </label>
         </div>
@@ -1815,7 +1821,21 @@ function renderEditorToolControls(key) {
       </footer>
     `;
     target.querySelector('[data-testid="crop-apply"]')?.addEventListener('click', async () => {
-      if (cropDocumentIsEditable()) await crop?.on_params_update();
+      if (!cropDocumentIsEditable()) return;
+      const outputSize = cropOutputSize ? { ...cropOutputSize } : null;
+      const cropResult = await crop?.on_params_update();
+      if (outputSize && cropResult?.status === 'completed') {
+        await invokeEditorModule('image/resize', 'do_resize', {
+          width: outputSize.width,
+          height: outputSize.height,
+          width_percent: '',
+          height_percent: '',
+          mode: 'Lanczos',
+          sharpen: false,
+          layers: 'All',
+        }, { merge_with_history: ['crop_tool', 'crop_straighten'] });
+      }
+      cropOutputSize = null;
       updateCanvasStatus();
     });
     target.querySelector('[data-testid="crop-reset"]')?.addEventListener('click', () => {
@@ -1826,6 +1846,7 @@ function renderEditorToolControls(key) {
       await crop?.cancel_session?.();
       cropAspectEnabled = false;
       cropAspectRatio = null;
+      cropOutputSize = null;
       // Crop's on_leave persists a Reset_selection_action. Cancel must only
       // discard this UI-local selection, so the real crop tool stays active
       // while its panel is closed without writing an undo entry.
@@ -1872,6 +1893,7 @@ function renderEditorToolControls(key) {
       } else {
         cropAspectRatio = null;
       }
+      cropOutputSize = null;
       renderEditorToolControls('crop');
     });
     target.querySelector('[data-testid="crop-aspect-ratio"]')?.addEventListener('change', (event) => {
@@ -1884,20 +1906,28 @@ function renderEditorToolControls(key) {
       }
       cropAspectEnabled = true;
       cropAspectRatio = ratio;
+      cropOutputSize = null;
       applyCenteredCropRatio(ratio);
       syncCropOutputInputs(target);
     });
     target.querySelector('[data-testid="crop-output-preset"]')?.addEventListener('change', (event) => {
       const [width, height] = event.currentTarget.value.split('x').map(Number);
-      if (!applyCenteredCropSize(width, height)) return;
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) {
+        cropOutputSize = null;
+        return;
+      }
+      if (!applyCenteredCropRatio(width / height)) return;
       cropAspectEnabled = true;
       cropAspectRatio = width / height;
+      cropOutputSize = { width, height };
       syncCropOutputInputs(target);
     });
     target.querySelector('[data-testid="crop-output-width"]')?.addEventListener('input', (event) => {
+      cropOutputSize = null;
       if (setCenteredCropOutputDimension('width', event.target.value)) syncCropOutputInputs(target);
     });
     target.querySelector('[data-testid="crop-output-height"]')?.addEventListener('input', (event) => {
+      cropOutputSize = null;
       if (setCenteredCropOutputDimension('height', event.target.value)) syncCropOutputInputs(target);
     });
     return;
