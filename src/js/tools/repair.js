@@ -85,7 +85,12 @@ class Repair_class extends Base_tools_class {
 
 		const source = this.tmpCanvasCtx.getImageData(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
 		const result = this.tmpCanvasCtx.getImageData(left, top, width, height);
-		const channelValues = new Array(9);
+		const quality = params.quality?.value ?? params.quality ?? 'balanced';
+		// The three local modes deliberately trade the sample window size for
+		// speed. They remain deterministic median repair; no model or network
+		// inference is involved.
+		const sampleRadius = quality === 'speed' ? 1 : quality === 'quality' ? 3 : 2;
+		const channelValues = new Array((sampleRadius * 2 + 1) ** 2);
 		for (let y = 0; y < height; y++) {
 			for (let x = 0; x < width; x++) {
 				const targetX = left + x;
@@ -96,15 +101,15 @@ class Repair_class extends Base_tools_class {
 				const targetIndex = (y * width + x) * 4;
 				for (let channel = 0; channel < 3; channel++) {
 					let count = 0;
-					for (let offsetY = -1; offsetY <= 1; offsetY++) {
+					for (let offsetY = -sampleRadius; offsetY <= sampleRadius; offsetY++) {
 						const sampleY = Math.max(0, Math.min(source.height - 1, targetY + offsetY));
-						for (let offsetX = -1; offsetX <= 1; offsetX++) {
+						for (let offsetX = -sampleRadius; offsetX <= sampleRadius; offsetX++) {
 							const sampleX = Math.max(0, Math.min(source.width - 1, targetX + offsetX));
 							channelValues[count++] = source.data[(sampleY * source.width + sampleX) * 4 + channel];
 						}
 					}
 					channelValues.sort((a, b) => a - b);
-					result.data[targetIndex + channel] = channelValues[4];
+					result.data[targetIndex + channel] = channelValues[Math.floor(count / 2)];
 				}
 			}
 		}

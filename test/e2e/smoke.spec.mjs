@@ -2206,7 +2206,46 @@ test('Crop 可从文字或形状图层发起；旋转保留矢量，翻转安全
     height: layer.height,
     rotate: layer.rotate,
   }])));
-  await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).toBe(beforeRotatePreview);
+  // Undo restores Crop's interactive mask as well as the document. That mask
+  // is intentionally painted over the working canvas, so suppress it only
+  // for this raw-pixel read. Do not activate another core tool here: that
+  // would create a new history entry and invalidate the subsequent Redo.
+  await page.evaluate(() => {
+    window.__cropToolForVisualCheck = window.AppConfig.TOOL;
+    window.AppConfig.TOOL = window.AppConfig.TOOLS.find((tool) => tool.name === 'select');
+    window.AppConfig.need_render = true;
+  });
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const { data, width, height } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    const bounds = (matches) => {
+      let minX = width;
+      let minY = height;
+      let maxX = -1;
+      let maxY = -1;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const index = (y * width + x) * 4;
+          if (matches(data[index], data[index + 1], data[index + 2], data[index + 3])) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+      return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1, centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 };
+    };
+    return {
+      blue: bounds((r, g, b, a) => b > 120 && b > r * 1.15 && b > g * 1.15 && a > 0),
+      green: bounds((r, g, b, a) => g > 75 && g > r * 1.18 && g > b * 1.18 && a > 0),
+    };
+  })).toEqual({ blue: beforeTextPixels.blue, green: beforeTextPixels.green });
+  await page.evaluate(() => {
+    window.AppConfig.TOOL = window.__cropToolForVisualCheck;
+    delete window.__cropToolForVisualCheck;
+    window.AppConfig.need_render = true;
+  });
   await page.locator('[data-editor-history="redo"]').click();
   await expect.poll(() => page.evaluate(() => Object.fromEntries(
     window.AppConfig.layers
@@ -2597,6 +2636,7 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
   await page.getByTestId('tool-retouch').click();
   await expect(page.getByTestId('retouch-clone')).toBeVisible();
   await expect(page.getByTestId('retouch-blur')).toBeVisible();
+  await page.locator('.studio-retouch-advanced > summary').click();
   await expect(page.getByTestId('retouch-sharpen')).toBeVisible();
   await page.getByTestId('retouch-size').fill('21');
   await page.getByTestId('retouch-blur-strength').fill('64');
@@ -2652,6 +2692,17 @@ test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', 
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-retouch').click();
   await expect(page.getByTestId('retouch-repair')).toBeVisible();
+  await expect(page.getByTestId('retouch-spot')).toBeVisible();
+  await page.locator('.studio-retouch-advanced > summary').click();
+  for (const [testId, quality] of [
+    ['retouch-quality-speed', 'speed'],
+    ['retouch-quality-balanced', 'balanced'],
+    ['retouch-quality-quality', 'quality'],
+  ]) {
+    await page.getByTestId(testId).click();
+    await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'repair').attributes.quality.value)).toBe(quality);
+  }
+  await page.getByTestId('retouch-quality-balanced').click();
   await page.getByTestId('retouch-repair').click();
   await expect(page.locator('#tools_container .repair')).toHaveClass(/active/);
   await expect(page.getByTestId('retouch-repair')).toHaveClass(/is-selected/);
@@ -2696,6 +2747,7 @@ test('Retouch 减淡笔刷会局部提亮并提供可撤销的本地像素修改
   await expect(page).toHaveURL(/\/editor\/$/);
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-retouch').click();
+  await page.locator('.studio-retouch-advanced > summary').click();
   await expect(page.getByTestId('retouch-dodge')).toBeVisible();
   await page.getByTestId('retouch-dodge').click();
   await expect(page.locator('#tools_container .dodge_burn')).toHaveClass(/active/);
@@ -2720,6 +2772,7 @@ test('Retouch 加深笔刷会局部压暗并提供可撤销的本地像素修改
   await expect(page).toHaveURL(/\/editor\/$/);
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-retouch').click();
+  await page.locator('.studio-retouch-advanced > summary').click();
   await page.getByTestId('retouch-burn').click();
   await expect(page.locator('#tools_container .dodge_burn')).toHaveClass(/active/);
   await page.getByTestId('retouch-size').fill('1');

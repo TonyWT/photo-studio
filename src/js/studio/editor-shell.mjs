@@ -13,6 +13,7 @@ let cutoutSelection = {
 let cutoutPointer = null;
 let cutoutTouchSession = null;
 let cutoutCoreEventShieldActive = false;
+let retouchAdvancedOpen = false;
 
 function hasUnsupportedCutoutRotation(layer = window.AppConfig?.layer) {
   const rotation = Number(layer?.rotate ?? 0);
@@ -29,7 +30,7 @@ export const EDITOR_TOOL_REGISTRY = Object.freeze({
   effect: { label: '效果', description: '图像效果将在此处显示。', coreTool: null },
   filter: { label: '滤镜', description: '本地图层滤镜将在此处显示。', coreTool: null },
   liquify: { label: '液化', description: '在支持 WebGL2 的浏览器中使用变形笔刷。', coreTool: 'bulge_pinch' },
-  retouch: { label: '修饰', description: '修复、克隆与局部细节工具将在此处显示。', coreTool: 'clone' },
+  retouch: { label: '修饰', description: '修复、克隆与局部细节工具将在此处显示。', coreTool: 'repair' },
   drawing: { label: '绘制', description: '画笔、填充、形状和颜色工具。', coreTool: 'brush' },
   text: { label: '文字', description: '添加和编辑本机字体文字图层。', coreTool: 'text' },
 });
@@ -191,6 +192,13 @@ function updateCanvasStatus() {
   if (zoom && window.AppConfig?.ZOOM) {
     zoom.textContent = `${Math.round(window.AppConfig.ZOOM * 100)}%`;
   }
+}
+
+function syncCanvasInteractionOffset() {
+  // miniPaint caches the canvas rectangle for all pointer tools. Opening or
+  // closing our fixed workbench changes that rectangle without a browser
+  // resize event, so refresh the cached value before another pointer can run.
+  window.app?.GUI?.check_canvas_offset?.();
 }
 
 function getAdjustPreviewDefaults() {
@@ -972,6 +980,8 @@ function renderCollageWorkspace() {
   const attributes = document.getElementById('action_attributes');
   if (!panel || !target) return;
   panel.hidden = false;
+  document.body.classList.add('studio-tool-panel-open');
+  syncCanvasInteractionOffset();
   if (title) title.textContent = '拼贴';
   if (description) description.textContent = '选择分格后拖入或选择本地图片；图片会覆盖式裁切为该格尺寸。';
   if (attributes) {
@@ -1472,6 +1482,8 @@ function renderEditorToolControls(key) {
       // while its panel is closed without writing an undo entry.
       const panel = document.querySelector('[data-testid="editor-tool-panel"]');
       if (panel) panel.hidden = true;
+      document.body.classList.remove('studio-tool-panel-open');
+      syncCanvasInteractionOffset();
       document.body.dataset.canvasToolMode = 'crop';
       updateCanvasStatus();
     });
@@ -1747,43 +1759,68 @@ function renderEditorToolControls(key) {
     const disabled = editable ? '' : ' disabled aria-disabled="true"';
     const cloneAttributes = findToolConfig('clone')?.attributes ?? {};
     const blurAttributes = findToolConfig('blur')?.attributes ?? {};
+	const repairAttributes = findToolConfig('repair')?.attributes ?? {};
 	const dodgeBurnAttributes = findToolConfig('dodge_burn')?.attributes ?? {};
     const size = Number(blurAttributes.size ?? cloneAttributes.size ?? 30);
     const strength = Math.round(Math.max(0, Math.min(1, Number(blurAttributes.strength ?? 1))) * 100);
 	const dodgeBurnStrength = Number(dodgeBurnAttributes.strength ?? 50);
 	const dodgeBurnMode = dodgeBurnAttributes.mode?.value ?? 'dodge';
+	const repairQuality = repairAttributes.quality?.value ?? repairAttributes.quality ?? 'balanced';
 	const activeRetouchTool = window.AppConfig?.TOOL?.name ?? 'clone';
     const source = cloneAttributes.source_layer?.value ?? 'Current';
     target.innerHTML = `
+      <section class="studio-retouch-section" aria-label="本地修饰工具">
+        <strong>工具</strong>
+        <div class="studio-control-group studio-control-group-four">
+          <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-repair" data-core-tool="repair"${disabled}>Spot 修复</button>
+          <button type="button" class="${activeRetouchTool === 'clone' ? 'is-selected' : ''}" data-testid="retouch-clone" data-core-tool="clone"${disabled}>克隆</button>
+          <button type="button" class="${activeRetouchTool === 'blur' ? 'is-selected' : ''}" data-testid="retouch-blur" data-core-tool="blur"${disabled}>柔化</button>
+          <button type="button" class="${activeRetouchTool === 'desaturate' ? 'is-selected' : ''}" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>去色</button>
+        </div>
+      </section>
+      <section class="studio-retouch-section" aria-label="Spot 修复方法">
+        <strong>修复方法</strong>
+        <div class="studio-control-group studio-control-group-two">
+          <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-spot" data-core-tool="repair"${disabled}>Spot</button>
+        </div>
+      </section>
       <label class="studio-control-range">笔刷大小 <output data-retouch-size-output>${size}px</output>
         <input type="range" min="1" max="300" value="${size}" data-testid="retouch-size" ${disabled}>
       </label>
-      <label class="studio-control-range">局部模糊强度 <output data-retouch-strength-output>${strength}%</output>
-        <input type="range" min="1" max="100" value="${strength}" data-testid="retouch-blur-strength" ${disabled}>
-      </label>
-	  <label class="studio-control-range">减淡/加深强度 <output data-retouch-dodge-burn-strength-output>${dodgeBurnStrength}%</output>
-		<input type="range" min="1" max="100" value="${dodgeBurnStrength}" data-testid="retouch-dodge-burn-strength" ${disabled}>
-	  </label>
-      <label class="studio-control-select">克隆来源
-        <select data-testid="retouch-clone-source" ${disabled}>
-          <option value="Current" ${source === 'Current' ? 'selected' : ''}>当前图层</option>
-          <option value="Previous" ${source === 'Previous' ? 'selected' : ''}>下一图层</option>
-        </select>
-      </label>
-      <div class="studio-control-group studio-control-group-two" aria-label="本地修饰工具">
-        <button type="button" class="${activeRetouchTool === 'clone' ? 'is-selected' : ''}" data-testid="retouch-clone" data-core-tool="clone"${disabled}>克隆</button>
-		<button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-repair" data-core-tool="repair"${disabled}>修复</button>
-        <button type="button" class="${activeRetouchTool === 'blur' ? 'is-selected' : ''}" data-testid="retouch-blur" data-core-tool="blur"${disabled}>局部模糊</button>
-        <button type="button" class="${activeRetouchTool === 'sharpen' ? 'is-selected' : ''}" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
-        <button type="button" class="${activeRetouchTool === 'desaturate' ? 'is-selected' : ''}" data-testid="retouch-desaturate" data-core-tool="desaturate"${disabled}>局部去色</button>
-		<button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>减淡</button>
-		<button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'burn' ? 'is-selected' : ''}" data-testid="retouch-burn" data-core-tool="dodge_burn"${disabled}>加深</button>
-      </div>
-      <p class="studio-control-hint">仅可在未锁定的图片图层上修饰；每次笔触都会写入本地历史。克隆工具可按住 Alt/Option 设定来源。</p>
+      <details class="studio-retouch-advanced"${retouchAdvancedOpen ? ' open' : ''}>
+        <summary>更多本地修饰设置</summary>
+        <div class="studio-control-group studio-control-group-three" aria-label="Spot 修复质量">
+          <button type="button" class="${repairQuality === 'speed' ? 'is-selected' : ''}" data-testid="retouch-quality-speed"${disabled}>快速</button>
+          <button type="button" class="${repairQuality === 'balanced' ? 'is-selected' : ''}" data-testid="retouch-quality-balanced"${disabled}>平衡</button>
+          <button type="button" class="${repairQuality === 'quality' ? 'is-selected' : ''}" data-testid="retouch-quality-quality"${disabled}>质量</button>
+        </div>
+        <label class="studio-control-range">局部模糊强度 <output data-retouch-strength-output>${strength}%</output>
+          <input type="range" min="1" max="100" value="${strength}" data-testid="retouch-blur-strength" ${disabled}>
+        </label>
+		<label class="studio-control-range">减淡/加深强度 <output data-retouch-dodge-burn-strength-output>${dodgeBurnStrength}%</output>
+		  <input type="range" min="1" max="100" value="${dodgeBurnStrength}" data-testid="retouch-dodge-burn-strength" ${disabled}>
+		</label>
+        <label class="studio-control-select">克隆来源
+          <select data-testid="retouch-clone-source" ${disabled}>
+            <option value="Current" ${source === 'Current' ? 'selected' : ''}>当前图层</option>
+            <option value="Previous" ${source === 'Previous' ? 'selected' : ''}>下一图层</option>
+          </select>
+        </label>
+        <div class="studio-control-group studio-control-group-two" aria-label="其他本地修饰工具">
+          <button type="button" class="${activeRetouchTool === 'sharpen' ? 'is-selected' : ''}" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
+		  <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>减淡</button>
+		  <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'burn' ? 'is-selected' : ''}" data-testid="retouch-burn" data-core-tool="dodge_burn"${disabled}>加深</button>
+        </div>
+        <p class="studio-control-hint">仅可在未锁定的图片图层上修饰；每次笔触都会写入本地历史。克隆工具可按住 Alt/Option 设定来源。</p>
+      </details>
     `;
     const sizeInput = target.querySelector('[data-testid="retouch-size"]');
     const strengthInput = target.querySelector('[data-testid="retouch-blur-strength"]');
     const sourceInput = target.querySelector('[data-testid="retouch-clone-source"]');
+    const advancedSettings = target.querySelector('.studio-retouch-advanced');
+    advancedSettings?.addEventListener('toggle', () => {
+      retouchAdvancedOpen = advancedSettings.open;
+    });
     sizeInput?.addEventListener('input', () => {
       const nextSize = Number(sizeInput.value);
 	  ['clone', 'repair', 'blur', 'sharpen', 'desaturate', 'dodge_burn'].forEach((tool) => setToolAttribute(tool, 'size', nextSize));
@@ -1798,6 +1835,17 @@ function renderEditorToolControls(key) {
 	dodgeBurnStrengthInput?.addEventListener('input', () => {
 	  setToolAttribute('dodge_burn', 'strength', Number(dodgeBurnStrengthInput.value));
 	  target.querySelector('[data-retouch-dodge-burn-strength-output]').textContent = `${dodgeBurnStrengthInput.value}%`;
+	});
+	[
+	  ['retouch-quality-speed', 'speed'],
+	  ['retouch-quality-balanced', 'balanced'],
+	  ['retouch-quality-quality', 'quality'],
+	].forEach(([testId, quality]) => {
+	  target.querySelector(`[data-testid="${testId}"]`)?.addEventListener('click', () => {
+		retouchAdvancedOpen = true;
+		setToolAttributeValue('repair', 'quality', quality);
+		renderEditorToolControls('retouch');
+	  });
 	});
     sourceInput?.addEventListener('change', () => setToolAttributeValue('clone', 'source_layer', sourceInput.value));
 	target.querySelector('[data-testid="retouch-dodge"]')?.addEventListener('click', () => {
@@ -2130,6 +2178,8 @@ async function activateEditorTool(key) {
   if (title) title.textContent = tool.label;
   if (description) description.textContent = tool.description;
   if (panel) panel.hidden = false;
+  document.body.classList.add('studio-tool-panel-open');
+  syncCanvasInteractionOffset();
   renderEditorToolControls(key);
   if (key === 'liquify' && !getLiquifyAvailability().enabled) {
     await deactivateCoreTool();
@@ -2172,6 +2222,8 @@ function bindWorkbenchControls() {
   document.querySelector('[data-editor-panel-close]')?.addEventListener('click', () => {
     const panel = document.querySelector('[data-testid="editor-tool-panel"]');
     if (panel) panel.hidden = true;
+    document.body.classList.remove('studio-tool-panel-open');
+    syncCanvasInteractionOffset();
   });
 
   // miniPaint owns the layer-rail click handler. Defer one tick after its

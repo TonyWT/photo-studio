@@ -430,6 +430,10 @@ config.TOOLS = [
 		name: 'repair',
 		attributes: {
 			size: 30,
+			quality: {
+				value: 'balanced',
+				values: ['speed', 'balanced', 'quality'],
+			},
 		},
 	},
 	{
