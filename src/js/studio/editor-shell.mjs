@@ -1521,6 +1521,8 @@ function renderEditorToolControls(key) {
       </label>
       <div class="studio-control-group studio-control-group-two" aria-label="本地绘制工具">
         <button type="button" data-testid="drawing-brush" data-core-tool="brush">画笔</button>
+        <button type="button" data-testid="drawing-eraser" data-core-tool="erase">橡皮</button>
+        <button type="button" data-testid="drawing-eyedropper" data-core-tool="pick_color">取色</button>
         <button type="button" data-testid="drawing-pencil" data-core-tool="pencil">铅笔</button>
         <button type="button" data-testid="drawing-fill" data-core-tool="fill">填充</button>
         <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">渐变</button>
@@ -1540,7 +1542,7 @@ function renderEditorToolControls(key) {
     });
     sizeInput.addEventListener('input', () => {
       const size = Number(sizeInput.value);
-      ['brush', 'pencil', 'shape'].forEach((tool) => setToolAttribute(tool, 'size', size));
+      ['brush', 'pencil', 'erase', 'shape'].forEach((tool) => setToolAttribute(tool, 'size', size));
       sizeOutput.value = `${size}px`;
       sizeOutput.textContent = `${size}px`;
     });

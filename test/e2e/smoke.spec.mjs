@@ -2995,6 +2995,78 @@ test('Drawing 形状会写入本地像素，并可通过撤销精确恢复', asy
   await expect.poll(regionHash).toBe(before);
 });
 
+test('Drawing 橡皮会将活动图片图层局部变透明，并可通过撤销精确恢复', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'erase-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-eraser')).toBeVisible();
+  await page.getByTestId('drawing-size').fill('30');
+  await page.getByTestId('drawing-eraser').click();
+  await expect(page.locator('#tools_container .erase')).toHaveClass(/active/);
+
+  const activeLayerPixel = () => page.evaluate(() => {
+    const layer = window.AppConfig.layer;
+    const canvas = document.createElement('canvas');
+    canvas.width = layer.link.naturalWidth;
+    canvas.height = layer.link.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(layer.link, 0, 0);
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  });
+  const before = await activeLayerPixel();
+  expect(before).toEqual([20, 30, 40, 255]);
+  const history = await page.evaluate(() => window.State.action_history.length);
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
+  await expect.poll(activeLayerPixel).toEqual([0, 0, 0, 0]);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(activeLayerPixel).toEqual(before);
+});
+
+test('Drawing 取色器从本地图层读取像素颜色，不写入编辑历史', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#d946ef';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'eyedropper-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-eyedropper')).toBeVisible();
+  await page.getByTestId('drawing-eyedropper').click();
+  await expect(page.locator('#tools_container .pick_color')).toHaveClass(/active/);
+  const history = await page.evaluate(() => window.State.action_history.length);
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.AppConfig.COLOR)).toBe('#d946ef');
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history);
+});
+
 test('Drawing 填充不会修改锁定图片图层或写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });

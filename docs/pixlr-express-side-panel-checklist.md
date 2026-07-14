@@ -135,7 +135,7 @@
 
 | 编号 | 截图可见项 | 决策 | 当前状态 | 最低验收 |
 | --- | --- | --- | --- | --- |
-| D-01 ～ D-05 | Draw 的 5 个工具图标 | 待取证 | 部分可用：Brush、Pencil、Fill、Gradient 与 Rectangle Shape 的本地像素/撤销已验证 | 逐一确认 Eraser、Eyedropper、其余 Shape 的准确映射和像素基准 |
+| D-01 ～ D-05 | Draw 的 5 个工具图标 | 待取证 | 部分可用：Brush、Eraser、Eyedropper、Pencil、Fill、Gradient 与 Rectangle Shape 均已接入；Eraser、Pencil、Fill、Gradient、Rectangle 有本地像素/撤销验证，Eyedropper 仅本地取色且无历史 | 逐一确认截图中每个图标的准确名称/映射，并为其余 Shape 建立像素基准 |
 | D-06 | 颜色选择器 | 保留 | 部分可用 | 颜色写入笔触/填充 |
 | D-07 | Brush 预览/笔刷选择 | 保留 | 待补 | 原创本地笔刷缩略预览与实际形状 |
 | D-08 | Size | 保留 | 部分可用 | 笔刷直径像素基准 |
