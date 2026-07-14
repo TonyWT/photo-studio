@@ -1,7 +1,26 @@
 import { isNativeProjectDocument, isSupportedImage, normalizeProjectName, projectStore } from './project-store.mjs';
 
 export const MANUAL_CUTOUT_TOOLS = ['selection', 'magic_erase', 'erase'];
-const CUTOUT_SHAPE_MODES = new Set(['lasso', 'ellipse', 'triangle', 'star', 'heart']);
+const CUTOUT_SHAPE_MODES = new Set(['lasso', 'ellipse', 'triangle', 'star', 'heart', 'line']);
+const CROP_ASPECT_OPTIONS = Object.freeze([
+  ['none', '无约束'], ['original', '原始比例'], ['1:1', '1:1（方形）'],
+  ['4:3', '4:3（显示器）'], ['14:9', '14:9'], ['16:9', '16:9（宽屏）'],
+  ['9:16', '9:16（竖版）'], ['16:10', '16:10'], ['2:1', '2:1'],
+  ['3:1', '3:1（全景）'], ['4:1', '4:1'], ['3:2', '3:2（35mm）'],
+  ['5:4', '5:4'], ['7:5', '7:5'], ['19:10', '19:10'],
+  ['21:9', '21:9（电影宽屏）'], ['32:9', '32:9（超宽）'],
+]);
+const CROP_OUTPUT_PRESETS = Object.freeze([
+  ['180x180', 'Facebook 头像（180×180）'], ['820x312', 'Facebook 封面（820×312）'],
+  ['1200x630', 'Facebook 帖子（1200×630）'], ['1080x1080', 'Instagram 帖子（1080×1080）'],
+  ['1080x1920', 'Instagram Story（1080×1920）'], ['400x400', 'Twitter 头像（400×400）'],
+  ['1500x500', 'Twitter 头图（1500×500）'], ['1280x720', 'YouTube 缩略图（1280×720）'],
+  ['1024x768', 'Web mini（1024×768）'], ['1280x800', 'Web small（1280×800）'],
+  ['1366x768', 'Web common（1366×768）'], ['1440x900', 'Web medium（1440×900）'],
+  ['1920x1080', 'Full HD（1920×1080）'], ['3840x2160', 'Ultra HD（3840×2160）'],
+  ['2480x3508', 'A4（2480×3508）'], ['1748x2480', 'A5（1748×2480）'],
+  ['1240x1748', 'A6（1240×1748）'], ['2550x3300', 'Letter（2550×3300）'],
+]);
 
 let cutoutSelection = {
   mode: 'selection',
@@ -14,6 +33,8 @@ let cutoutPointer = null;
 let cutoutTouchSession = null;
 let cutoutCoreEventShieldActive = false;
 let retouchAdvancedOpen = false;
+let cropAspectEnabled = false;
+let cropAspectRatio = null;
 
 function hasUnsupportedCutoutRotation(layer = window.AppConfig?.layer) {
   const rotation = Number(layer?.rotate ?? 0);
@@ -395,6 +416,17 @@ function drawCutoutRegion(context, region, layer) {
   const scaleY = context.canvas.height / (layer.height || layer.height_original || context.canvas.height);
   const map = (point) => ({ x: (point.x - layer.x) * scaleX, y: (point.y - layer.y) * scaleY });
   context.beginPath();
+  if (region.shape === 'line') {
+    const start = map(region.start);
+    const end = map(region.end);
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.lineCap = 'round';
+    context.lineWidth = Math.max(2, Math.round(Math.min(scaleX, scaleY) * 8));
+    context.strokeStyle = '#fff';
+    context.stroke();
+    return;
+  }
   if (region.shape === 'lasso') {
     const [first, ...rest] = region.points.map(map);
     if (!first || rest.length < 2) return;
@@ -614,6 +646,8 @@ function bindCutoutCanvasGestures() {
     if (!gesture || !point) return;
     const region = cutoutSelection.mode === 'lasso'
       ? { shape: 'lasso', points: [...gesture.points, point] }
+      : cutoutSelection.mode === 'line'
+        ? { shape: 'line', start: gesture.start, end: point }
       : {
         shape: cutoutSelection.mode,
         x: Math.min(gesture.start.x, point.x),
@@ -622,7 +656,8 @@ function bindCutoutCanvasGestures() {
         height: Math.abs(point.y - gesture.start.y),
       };
     if ((region.shape === 'lasso' && region.points.length < 4)
-      || (region.shape !== 'lasso' && (!region.width || !region.height))) return;
+      || (region.shape === 'line' && region.start.x === region.end.x && region.start.y === region.end.y)
+      || (region.shape !== 'lasso' && region.shape !== 'line' && (!region.width || !region.height))) return;
     addCutoutRegion(region);
   };
   canvas.addEventListener('touchstart', (event) => {
@@ -1110,6 +1145,38 @@ function applyCenteredCropRatio(ratio) {
   return true;
 }
 
+function cropRatioFromOption(value) {
+  if (value === 'original') {
+    const width = Number(window.AppConfig?.WIDTH);
+    const height = Number(window.AppConfig?.HEIGHT);
+    return width > 0 && height > 0 ? width / height : null;
+  }
+  const [width, height] = String(value).split(':').map(Number);
+  return Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0
+    ? width / height
+    : null;
+}
+
+function applyCenteredCropSize(width, height) {
+  const crop = getCoreToolModule('crop');
+  const canvasWidth = Number(window.AppConfig?.WIDTH);
+  const canvasHeight = Number(window.AppConfig?.HEIGHT);
+  const requestedWidth = Math.round(Number(width));
+  const requestedHeight = Math.round(Number(height));
+  if (!crop || !canvasWidth || !canvasHeight || requestedWidth < 1 || requestedHeight < 1) return false;
+  const scale = Math.min(1, canvasWidth / requestedWidth, canvasHeight / requestedHeight);
+  const selectionWidth = Math.max(1, Math.round(requestedWidth * scale));
+  const selectionHeight = Math.max(1, Math.round(requestedHeight * scale));
+  crop.selection = {
+    x: Math.round((canvasWidth - selectionWidth) / 2),
+    y: Math.round((canvasHeight - selectionHeight) / 2),
+    width: selectionWidth,
+    height: selectionHeight,
+  };
+  window.AppConfig.need_render = true;
+  return true;
+}
+
 function clearCropSelection() {
   const crop = getCoreToolModule('crop');
   if (!crop) return false;
@@ -1142,7 +1209,25 @@ function setCenteredCropOutputDimension(dimension, value) {
   const max = dimension === 'width' ? canvasWidth : canvasHeight;
   const parsed = Math.round(Number(value));
   if (!Number.isFinite(parsed) || parsed < 1) return false;
-  selection[dimension] = Math.min(parsed, max);
+  if (cropAspectEnabled && Number.isFinite(cropAspectRatio) && cropAspectRatio > 0) {
+    if (dimension === 'width') {
+      selection.width = Math.min(parsed, canvasWidth);
+      selection.height = Math.max(1, Math.round(selection.width / cropAspectRatio));
+      if (selection.height > canvasHeight) {
+        selection.height = canvasHeight;
+        selection.width = Math.max(1, Math.round(selection.height * cropAspectRatio));
+      }
+    } else {
+      selection.height = Math.min(parsed, canvasHeight);
+      selection.width = Math.max(1, Math.round(selection.height * cropAspectRatio));
+      if (selection.width > canvasWidth) {
+        selection.width = canvasWidth;
+        selection.height = Math.max(1, Math.round(selection.width / cropAspectRatio));
+      }
+    }
+  } else {
+    selection[dimension] = Math.min(parsed, max);
+  }
   selection.x = Math.round((canvasWidth - selection.width) / 2);
   selection.y = Math.round((canvasHeight - selection.height) / 2);
   crop.selection = selection;
@@ -1257,34 +1342,64 @@ function renderEditorToolControls(key) {
     const disabledAttribute = customMaskDisabled ? ' disabled' : '';
     const modeClass = (mode) => cutoutSelection.mode === mode ? ' class="is-selected"' : '';
     const operationClass = (operation) => cutoutSelection.operation === operation ? ' class="is-selected"' : '';
+    const cutoutFamily = cutoutSelection.mode === 'magic_erase'
+      ? 'magic'
+      : cutoutSelection.mode === 'erase'
+        ? 'draw'
+        : cutoutSelection.mode === 'lasso'
+          ? 'lasso'
+          : 'shape';
+    const familyClass = (family) => cutoutFamily === family ? ' class="is-selected"' : '';
+    const eraseConfig = findToolConfig('erase')?.attributes ?? {};
+    const eraseSize = Number(eraseConfig.size) || 30;
     target.innerHTML = `
     ${customMaskDisabled ? '<p class="studio-control-hint studio-control-warning" data-testid="cutout-rotation-warning">当前图片图层已旋转。为避免错误的遮罩几何，形状选区和 Keep/Remove 已禁用；请先将图层旋转归零。</p>' : ''}
-    <div class="studio-control-group" aria-label="手动抠图模式">
-      <button type="button"${modeClass('selection')}${disabledAttribute} data-cutout-mode="selection" data-testid="cutout-mode-selection">矩形选区</button>
-      <button type="button"${modeClass('lasso')}${disabledAttribute} data-cutout-mode="lasso" data-testid="cutout-mode-lasso">自由套索</button>
-      <button type="button"${modeClass('ellipse')}${disabledAttribute} data-cutout-mode="ellipse" data-testid="cutout-mode-ellipse">椭圆选区</button>
-      <button type="button"${modeClass('triangle')}${disabledAttribute} data-cutout-mode="triangle" data-testid="cutout-mode-triangle">三角选区</button>
-      <button type="button"${modeClass('star')}${disabledAttribute} data-cutout-mode="star" data-testid="cutout-mode-star">星形选区</button>
-      <button type="button"${modeClass('heart')}${disabledAttribute} data-cutout-mode="heart" data-testid="cutout-mode-heart">心形选区</button>
-      <button type="button"${modeClass('magic_erase')} data-cutout-mode="magic_erase" data-testid="cutout-mode-magic">魔术橡皮</button>
-      <button type="button"${modeClass('erase')} data-cutout-mode="erase" data-testid="cutout-mode-erase">橡皮画笔</button>
-    </div>
+    <section class="studio-cutout-tool-section" aria-label="手动抠图工具">
+      <strong>工具</strong>
+      <div class="studio-control-group studio-control-group-four" aria-label="手动抠图工具">
+        <button type="button"${familyClass('shape')}${disabledAttribute} data-cutout-mode="selection" data-testid="cutout-tool-shape">形状</button>
+        <button type="button"${familyClass('magic')} data-cutout-mode="magic_erase" data-testid="cutout-mode-magic">魔术</button>
+        <button type="button"${familyClass('draw')} data-cutout-mode="erase" data-testid="cutout-mode-erase">画笔</button>
+        <button type="button"${familyClass('lasso')}${disabledAttribute} data-cutout-mode="lasso" data-testid="cutout-mode-lasso">套索</button>
+      </div>
+    </section>
+    ${cutoutFamily === 'shape' ? `
+      <section class="studio-cutout-tool-section" aria-label="形状选区">
+        <strong>形状</strong>
+        <div class="studio-control-group studio-control-group-three">
+          <button type="button"${modeClass('selection')}${disabledAttribute} data-cutout-mode="selection" data-testid="cutout-mode-selection">矩形</button>
+          <button type="button"${modeClass('ellipse')}${disabledAttribute} data-cutout-mode="ellipse" data-testid="cutout-mode-ellipse">圆形</button>
+          <button type="button"${modeClass('triangle')}${disabledAttribute} data-cutout-mode="triangle" data-testid="cutout-mode-triangle">三角</button>
+          <button type="button"${modeClass('star')}${disabledAttribute} data-cutout-mode="star" data-testid="cutout-mode-star">星形</button>
+          <button type="button"${modeClass('heart')}${disabledAttribute} data-cutout-mode="heart" data-testid="cutout-mode-heart">心形</button>
+          <button type="button"${modeClass('line')}${disabledAttribute} data-cutout-mode="line" data-testid="cutout-mode-line">直线</button>
+        </div>
+      </section>
+    ` : ''}
+    ${cutoutFamily === 'magic' ? `
+      <section class="studio-cutout-tool-section" aria-label="魔术选区设置">
+        <label class="studio-control-range">容差 <output data-cutout-tolerance-output>15</output>
+          <input type="range" min="1" max="100" value="15" data-testid="cutout-tolerance">
+        </label>
+        <label class="studio-control-check"><input type="checkbox" data-testid="cutout-global-sample">连续取样</label>
+      </section>
+    ` : ''}
+    ${cutoutFamily === 'draw' ? `
+      <section class="studio-cutout-tool-section" aria-label="画笔抠图设置">
+        <label class="studio-control-range">笔刷大小 <output data-cutout-erase-size-output>${eraseSize}px</output>
+          <input type="range" min="1" max="500" value="${eraseSize}" data-testid="cutout-erase-size">
+        </label>
+        <label class="studio-control-check"><input type="checkbox" data-testid="cutout-erase-circle" ${eraseConfig.circle !== false ? 'checked' : ''}>圆形笔刷</label>
+        <p class="studio-control-hint">画笔会直接擦除活动图片图层的透明区域；每次笔触均可撤销。</p>
+      </section>
+    ` : ''}
+    ${(cutoutFamily === 'shape' || cutoutFamily === 'lasso') ? `
     <div class="studio-control-group studio-control-group-three" aria-label="选区柔化">
       <button type="button"${cutoutSelection.softness === 'none' ? ' class="is-selected"' : ''} data-cutout-softness="none" data-testid="cutout-softness-none">None</button>
       <button type="button"${cutoutSelection.softness === 'light' ? ' class="is-selected"' : ''} data-cutout-softness="light" data-testid="cutout-softness-light">Light</button>
       <button type="button"${cutoutSelection.softness === 'medium' ? ' class="is-selected"' : ''} data-cutout-softness="medium" data-testid="cutout-softness-medium">Medium</button>
     </div>
-    <label class="studio-control-range">容差 <output data-cutout-tolerance-output>15</output>
-      <input type="range" min="1" max="100" value="15" data-testid="cutout-tolerance">
-    </label>
-    <label class="studio-control-check">
-      <input type="checkbox" data-testid="cutout-soft-edge" checked>
-      柔化边缘
-    </label>
-    <label class="studio-control-check">
-      <input type="checkbox" data-testid="cutout-global-sample">
-      全局取样
-    </label>
+    ` : ''}
     <div class="studio-control-group studio-control-group-two" aria-label="选区操作">
       <button type="button"${operationClass('replace')} data-cutout-operation="replace" data-testid="cutout-operation-replace">新选区</button>
       <button type="button"${operationClass('add')} data-cutout-operation="add" data-testid="cutout-operation-add">加选</button>
@@ -1299,15 +1414,26 @@ function renderEditorToolControls(key) {
   `;
   const tolerance = target.querySelector('[data-testid="cutout-tolerance"]');
   const output = target.querySelector('[data-cutout-tolerance-output]');
-  tolerance.addEventListener('input', () => {
+  tolerance?.addEventListener('input', () => {
     const value = Number(tolerance.value);
     setToolAttribute('magic_erase', 'power', value);
     output.value = String(value);
     output.textContent = String(value);
   });
   const globalSample = target.querySelector('[data-testid="cutout-global-sample"]');
-  globalSample.checked = findToolConfig('magic_erase')?.attributes?.contiguous === true;
-  globalSample.addEventListener('change', () => setToolAttribute('magic_erase', 'contiguous', globalSample.checked));
+  if (globalSample) {
+    globalSample.checked = findToolConfig('magic_erase')?.attributes?.contiguous === true;
+    globalSample.addEventListener('change', () => setToolAttribute('magic_erase', 'contiguous', globalSample.checked));
+  }
+  const eraseSizeInput = target.querySelector('[data-testid="cutout-erase-size"]');
+  const eraseSizeOutput = target.querySelector('[data-cutout-erase-size-output]');
+  eraseSizeInput?.addEventListener('input', () => {
+    setToolAttribute('erase', 'size', Number(eraseSizeInput.value));
+    eraseSizeOutput.textContent = `${eraseSizeInput.value}px`;
+  });
+  target.querySelector('[data-testid="cutout-erase-circle"]')?.addEventListener('change', (event) => {
+    setToolAttribute('erase', 'circle', event.currentTarget.checked);
+  });
   target.querySelectorAll('[data-cutout-softness]').forEach((button) => {
     button.addEventListener('click', () => {
       cutoutSelection.softness = button.dataset.cutoutSoftness;
@@ -1335,7 +1461,7 @@ function renderEditorToolControls(key) {
     button.addEventListener('click', async () => {
       const mode = button.dataset.cutoutMode;
       await window.PhotoStudio?.activateEditorToolMode?.(mode);
-      target.querySelectorAll('[data-cutout-mode]').forEach((item) => item.classList.toggle('is-selected', item.dataset.cutoutMode === cutoutSelection.mode));
+      renderEditorToolControls('cutout');
     });
   });
     return;
@@ -1421,6 +1547,13 @@ function renderEditorToolControls(key) {
     const cropSelection = cropSelectionOrCanvas();
     const cropWidth = Math.round(cropSelection?.width ?? window.AppConfig?.WIDTH ?? 1);
     const cropHeight = Math.round(cropSelection?.height ?? window.AppConfig?.HEIGHT ?? 1);
+    const originalRatio = (window.AppConfig?.WIDTH ?? 1) / Math.max(1, window.AppConfig?.HEIGHT ?? 1);
+    const selectedAspectValue = cropAspectEnabled
+      ? (CROP_ASPECT_OPTIONS.find(([value]) => {
+        const ratio = cropRatioFromOption(value);
+        return ratio && Number.isFinite(cropAspectRatio) && Math.abs(ratio - cropAspectRatio) < 0.0001;
+      })?.[0] ?? 'original')
+      : 'none';
     const locked = !cropDocumentIsEditable();
     const disabled = locked ? 'disabled' : '';
     const transform = crop?.get_pending_transform?.() ?? {
@@ -1431,12 +1564,24 @@ function renderEditorToolControls(key) {
     };
     const straighten = Number(transform.straighten) || 0;
     target.innerHTML = `
-      <div class="studio-control-group studio-control-group-two" aria-label="裁剪比例">
-        <button type="button" data-testid="crop-ratio-original" ${disabled}>原始比例</button>
-        <button type="button" data-testid="crop-ratio-1-1" ${disabled}>1:1</button>
-        <button type="button" data-testid="crop-ratio-4-3" ${disabled}>4:3</button>
-        <button type="button" data-testid="crop-ratio-16-9" ${disabled}>16:9</button>
-      </div>
+      <section class="studio-crop-aspect" aria-label="裁剪比例">
+        <label class="studio-control-check studio-crop-aspect-toggle">选择比例
+          <input type="checkbox" role="switch" ${cropAspectEnabled ? 'checked' : ''} data-testid="crop-aspect-enabled" ${disabled}>
+        </label>
+        <div class="studio-crop-aspect-options" ${cropAspectEnabled ? '' : 'hidden'} data-testid="crop-aspect-options">
+          <label class="studio-control-select">比例
+            <select data-testid="crop-aspect-ratio" ${disabled}>
+              ${CROP_ASPECT_OPTIONS.map(([value, label]) => `<option value="${value}" ${selectedAspectValue === value ? 'selected' : ''}>${label}</option>`).join('')}
+            </select>
+          </label>
+          <label class="studio-control-select">输出尺寸
+            <select data-testid="crop-output-preset" ${disabled}>
+              <option value="">自定义</option>
+              ${CROP_OUTPUT_PRESETS.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+      </section>
       <div class="studio-control-group studio-control-group-two" aria-label="裁剪输出尺寸">
         <label class="studio-control-number">宽度
           <input type="number" min="1" max="${window.AppConfig?.WIDTH ?? 1}" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
@@ -1477,6 +1622,8 @@ function renderEditorToolControls(key) {
     });
     target.querySelector('[data-testid="crop-cancel"]')?.addEventListener('click', async () => {
       await crop?.cancel_session?.();
+      cropAspectEnabled = false;
+      cropAspectRatio = null;
       // Crop's on_leave persists a Reset_selection_action. Cancel must only
       // discard this UI-local selection, so the real crop tool stays active
       // while its panel is closed without writing an undo entry.
@@ -1515,20 +1662,34 @@ function renderEditorToolControls(key) {
       const output = target.querySelector('[data-testid="crop-straighten-value"]');
       if (output) output.textContent = `${current.toFixed(1).replace(/\.0$/, '')}°`;
     });
-    target.querySelector('[data-testid="crop-ratio-original"]')?.addEventListener('click', () => {
-      applyCenteredCropRatio(window.AppConfig.WIDTH / window.AppConfig.HEIGHT);
+    target.querySelector('[data-testid="crop-aspect-enabled"]')?.addEventListener('change', (event) => {
+      cropAspectEnabled = Boolean(event.currentTarget.checked);
+      if (cropAspectEnabled) {
+        const selection = cropSelectionOrCanvas();
+        cropAspectRatio = selection ? selection.width / Math.max(1, selection.height) : originalRatio;
+      } else {
+        cropAspectRatio = null;
+      }
+      renderEditorToolControls('crop');
+    });
+    target.querySelector('[data-testid="crop-aspect-ratio"]')?.addEventListener('change', (event) => {
+      const ratio = cropRatioFromOption(event.currentTarget.value);
+      if (!ratio) {
+        cropAspectEnabled = false;
+        cropAspectRatio = null;
+        renderEditorToolControls('crop');
+        return;
+      }
+      cropAspectEnabled = true;
+      cropAspectRatio = ratio;
+      applyCenteredCropRatio(ratio);
       syncCropOutputInputs(target);
     });
-    target.querySelector('[data-testid="crop-ratio-1-1"]')?.addEventListener('click', () => {
-      applyCenteredCropRatio(1);
-      syncCropOutputInputs(target);
-    });
-    target.querySelector('[data-testid="crop-ratio-4-3"]')?.addEventListener('click', () => {
-      applyCenteredCropRatio(4 / 3);
-      syncCropOutputInputs(target);
-    });
-    target.querySelector('[data-testid="crop-ratio-16-9"]')?.addEventListener('click', () => {
-      applyCenteredCropRatio(16 / 9);
+    target.querySelector('[data-testid="crop-output-preset"]')?.addEventListener('change', (event) => {
+      const [width, height] = event.currentTarget.value.split('x').map(Number);
+      if (!applyCenteredCropSize(width, height)) return;
+      cropAspectEnabled = true;
+      cropAspectRatio = width / height;
       syncCropOutputInputs(target);
     });
     target.querySelector('[data-testid="crop-output-width"]')?.addEventListener('input', (event) => {
