@@ -2340,7 +2340,7 @@ class Text_class extends Base_tools_class {
 					background_color: textAttributes?.background_color || '#000000',
 					background_opacity: Number(textAttributes?.background_opacity) || 0,
 					curve: Number(textAttributes?.curve) || 0,
-					warp: textAttributes?.warp || 'arc',
+					warp: textAttributes?.warp?.value ?? textAttributes?.warp ?? 'arc',
 				},
 				render_function: [this.name, 'render'],
 				x: mouse.x,

@@ -3347,7 +3347,7 @@ test('Text 面板提供本机字体与完整样式控件，并写回文字工具
       align: attributes.align.value,
       stroke: attributes.stroke,
       strokeSize: attributes.stroke_size.value,
-	  warp: attributes.warp,
+	  warp: attributes.warp.value,
     };
   })).toEqual({
     font: 'Verdana',
@@ -3360,6 +3360,34 @@ test('Text 面板提供本机字体与完整样式控件，并写回文字工具
     stroke: '#0ea5e9',
     strokeSize: 3,
 	warp: 'wave',
+  });
+});
+
+test('Text 提供原创本地样式预设卡，并真实写回可编辑文字工具配置', async ({ page }) => {
+  await page.goto('/editor/');
+  await page.getByTestId('tool-text').click();
+  const presets = page.locator('.studio-text-preset');
+  await expect(presets).toHaveCount(4);
+  await page.getByTestId('text-preset-poster').click();
+  await expect(page.getByTestId('text-preset-poster')).toHaveClass(/is-selected/);
+  await expect(page.getByTestId('text-font')).toHaveValue('Arial');
+  await expect(page.getByTestId('text-size')).toHaveValue('72');
+  await expect(page.getByTestId('text-fill')).toHaveValue('#22d3ee');
+  await expect(page.getByTestId('text-bold')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('text-stroke')).toHaveValue('#082f49');
+  await expect(page.getByTestId('text-stroke-size')).toHaveValue('2');
+  await expect.poll(() => page.evaluate(() => {
+    const attributes = window.AppConfig.TOOLS.find((tool) => tool.name === 'text').attributes;
+    return {
+      font: attributes.font.value,
+      size: attributes.size,
+      fill: attributes.fill,
+      bold: attributes.bold.value,
+      stroke: attributes.stroke,
+      strokeSize: attributes.stroke_size.value,
+    };
+  })).toEqual({
+    font: 'Arial', size: 72, fill: '#22d3ee', bold: true, stroke: '#082f49', strokeSize: 2,
   });
 });
 

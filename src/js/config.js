@@ -376,7 +376,10 @@ config.TOOLS = [
 			background_color: '#000000',
 			background_opacity: 35,
 			curve: 0,
-			warp: 'arc',
+			warp: {
+				value: 'arc',
+				values: ['arc', 'wave', 'flag'],
+			},
 			strikethrough: {
 				value: false,
 				icon: `strikethrough.svg`

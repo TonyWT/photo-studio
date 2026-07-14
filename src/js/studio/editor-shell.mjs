@@ -53,6 +53,29 @@ const ADJUST_PANEL_DEFAULTS = Object.freeze({
   contrast: 0,
 });
 let adjustPanelValues = { ...ADJUST_PANEL_DEFAULTS };
+const TEXT_STYLE_PRESETS = Object.freeze([
+  {
+    id: 'editorial', label: 'STUDIO', font: 'Verdana', size: 56, fill: '#f8fafc', bold: true,
+    italic: false, underline: false, align: 'center', stroke: '#111827', stroke_size: 0,
+    shadow_enabled: true, shadow_color: '#111827', shadow_blur: 6,
+  },
+  {
+    id: 'poster', label: 'MOVE', font: 'Arial', size: 72, fill: '#22d3ee', bold: true,
+    italic: false, underline: false, align: 'center', stroke: '#082f49', stroke_size: 2,
+    shadow_enabled: false, shadow_color: '#000000', shadow_blur: 4,
+  },
+  {
+    id: 'note', label: 'NOTE', font: 'Verdana', size: 46, fill: '#f472b6', bold: false,
+    italic: true, underline: false, align: 'left', stroke: '#4c1d95', stroke_size: 1,
+    shadow_enabled: true, shadow_color: '#4c1d95', shadow_blur: 3,
+  },
+  {
+    id: 'frame', label: 'FRAME', font: 'Arial', size: 52, fill: '#facc15', bold: true,
+    italic: false, underline: true, align: 'center', stroke: '#713f12', stroke_size: 1,
+    shadow_enabled: false, shadow_color: '#000000', shadow_blur: 4,
+  },
+]);
+let activeTextPresetId = null;
 
 const EXPORT_TYPES = Object.freeze({
   png: 'PNG - Portable Network Graphics',
@@ -1752,9 +1775,14 @@ function renderEditorToolControls(key) {
     const shadowEnabled = Boolean(attributes.shadow_enabled);
     const backgroundEnabled = Boolean(attributes.background_enabled);
     const curve = Number(attributes.curve) || 0;
-	const warp = attributes.warp ?? 'arc';
+	const warp = attributes.warp?.value ?? attributes.warp ?? 'arc';
+    const textPresetCards = TEXT_STYLE_PRESETS.map((preset) => `<button type="button" class="studio-text-preset studio-text-preset--${preset.id}${activeTextPresetId === preset.id ? ' is-selected' : ''}" data-text-preset="${preset.id}" data-testid="text-preset-${preset.id}">
+      <span style="font-family:${preset.font};font-size:${Math.min(26, Math.round(preset.size / 2.5))}px;color:${preset.fill};font-weight:${preset.bold ? 800 : 400};font-style:${preset.italic ? 'italic' : 'normal'};text-decoration:${preset.underline ? 'underline' : 'none'};text-shadow:${preset.shadow_enabled ? `1px 2px ${preset.shadow_blur}px ${preset.shadow_color}` : 'none'}">${preset.label}</span>
+      <small>本地可编辑</small>
+    </button>`).join('');
     target.innerHTML = `
       <button type="button" data-testid="text-create" data-core-tool="text">添加文字</button>
+      <div class="studio-text-preset-grid" aria-label="原创本地文字预设">${textPresetCards}</div>
       <label class="studio-control-select">字体
         <select data-testid="text-font">${fonts.map((name) => `<option value="${name}" ${name === font ? 'selected' : ''}>${name}</option>`).join('')}</select>
       </label>
@@ -1805,13 +1833,17 @@ function renderEditorToolControls(key) {
     const backgroundOpacityInput = target.querySelector('[data-testid="text-background-opacity"]');
     const curveInput = target.querySelector('[data-testid="text-curve"]');
 	const warpInput = target.querySelector('[data-testid="text-warp"]');
-    fontInput.addEventListener('change', () => applyTextToolAttribute('font', fontInput.value));
-    sizeInput.addEventListener('input', () => applyTextToolAttribute('size', Number(sizeInput.value)));
-    fillInput.addEventListener('input', () => applyTextToolAttribute('fill', fillInput.value));
-    strokeInput.addEventListener('input', () => applyTextToolAttribute('stroke', strokeInput.value));
-    strokeSizeInput.addEventListener('input', () => applyTextToolAttribute('stroke_size', Number(strokeSizeInput.value)));
-    shadowEnabledInput.addEventListener('change', () => applyTextToolAttribute('shadow_enabled', shadowEnabledInput.checked));
-    shadowColorInput.addEventListener('input', () => applyTextToolAttribute('shadow_color', shadowColorInput.value));
+    const clearTextPresetSelection = () => {
+      activeTextPresetId = null;
+      target.querySelectorAll('[data-text-preset]').forEach((button) => button.classList.remove('is-selected'));
+    };
+    fontInput.addEventListener('change', () => { clearTextPresetSelection(); applyTextToolAttribute('font', fontInput.value); });
+    sizeInput.addEventListener('input', () => { clearTextPresetSelection(); applyTextToolAttribute('size', Number(sizeInput.value)); });
+    fillInput.addEventListener('input', () => { clearTextPresetSelection(); applyTextToolAttribute('fill', fillInput.value); });
+    strokeInput.addEventListener('input', () => { clearTextPresetSelection(); applyTextToolAttribute('stroke', strokeInput.value); });
+    strokeSizeInput.addEventListener('input', () => { clearTextPresetSelection(); applyTextToolAttribute('stroke_size', Number(strokeSizeInput.value)); });
+    shadowEnabledInput.addEventListener('change', () => { clearTextPresetSelection(); applyTextToolAttribute('shadow_enabled', shadowEnabledInput.checked); });
+    shadowColorInput.addEventListener('input', () => { clearTextPresetSelection(); applyTextToolAttribute('shadow_color', shadowColorInput.value); });
     shadowBlurInput.addEventListener('input', () => {
       applyTextToolAttribute('shadow_blur', Number(shadowBlurInput.value));
       target.querySelector('[data-text-shadow-blur-output]').textContent = `${shadowBlurInput.value}px`;
@@ -1845,6 +1877,17 @@ function renderEditorToolControls(key) {
           candidate.setAttribute('aria-pressed', String(selected));
           candidate.classList.toggle('is-selected', selected);
         });
+      });
+    });
+    target.querySelectorAll('[data-text-preset]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const preset = TEXT_STYLE_PRESETS.find((item) => item.id === button.dataset.textPreset);
+        if (!preset) return;
+        activeTextPresetId = preset.id;
+        Object.entries(preset).forEach(([attribute, value]) => {
+          if (attribute !== 'id' && attribute !== 'label') applyTextToolAttribute(attribute, value);
+        });
+        renderEditorToolControls('text');
       });
     });
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
