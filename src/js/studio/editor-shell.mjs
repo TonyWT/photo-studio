@@ -82,6 +82,9 @@ export function shouldUseWebGL2(canvas) {
 let currentProjectId = null;
 let currentProjectName = '未命名项目';
 let collageWorkspace = null;
+let collageCanvasGestureBound = false;
+let collageCanvasPointerSession = null;
+let collageWheelCommit = Promise.resolve();
 const ADJUST_PANEL_DEFAULTS = Object.freeze({
   vibrance: 0,
   saturation: 0,
@@ -1084,6 +1087,139 @@ function normalizeCollageTransform(params = {}) {
   };
 }
 
+function clampCollageValue(value, minimum, maximum) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function getCollageCanvasPoint(event) {
+  const canvas = document.getElementById('canvas_minipaint');
+  const width = Number(window.AppConfig?.WIDTH);
+  const height = Number(window.AppConfig?.HEIGHT);
+  if (!canvas || !width || !height) return null;
+  const bounds = canvas.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return null;
+  return {
+    x: clampCollageValue((event.clientX - bounds.left) * width / bounds.width, 0, width),
+    y: clampCollageValue((event.clientY - bounds.top) * height / bounds.height, 0, height),
+  };
+}
+
+function getCollageSlotIndexAtPoint(layout, point) {
+  if (!layout || !point || !window.AppConfig?.WIDTH || !window.AppConfig?.HEIGHT) return null;
+  const column = Math.min(layout.columns - 1, Math.floor(point.x * layout.columns / window.AppConfig.WIDTH));
+  const row = Math.min(layout.rows - 1, Math.floor(point.y * layout.rows / window.AppConfig.HEIGHT));
+  if (column < 0 || row < 0) return null;
+  return row * layout.columns + column;
+}
+
+function selectCollageSlot(slotIndex) {
+  if (!collageWorkspace || slotIndex == null || collageWorkspace.selectedSlot === slotIndex) return;
+  collageWorkspace.selectedSlot = slotIndex;
+  renderCollageWorkspace();
+}
+
+async function applyCollageCanvasDrag(session, endPoint) {
+  if (!session || !endPoint || !collageWorkspace || session.slot !== collageWorkspace.selectedSlot) return false;
+  const layer = findCollageSlotLayer(session.slot);
+  if (!layer?.params?.collage_source || layer.id !== session.layerId) return false;
+  const rect = getCollageSlotRect(collageWorkspace.layout, session.slot);
+  const image = await loadLocalImage(layer.params.collage_source);
+  const transform = normalizeCollageTransform(layer.params);
+  const coverScale = Math.max(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
+  const drawWidth = Math.ceil(image.naturalWidth * coverScale * transform.collage_zoom);
+  const drawHeight = Math.ceil(image.naturalHeight * coverScale * transform.collage_zoom);
+  const overflowX = Math.max(0, (drawWidth - rect.width) / 2);
+  const overflowY = Math.max(0, (drawHeight - rect.height) / 2);
+  const next = normalizeCollageTransform({
+    ...transform,
+    collage_offset_x: overflowX ? transform.collage_offset_x + (endPoint.x - session.start.x) * 100 / overflowX : transform.collage_offset_x,
+    collage_offset_y: overflowY ? transform.collage_offset_y + (endPoint.y - session.start.y) * 100 / overflowY : transform.collage_offset_y,
+  });
+  if (next.collage_offset_x === transform.collage_offset_x && next.collage_offset_y === transform.collage_offset_y) return false;
+  return updateCollageSlotTransform(next);
+}
+
+function bindCollageCanvasGestures() {
+  if (collageCanvasGestureBound) return;
+  const canvas = document.getElementById('canvas_minipaint');
+  if (!canvas) return;
+  collageCanvasGestureBound = true;
+
+  canvas.addEventListener('pointerdown', (event) => {
+    if (!collageWorkspace || document.body.dataset.collageCanvasGestures !== 'true' || event.button !== 0) return;
+    const point = getCollageCanvasPoint(event);
+    const slot = getCollageSlotIndexAtPoint(collageWorkspace.layout, point);
+    if (slot == null) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectCollageSlot(slot);
+    const layer = findCollageSlotLayer(slot);
+    if (!layer?.params?.collage_source) return;
+    collageCanvasPointerSession = {
+      pointerId: event.pointerId,
+      slot,
+      layerId: layer.id,
+      start: point,
+      moved: false,
+    };
+    canvas.setPointerCapture?.(event.pointerId);
+    document.body.dataset.collageCanvasDragging = 'true';
+  }, true);
+
+  canvas.addEventListener('pointermove', (event) => {
+    const session = collageCanvasPointerSession;
+    if (!session || event.pointerId !== session.pointerId) return;
+    const point = getCollageCanvasPoint(event);
+    if (!point) return;
+    session.moved ||= Math.abs(point.x - session.start.x) > 2 || Math.abs(point.y - session.start.y) > 2;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+
+  const finishPointerSession = async (event) => {
+    const session = collageCanvasPointerSession;
+    if (!session || event.pointerId !== session.pointerId) return;
+    collageCanvasPointerSession = null;
+    document.body.dataset.collageCanvasDragging = 'false';
+    canvas.releasePointerCapture?.(event.pointerId);
+    const point = getCollageCanvasPoint(event);
+    if (!session.moved || !point) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    try {
+      await applyCollageCanvasDrag(session, point);
+    } catch {
+      // The panel keeps the last committed local image if a source cannot be decoded.
+    }
+  };
+  canvas.addEventListener('pointerup', finishPointerSession, true);
+  canvas.addEventListener('pointercancel', finishPointerSession, true);
+
+  canvas.addEventListener('wheel', (event) => {
+    if (!collageWorkspace || document.body.dataset.collageCanvasGestures !== 'true') return;
+    const point = getCollageCanvasPoint(event);
+    const slot = getCollageSlotIndexAtPoint(collageWorkspace.layout, point);
+    if (slot == null) return;
+    const layer = findCollageSlotLayer(slot);
+    if (!layer?.params?.collage_source) {
+      selectCollageSlot(slot);
+      return;
+    }
+    const transform = normalizeCollageTransform(layer.params);
+    const zoom = clampCollageValue(Math.round((transform.collage_zoom + (event.deltaY < 0 ? 0.1 : -0.1)) * 100) / 100, 1, 3);
+    if (zoom === transform.collage_zoom) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectCollageSlot(slot);
+    // Serialize wheel commits so each physical wheel step is one deterministic,
+    // undoable local image update instead of racing an async source decode.
+    collageWheelCommit = collageWheelCommit
+      .catch(() => undefined)
+      .then(() => updateCollageSlotTransform({ collage_zoom: zoom }))
+      .catch(() => undefined);
+  }, { capture: true, passive: false });
+}
+
 function renderCollageSlot(image, rect, params = {}) {
   const transform = normalizeCollageTransform(params);
   const canvas = document.createElement('canvas');
@@ -1157,7 +1293,7 @@ async function updateCollageSlotTransform(settings) {
     ],
   ));
   window.app?.GUI?.GUI_layers?.render_layers?.();
-  renderCollageWorkspace();
+  if (document.body.dataset.collageCanvasGestures === 'true') renderCollageWorkspace();
   return true;
 }
 
@@ -1170,6 +1306,7 @@ function renderCollageWorkspace() {
   const target = document.querySelector('[data-editor-tool-controls]');
   const attributes = document.getElementById('action_attributes');
   if (!panel || !target) return;
+  document.body.dataset.collageCanvasGestures = 'true';
   panel.hidden = false;
   document.body.classList.add('studio-tool-panel-open');
   syncCanvasInteractionOffset();
@@ -1276,6 +1413,7 @@ function setupCollageFromQuery() {
   window.AppConfig.need_render = true;
   document.body.dataset.collageTemplate = template;
   collageWorkspace = { template, layout, selectedSlot: 0 };
+  bindCollageCanvasGestures();
   renderCollageWorkspace();
   return true;
 }
@@ -2658,6 +2796,7 @@ async function restoreHandoff() {
 async function activateEditorTool(key) {
   const tool = EDITOR_TOOL_REGISTRY[key];
   if (!tool) return;
+  document.body.dataset.collageCanvasGestures = 'false';
   if (key !== 'cutout') {
     uninstallCutoutCoreEventShield();
     removeCutoutHintOverlay();
@@ -2716,6 +2855,7 @@ function bindWorkbenchControls() {
     const panel = document.querySelector('[data-testid="editor-tool-panel"]');
     if (panel) panel.hidden = true;
     document.body.classList.remove('studio-tool-panel-open');
+    document.body.dataset.collageCanvasGestures = 'false';
     removeCutoutHintOverlay();
     syncCanvasInteractionOffset();
   });

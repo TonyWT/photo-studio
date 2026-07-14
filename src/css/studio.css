@@ -46,6 +46,8 @@ body.photo-studio-editor .mobile_menu { display: none !important; }
 body.photo-studio-editor .middle_area { grid-area: main; min-width: 0; background: #171717; }
 body.photo-studio-editor .main_wrapper { background: #171717; }
 body.photo-studio-editor .loaded .canvas_wrapper canvas { border: 0; box-shadow: 0 2px 18px rgba(0,0,0,.55); }
+body.photo-studio-editor[data-collage-canvas-gestures="true"] #canvas_minipaint { cursor: grab; }
+body.photo-studio-editor[data-collage-canvas-dragging="true"] #canvas_minipaint { cursor: grabbing; }
 body.photo-studio-editor .studio-tool-rail { position: fixed; z-index: 30; inset: 0 auto 56px 0; display: flex; width: 58px; flex-direction: column; align-items: center; background: #292929; border-right: 1px solid #333; }
 body.photo-studio-editor .studio-rail-home,
 body.photo-studio-editor .studio-tool-button { display: grid; place-items: center; width: 58px; height: 58px; padding: 0; border: 0; color: #c8c8c8; background: transparent; text-decoration: none; cursor: pointer; }
