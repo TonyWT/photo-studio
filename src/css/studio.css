@@ -159,6 +159,10 @@ body.photo-studio-editor .studio-effect-panel-footer button[data-testid="effect-
 body.photo-studio-editor .studio-retouch-section { display: grid; gap: 7px; padding: 9px; border: 1px solid #383838; border-radius: 7px; background: #282828; }
 body.photo-studio-editor .studio-retouch-section > strong { color: #dedede; font-size: 12px; }
 body.photo-studio-editor .studio-retouch-section .studio-control-group-four button { min-width: 0; padding: 4px 2px; font-size: 10px; }
+body.photo-studio-editor .studio-retouch-primary button { display: grid; min-height: 40px; place-items: center; padding: 4px; }
+body.photo-studio-editor .studio-retouch-primary button img { width: 20px; height: 20px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .86; }
+body.photo-studio-editor .studio-retouch-primary button:hover img,
+body.photo-studio-editor .studio-retouch-primary button.is-selected img { opacity: 1; }
 body.photo-studio-editor .studio-retouch-advanced { display: grid; gap: 8px; padding: 9px; border: 1px solid #383838; border-radius: 7px; background: #282828; }
 body.photo-studio-editor .studio-retouch-advanced summary { color: #bcbcbc; font-size: 11px; cursor: pointer; }
 body.photo-studio-editor .studio-retouch-advanced[open] summary { margin-bottom: 2px; }

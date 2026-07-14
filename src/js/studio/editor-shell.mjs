@@ -1405,7 +1405,8 @@ function renderEditorToolControls(key) {
   const target = document.querySelector('[data-editor-tool-controls]');
   if (!target) return;
   const nativeAttributes = document.getElementById('action_attributes');
-  if (key !== 'liquify') nativeAttributes?.removeAttribute('hidden');
+  const customAttributePanel = key === 'liquify' || key === 'retouch';
+  if (!customAttributePanel) nativeAttributes?.removeAttribute('hidden');
   if (key === 'liquify') {
     nativeAttributes?.setAttribute('hidden', '');
     const attributes = findToolConfig('bulge_pinch')?.attributes;
@@ -2168,6 +2169,7 @@ function renderEditorToolControls(key) {
   }
 
   if (key === 'retouch') {
+    nativeAttributes?.setAttribute('hidden', '');
     const editable = activeImageLayerIsEditable();
     const disabled = editable ? '' : ' disabled aria-disabled="true"';
     const cloneAttributes = findToolConfig('clone')?.attributes ?? {};
@@ -2187,10 +2189,10 @@ function renderEditorToolControls(key) {
       <section class="studio-retouch-section" aria-label="本地修饰工具">
         <strong>工具</strong>
         <div class="studio-control-group studio-control-group-four studio-retouch-primary">
-          <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-repair" data-core-tool="repair"${disabled}>修复</button>
-          <button type="button" class="${activeRetouchTool === 'clone' ? 'is-selected' : ''}" data-testid="retouch-clone" data-core-tool="clone"${disabled}>克隆</button>
-          <button type="button" class="${activeRetouchTool === 'blur' ? 'is-selected' : ''}" data-testid="retouch-blur" data-core-tool="blur"${disabled}>细节</button>
-          <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>明暗</button>
+          <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" aria-label="修复" title="修复" data-testid="retouch-repair" data-core-tool="repair"${disabled}><img src="../images/icons/retouch-repair.svg" alt=""><span class="sr_only">修复</span></button>
+          <button type="button" class="${activeRetouchTool === 'clone' ? 'is-selected' : ''}" aria-label="克隆" title="克隆" data-testid="retouch-clone" data-core-tool="clone"${disabled}><img src="../images/icons/retouch-clone.svg" alt=""><span class="sr_only">克隆</span></button>
+          <button type="button" class="${activeRetouchTool === 'blur' ? 'is-selected' : ''}" aria-label="细节" title="细节" data-testid="retouch-blur" data-core-tool="blur"${disabled}><img src="../images/icons/retouch-blur.svg" alt=""><span class="sr_only">细节</span></button>
+          <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" aria-label="明暗" title="明暗" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}><img src="../images/icons/retouch-dodge.svg" alt=""><span class="sr_only">明暗</span></button>
         </div>
       </section>
       <section class="studio-retouch-section" aria-label="Spot 修复方法">
