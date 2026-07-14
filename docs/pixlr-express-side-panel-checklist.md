@@ -99,7 +99,7 @@
 | K-17 | Hint removed 开关 | 保留 | 待取证 | 先确认准确交互后实现 |
 | K-18 | Invert cutout | 保留 | 可用 | alpha 反选与撤销 |
 | K-19 | Reset cutout | 保留 | 可用 | 清除临时选区且无多余历史 |
-| K-20 | Apply cutout / Close | 保留 | 部分可用 | 应用/关闭的提交与取消边界 |
+| K-20 | Apply cutout / Close | 保留 | 部分可用 | Keep / Remove 先只选择模式，不写历史；“应用抠图”才提交单次本地历史，Undo/Redo 已由 Chromium E2E 覆盖。顶部面板关闭仍复用编辑器通用 Close 生命周期，视觉细节待与参考逐图比对 |
 
 ## S-03 Adjust
 

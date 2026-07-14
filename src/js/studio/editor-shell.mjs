@@ -31,6 +31,7 @@ const DRAWING_PALETTE = Object.freeze([
 let cutoutSelection = {
   mode: 'selection',
   operation: 'replace',
+  intent: 'keep',
   inverted: false,
   softness: 'none',
   regions: [],
@@ -371,7 +372,7 @@ function currentCutoutRegions() {
 function resetCutoutSelection() {
   const previousMode = cutoutSelection.mode;
   cutoutSelection = {
-    mode: 'selection', operation: 'replace', inverted: false, softness: 'none', regions: [],
+    mode: 'selection', operation: 'replace', intent: 'keep', inverted: false, softness: 'none', regions: [],
   };
   const selection = getCoreToolModule('selection');
   // A custom mask must never mutate miniPaint's rectangle-selection state.
@@ -1415,9 +1416,12 @@ function renderEditorToolControls(key) {
       <button type="button"${operationClass('subtract')} data-cutout-operation="subtract" data-testid="cutout-operation-subtract">减选</button>
       <button type="button" aria-pressed="${cutoutSelection.inverted}"${cutoutSelection.inverted ? ' class="is-selected"' : ''} data-testid="cutout-invert">反选</button>
     </div>
+    <div class="studio-control-group studio-control-group-two" aria-label="抠图模式">
+      <button type="button" aria-pressed="${cutoutSelection.intent === 'keep'}"${cutoutSelection.intent === 'keep' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="keep" data-testid="cutout-keep-selection">保留</button>
+      <button type="button" aria-pressed="${cutoutSelection.intent === 'remove'}"${cutoutSelection.intent === 'remove' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="remove" data-testid="cutout-remove-selection">移除</button>
+    </div>
     <div class="studio-control-group studio-control-group-two" aria-label="抠图应用">
-      <button type="button"${disabledAttribute} data-testid="cutout-keep-selection">保留选区</button>
-      <button type="button"${disabledAttribute} data-testid="cutout-remove-selection">移除选区</button>
+      <button type="button"${disabledAttribute} data-testid="cutout-apply-selection">应用抠图</button>
       <button type="button" data-testid="cutout-reset-selection">重置选区</button>
     </div>
   `;
@@ -1450,8 +1454,17 @@ function renderEditorToolControls(key) {
       target.querySelectorAll('[data-cutout-softness]').forEach((item) => item.classList.toggle('is-selected', item === button));
     });
   });
-  target.querySelector('[data-testid="cutout-remove-selection"]')?.addEventListener('click', () => applyCutoutSelection('remove'));
-  target.querySelector('[data-testid="cutout-keep-selection"]')?.addEventListener('click', () => applyCutoutSelection('keep'));
+  target.querySelectorAll('[data-cutout-intent]').forEach((button) => {
+    button.addEventListener('click', () => {
+      cutoutSelection.intent = button.dataset.cutoutIntent;
+      target.querySelectorAll('[data-cutout-intent]').forEach((item) => {
+        const selected = item === button;
+        item.setAttribute('aria-pressed', String(selected));
+        item.classList.toggle('is-selected', selected);
+      });
+    });
+  });
+  target.querySelector('[data-testid="cutout-apply-selection"]')?.addEventListener('click', () => applyCutoutSelection(cutoutSelection.intent));
   target.querySelector('[data-testid="cutout-reset-selection"]')?.addEventListener('click', () => {
     resetCutoutSelection();
   });
