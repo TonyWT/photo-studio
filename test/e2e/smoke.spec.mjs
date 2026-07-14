@@ -1230,6 +1230,28 @@ test('Adjust 的自动修正会实际写入图片编辑历史', async ({ page })
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThan(historyBefore);
 });
 
+test('Adjust 首屏以三个有名称的图标快捷调整呈现 Auto、B&W、Pop', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'adjust-icon-grid.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-adjust').click();
+
+  for (const [testId, label] of [
+    ['adjust-auto', 'Auto'],
+    ['adjust-bw', 'B&W'],
+    ['adjust-pop', 'Pop'],
+  ]) {
+    const shortcut = page.getByTestId(testId);
+    await expect(shortcut).toHaveAttribute('aria-label', label);
+    await expect(shortcut).toHaveAttribute('title', label);
+    await expect(shortcut.locator('img')).toHaveCount(1);
+    await expect(shortcut.locator('img')).toHaveAttribute('alt', '');
+    await expect(shortcut.locator('.studio-adjust-shortcut-label')).toHaveText(label);
+    await expect(shortcut).toHaveCSS('min-height', '76px');
+  }
+});
+
 test('Adjust 面板提供 Color、Light 的对应滑杆，并将面板值带入本地预览和重置', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
