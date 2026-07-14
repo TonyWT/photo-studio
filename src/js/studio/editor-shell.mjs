@@ -649,18 +649,52 @@ function findCollageSlotLayer(slotIndex) {
   return window.AppConfig?.layers?.find((layer) => Number(layer?.params?.collage_slot) === slotIndex) ?? null;
 }
 
+function loadLocalImage(source) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('无法解码本地图片。'));
+    image.src = source;
+  });
+}
+
 function readLocalImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('无法读取本地图片。'));
-    reader.onload = () => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error('无法解码本地图片。'));
-      image.src = reader.result;
-    };
+    reader.onload = () => loadLocalImage(reader.result).then(resolve, reject);
     reader.readAsDataURL(file);
   });
+}
+
+function normalizeCollageTransform(params = {}) {
+  const clamp = (value, minimum, maximum, fallback) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(maximum, Math.max(minimum, parsed));
+  };
+  return {
+    collage_zoom: clamp(params.collage_zoom, 1, 3, 1),
+    collage_offset_x: clamp(params.collage_offset_x, -100, 100, 0),
+    collage_offset_y: clamp(params.collage_offset_y, -100, 100, 0),
+  };
+}
+
+function renderCollageSlot(image, rect, params = {}) {
+  const transform = normalizeCollageTransform(params);
+  const canvas = document.createElement('canvas');
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  const context = canvas.getContext('2d');
+  const coverScale = Math.max(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
+  const drawWidth = Math.ceil(image.naturalWidth * coverScale * transform.collage_zoom);
+  const drawHeight = Math.ceil(image.naturalHeight * coverScale * transform.collage_zoom);
+  const overflowX = Math.max(0, (drawWidth - rect.width) / 2);
+  const overflowY = Math.max(0, (drawHeight - rect.height) / 2);
+  const drawX = Math.round((rect.width - drawWidth) / 2 + overflowX * transform.collage_offset_x / 100);
+  const drawY = Math.round((rect.height - drawHeight) / 2 + overflowY * transform.collage_offset_y / 100);
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+  return canvas;
 }
 
 async function placeCollageImage(file) {
@@ -670,14 +704,8 @@ async function placeCollageImage(file) {
   const rect = getCollageSlotRect(layout, selectedSlot);
   if (rect.width <= 0 || rect.height <= 0 || !window.app?.Actions?.Insert_layer_action) return false;
   const image = await readLocalImage(file);
-  const canvas = document.createElement('canvas');
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  const context = canvas.getContext('2d');
-  const scale = Math.max(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
-  const drawWidth = Math.ceil(image.naturalWidth * scale);
-  const drawHeight = Math.ceil(image.naturalHeight * scale);
-  context.drawImage(image, Math.round((rect.width - drawWidth) / 2), Math.round((rect.height - drawHeight) / 2), drawWidth, drawHeight);
+  const transform = normalizeCollageTransform();
+  const canvas = renderCollageSlot(image, rect, transform);
 
   const replacement = {
     name: `拼贴 ${selectedSlot + 1} - ${file.name}`,
@@ -689,13 +717,41 @@ async function placeCollageImage(file) {
     height: rect.height,
     width_original: rect.width,
     height_original: rect.height,
-    params: { collage_slot: selectedSlot },
+    params: {
+      collage_slot: selectedSlot,
+      collage_source: image.src,
+      ...transform,
+    },
   };
   const existing = findCollageSlotLayer(selectedSlot);
   const actions = [];
   if (existing) actions.push(new window.app.Actions.Delete_layer_action(existing.id, true));
   actions.push(new window.app.Actions.Insert_layer_action(replacement));
   await window.State.do_action(new window.app.Actions.Bundle_action(`set_collage_slot_${selectedSlot}`, 'Set Collage Slot', actions));
+  window.app?.GUI?.GUI_layers?.render_layers?.();
+  renderCollageWorkspace();
+  return true;
+}
+
+async function updateCollageSlotTransform(settings) {
+  const workspace = collageWorkspace;
+  const layer = workspace && findCollageSlotLayer(workspace.selectedSlot);
+  if (!workspace || !layer?.params?.collage_source || !window.app?.Actions?.Update_layer_image_action
+    || !window.app?.Actions?.Update_layer_action || !window.app?.Actions?.Bundle_action || !window.State?.do_action) return false;
+  const rect = getCollageSlotRect(workspace.layout, workspace.selectedSlot);
+  const transform = normalizeCollageTransform({ ...layer.params, ...settings });
+  const image = await loadLocalImage(layer.params.collage_source);
+  const canvas = renderCollageSlot(image, rect, transform);
+  await window.State.do_action(new window.app.Actions.Bundle_action(
+    `adjust_collage_slot_${workspace.selectedSlot}`,
+    'Adjust Collage Slot',
+    [
+      new window.app.Actions.Update_layer_image_action(canvas, layer.id),
+      new window.app.Actions.Update_layer_action(layer.id, {
+        params: { ...layer.params, ...transform },
+      }),
+    ],
+  ));
   window.app?.GUI?.GUI_layers?.render_layers?.();
   renderCollageWorkspace();
   return true;
@@ -722,11 +778,21 @@ function renderCollageWorkspace() {
     const filled = Boolean(findCollageSlotLayer(slotIndex));
     return `<button type="button" class="${workspace.selectedSlot === slotIndex ? 'is-selected' : ''}" data-collage-slot="${slotIndex}" data-testid="collage-slot-${slotIndex}">分格 ${slotIndex + 1}<small>${rect.width} × ${rect.height} · ${filled ? '已填入' : '空白'}</small></button>`;
   }).join('');
+  const selectedLayer = findCollageSlotLayer(workspace.selectedSlot);
+  const hasAdjustableSource = Boolean(selectedLayer?.params?.collage_source);
+  const transform = normalizeCollageTransform(selectedLayer?.params);
+  const transformControls = selectedLayer ? `
+    <div class="studio-control-group studio-collage-transform" aria-label="分格内调位">
+      <label>缩放 <input type="number" min="1" max="3" step="0.05" value="${transform.collage_zoom}" data-testid="collage-zoom" ${hasAdjustableSource ? '' : 'disabled'}></label>
+      <label>横向位置 <input type="number" min="-100" max="100" step="1" value="${transform.collage_offset_x}" data-testid="collage-offset-x" ${hasAdjustableSource ? '' : 'disabled'}></label>
+      <label>纵向位置 <input type="number" min="-100" max="100" step="1" value="${transform.collage_offset_y}" data-testid="collage-offset-y" ${hasAdjustableSource ? '' : 'disabled'}></label>
+    </div>` : '';
   target.innerHTML = `
     <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff" data-testid="collage-image-picker" hidden>
     <div class="studio-control-group studio-control-group-two studio-collage-slots" aria-label="拼贴分格">${slots}</div>
     <button type="button" data-testid="collage-choose-image">选择本地图片</button>
-    <p class="studio-control-status" data-testid="collage-status">当前分格：${workspace.selectedSlot + 1}。可拖入图片或点击选择。</p>
+    ${transformControls}
+    <p class="studio-control-status" data-testid="collage-status">${selectedLayer ? (hasAdjustableSource ? '可调整缩放和位置；每次确认均可撤销。' : '该格来自旧项目，重新选择本地图片后可调整。') : `当前分格：${workspace.selectedSlot + 1}。可拖入图片或点击选择。`}</p>
   `;
   const picker = target.querySelector('[data-testid="collage-image-picker"]');
   const choose = target.querySelector('[data-testid="collage-choose-image"]');
@@ -762,6 +828,26 @@ function renderCollageWorkspace() {
       await useFile(event.dataTransfer.files?.[0]);
     });
   });
+  if (hasAdjustableSource) {
+    const submitTransform = async () => {
+      status.textContent = '正在更新本地裁切…';
+      try {
+        await updateCollageSlotTransform({
+          collage_zoom: target.querySelector('[data-testid="collage-zoom"]')?.value,
+          collage_offset_x: target.querySelector('[data-testid="collage-offset-x"]')?.value,
+          collage_offset_y: target.querySelector('[data-testid="collage-offset-y"]')?.value,
+        });
+      } catch {
+        status.textContent = '无法更新该分格。';
+      }
+    };
+    target.querySelectorAll('[data-testid="collage-zoom"], [data-testid="collage-offset-x"], [data-testid="collage-offset-y"]').forEach((input) => {
+      input.addEventListener('change', submitTransform);
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') input.blur();
+      });
+    });
+  }
 }
 
 function setupCollageFromQuery() {

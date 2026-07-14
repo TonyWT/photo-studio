@@ -131,6 +131,71 @@ test('2×2 拼贴可向选中分格放入本地图片，并覆盖式自动裁切
   })).toEqual({ left: [239, 68, 68, 255], right: [37, 99, 235, 255] });
 });
 
+test('拼贴已填分格可本地缩放和水平调位，并作为单次历史撤销', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('create-collage').click();
+  await page.getByTestId('collage-template-2x2').click();
+
+  const source = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 100;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ef4444';
+    context.fillRect(0, 0, 100, 100);
+    context.fillStyle = '#2563eb';
+    context.fillRect(100, 0, 300, 100);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('collage-image-picker').setInputFiles({
+    name: 'position-source.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(source, 'base64'),
+  });
+  const before = await page.evaluate(() => {
+    const layer = window.AppConfig.layers.find((item) => item.params?.collage_slot === 0);
+    return {
+      pixelHash: window.readLayerPixelHash?.(layer.id) ?? layer.link.src,
+      params: layer.params,
+      history: window.State.action_history.length,
+    };
+  });
+
+  await expect(page.getByTestId('collage-zoom')).toHaveValue('1');
+  await page.getByTestId('collage-zoom').fill('2');
+  await page.getByTestId('collage-zoom').blur();
+  await expect.poll(() => page.evaluate(() => {
+    const layer = window.AppConfig.layers.find((item) => item.params?.collage_slot === 0);
+    return { zoom: layer.params?.collage_zoom, history: window.State.action_history.length };
+  })).toEqual({ zoom: 2, history: before.history + 1 });
+
+  const zoomed = await page.evaluate(() => {
+    const layer = window.AppConfig.layers.find((item) => item.params?.collage_slot === 0);
+    return layer.link.src;
+  });
+  expect(zoomed).not.toBe(before.pixelHash);
+
+  await page.getByTestId('collage-offset-x').fill('100');
+  await page.getByTestId('collage-offset-x').blur();
+  const positioned = await page.evaluate(() => {
+    const layer = window.AppConfig.layers.find((item) => item.params?.collage_slot === 0);
+    return {
+      data: layer.link.src,
+      offset: layer.params?.collage_offset_x,
+      history: window.State.action_history.length,
+    };
+  });
+  expect(positioned.data).not.toBe(zoomed);
+  expect(positioned.offset).toBe(100);
+  expect(positioned.history).toBe(before.history + 2);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => {
+    const layer = window.AppConfig.layers.find((item) => item.params?.collage_slot === 0);
+    return { data: layer.link.src, offset: layer.params?.collage_offset_x, zoom: layer.params?.collage_zoom };
+  })).toEqual({ data: zoomed, offset: 0, zoom: 2 });
+});
+
 test('新建画布进入独立编辑器路由', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('create-new').click();
