@@ -1404,8 +1404,10 @@ function syncCropOutputInputs(target) {
 function renderEditorToolControls(key) {
   const target = document.querySelector('[data-editor-tool-controls]');
   if (!target) return;
-  document.getElementById('action_attributes')?.removeAttribute('hidden');
+  const nativeAttributes = document.getElementById('action_attributes');
+  if (key !== 'liquify') nativeAttributes?.removeAttribute('hidden');
   if (key === 'liquify') {
+    nativeAttributes?.setAttribute('hidden', '');
     const attributes = findToolConfig('bulge_pinch')?.attributes;
     const availability = getLiquifyAvailability();
     if (!attributes) return;
@@ -1420,12 +1422,12 @@ function renderEditorToolControls(key) {
     target.innerHTML = `
       <p class="studio-control-status ${availability.enabled ? 'is-available' : 'is-unavailable'}" data-testid="liquify-status">${previewActive ? '液化预览中：继续点按可叠加，应用后写入一次历史。' : availability.message}</p>
       <div class="studio-control-group studio-liquify-mode-grid" aria-label="液化模式">
-        <button type="button" class="${mode === 'push' ? 'is-selected' : ''}" aria-pressed="${mode === 'push'}" data-testid="liquify-mode-push" ${disabled}>推移</button>
-        <button type="button" class="${mode === 'bulge' ? 'is-selected' : ''}" aria-pressed="${mode === 'bulge'}" data-testid="liquify-mode-bulge" ${disabled}>膨胀</button>
-        <button type="button" class="${mode === 'pinch' ? 'is-selected' : ''}" aria-pressed="${mode === 'pinch'}" data-testid="liquify-mode-pinch" ${disabled}>收缩</button>
-        <button type="button" class="${mode === 'twirl_left' ? 'is-selected' : ''}" aria-pressed="${mode === 'twirl_left'}" data-testid="liquify-mode-twirl-left" ${disabled}>左旋</button>
-        <button type="button" class="${mode === 'twirl_right' ? 'is-selected' : ''}" aria-pressed="${mode === 'twirl_right'}" data-testid="liquify-mode-twirl-right" ${disabled}>右旋</button>
-        <button type="button" class="${mode === 'restore' ? 'is-selected' : ''}" aria-pressed="${mode === 'restore'}" data-testid="liquify-mode-restore" ${disabled}>恢复</button>
+        <button type="button" class="${mode === 'push' ? 'is-selected' : ''}" aria-pressed="${mode === 'push'}" aria-label="推移" title="推移" data-testid="liquify-mode-push" ${disabled}><img src="../images/icons/liquify-push.svg" alt=""><span class="sr_only">推移</span></button>
+        <button type="button" class="${mode === 'bulge' ? 'is-selected' : ''}" aria-pressed="${mode === 'bulge'}" aria-label="膨胀" title="膨胀" data-testid="liquify-mode-bulge" ${disabled}><img src="../images/icons/liquify-bulge.svg" alt=""><span class="sr_only">膨胀</span></button>
+        <button type="button" class="${mode === 'pinch' ? 'is-selected' : ''}" aria-pressed="${mode === 'pinch'}" aria-label="收缩" title="收缩" data-testid="liquify-mode-pinch" ${disabled}><img src="../images/icons/liquify-pinch.svg" alt=""><span class="sr_only">收缩</span></button>
+        <button type="button" class="${mode === 'twirl_left' ? 'is-selected' : ''}" aria-pressed="${mode === 'twirl_left'}" aria-label="左旋" title="左旋" data-testid="liquify-mode-twirl-left" ${disabled}><img src="../images/icons/liquify-twirl-left.svg" alt=""><span class="sr_only">左旋</span></button>
+        <button type="button" class="${mode === 'twirl_right' ? 'is-selected' : ''}" aria-pressed="${mode === 'twirl_right'}" aria-label="右旋" title="右旋" data-testid="liquify-mode-twirl-right" ${disabled}><img src="../images/icons/liquify-twirl-right.svg" alt=""><span class="sr_only">右旋</span></button>
+        <button type="button" class="${mode === 'restore' ? 'is-selected' : ''}" aria-pressed="${mode === 'restore'}" aria-label="恢复" title="恢复" data-testid="liquify-mode-restore" ${disabled}><img src="../images/icons/liquify-restore.svg" alt=""><span class="sr_only">恢复</span></button>
       </div>
       <label class="studio-control-range">半径 <output data-liquify-radius-output>${radius}px</output>
         <input type="range" min="1" max="500" value="${radius}" data-testid="liquify-radius" ${disabled}>
