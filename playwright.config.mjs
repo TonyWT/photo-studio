@@ -17,6 +17,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run server -- --port 4174 --no-open --no-hot --no-live-reload',
     url: 'http://127.0.0.1:4174',
-    reuseExistingServer: false,
+    // 本地迭代可复用已启动的开发服务器；CI 仍始终启动干净进程，避免误用旧产物。
+    reuseExistingServer: !process.env.CI,
   },
 });

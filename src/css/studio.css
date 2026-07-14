@@ -169,6 +169,11 @@ body.photo-studio-editor .studio-text-create:hover { background: #454545; }
 body.photo-studio-editor .studio-text-create span { display: grid; gap: 3px; }
 body.photo-studio-editor .studio-text-create strong { font-size: 14px; }
 body.photo-studio-editor .studio-text-create small { color: #aaa; font-size: 11px; }
+body.photo-studio-editor .studio-drawing-layer-create { display: flex; align-items: center; width: 100%; margin-bottom: 12px; padding: 12px 14px; border: 0; border-left: 4px solid #00a9df; border-radius: 7px; color: #f1f1f1; background: #3a3a3a; text-align: left; cursor: pointer; }
+body.photo-studio-editor .studio-drawing-layer-create:hover { background: #454545; }
+body.photo-studio-editor .studio-drawing-layer-create span { display: grid; gap: 3px; }
+body.photo-studio-editor .studio-drawing-layer-create strong { font-size: 14px; }
+body.photo-studio-editor .studio-drawing-layer-create small { color: #aaa; font-size: 11px; }
 body.photo-studio-editor .studio-text-preset { display: grid; min-height: 86px; padding: 10px 8px; overflow: hidden; border: 1px solid #3c3c3c; border-radius: 7px; background: #242424; cursor: pointer; place-items: center; }
 body.photo-studio-editor .studio-text-preset:hover,
 body.photo-studio-editor .studio-text-preset.is-selected { border-color: #00a9df; background: #2e2e2e; }

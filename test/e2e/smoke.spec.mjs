@@ -3381,6 +3381,37 @@ test('Drawing 形状快捷项会切换到对应的本地画布工具', async ({ 
   }
 });
 
+test('Drawing 可创建可撤销的新空白绘制图层', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'drawing-layer.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-new-layer')).toBeVisible();
+
+  const before = await page.evaluate(() => ({
+    count: window.AppConfig.layers.length,
+    historyIndex: window.State.action_history_index,
+  }));
+  await page.getByTestId('drawing-new-layer').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layers.length)).toBe(before.count + 1);
+  await expect.poll(() => page.evaluate(() => ({
+    name: window.AppConfig.layer.name,
+    type: window.AppConfig.layer.type,
+    historyIndex: window.State.action_history_index,
+  }))).toEqual({
+    name: '新建空白绘制图层',
+    type: null,
+    historyIndex: before.historyIndex + 1,
+  });
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => ({
+    count: window.AppConfig.layers.length,
+    historyIndex: window.State.action_history_index,
+  }))).toEqual(before);
+});
+
 test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
   await openHome(page);
   const drawingFixture = await page.evaluate(() => {

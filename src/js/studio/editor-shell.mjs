@@ -834,6 +834,15 @@ async function updateActiveLayer(settings) {
   return true;
 }
 
+async function insertBlankDrawingLayer() {
+  if (!window.app?.Actions?.Insert_layer_action || !window.State?.do_action) return false;
+  await window.State.do_action(new window.app.Actions.Insert_layer_action({
+    name: '新建空白绘制图层',
+  }));
+  window.app?.GUI?.GUI_layers?.render_layers?.();
+  return true;
+}
+
 function normalizeLayerName(value) {
   return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
 }
@@ -2069,6 +2078,9 @@ function renderEditorToolControls(key) {
     const opacity = Math.round((window.AppConfig?.ALPHA ?? 255) / 255 * 100);
     const color = window.AppConfig?.COLOR ?? '#008000';
     target.innerHTML = `
+      <button type="button" class="studio-drawing-layer-create" data-testid="drawing-new-layer">
+        <span><strong>添加新图层</strong><small>新建空白绘制图层</small></span>
+      </button>
       <label class="studio-control-color">颜色
         <input type="color" value="${color}" data-testid="drawing-color">
       </label>
@@ -2127,6 +2139,9 @@ function renderEditorToolControls(key) {
         button.classList.toggle('is-selected', button.style.getPropertyValue('--drawing-swatch').toLowerCase() === nextColor.toLowerCase());
       });
     };
+    target.querySelector('[data-testid="drawing-new-layer"]')?.addEventListener('click', async () => {
+      await insertBlankDrawingLayer();
+    });
     colorInput.addEventListener('input', () => applyDrawingColor(colorInput.value));
     target.querySelectorAll('[data-testid^="drawing-palette-"]').forEach((button) => {
       button.addEventListener('click', () => applyDrawingColor(button.style.getPropertyValue('--drawing-swatch')));
