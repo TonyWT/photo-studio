@@ -1519,6 +1519,10 @@ function renderEditorToolControls(key) {
       <label class="studio-control-range">不透明度 <output data-drawing-opacity-output>${opacity}%</output>
         <input type="range" min="1" max="100" value="${opacity}" data-testid="drawing-opacity">
       </label>
+      <div class="studio-control-group studio-control-group-two" aria-label="本地笔刷预设">
+        <button type="button" class="${brushSoftness >= 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-soft">柔边</button>
+        <button type="button" class="${brushSoftness < 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-hard">硬圆</button>
+      </div>
       <div class="studio-control-group studio-control-group-two" aria-label="本地绘制工具">
         <button type="button" data-testid="drawing-brush" data-core-tool="brush">画笔</button>
         <button type="button" data-testid="drawing-eraser" data-core-tool="erase">橡皮</button>
@@ -1557,6 +1561,19 @@ function renderEditorToolControls(key) {
       opacityOutput.value = `${value}%`;
       opacityOutput.textContent = `${value}%`;
     });
+    const applyBrushPreset = ({ size, softness }) => {
+      setToolAttribute('brush', 'size', size);
+      setToolAttribute('brush', 'softness', softness);
+      sizeInput.value = String(size);
+      softnessInput.value = String(softness);
+      sizeOutput.textContent = `${size}px`;
+      target.querySelector('[data-drawing-softness-output]').textContent = `${softness}%`;
+      target.querySelectorAll('[data-testid^="drawing-brush-preset-"]').forEach((button) => {
+        button.classList.toggle('is-selected', button.dataset.testid === `drawing-brush-preset-${softness >= 50 ? 'soft' : 'hard'}`);
+      });
+    };
+    target.querySelector('[data-testid="drawing-brush-preset-soft"]')?.addEventListener('click', () => applyBrushPreset({ size: 40, softness: 70 }));
+    target.querySelector('[data-testid="drawing-brush-preset-hard"]')?.addEventListener('click', () => applyBrushPreset({ size: 18, softness: 0 }));
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
       button.addEventListener('click', () => activateCoreTool(button.dataset.coreTool));
     });

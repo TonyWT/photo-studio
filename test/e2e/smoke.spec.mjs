@@ -3067,6 +3067,34 @@ test('Drawing 取色器从本地图层读取像素颜色，不写入编辑历史
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history);
 });
 
+test('Drawing 笔刷预设会写入可持久化的本地尺寸与柔化参数', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'brush-preset-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#ffffff');
+  await page.getByTestId('drawing-size').fill('30');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-brush-preset-hard').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes)).toMatchObject({
+    size: 18, softness: 0,
+  });
+});
+
 test('Drawing 填充不会修改锁定图片图层或写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
