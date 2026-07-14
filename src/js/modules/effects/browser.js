@@ -93,7 +93,7 @@ class Effects_browser_class extends Base_tools_class {
 		var list = [];
 
 		for (var i in this.Base_gui.modules) {
-			if (i.indexOf("effects") == -1 || i.indexOf("abstract") > -1 || i.indexOf("browser") > -1)
+			if (i.indexOf("effects") == -1 || i.indexOf("abstract") > -1 || i.indexOf("browser") > -1 || i.indexOf("local_presets") > -1)
 				continue;
 
 			list.push({

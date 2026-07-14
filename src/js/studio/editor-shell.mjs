@@ -171,79 +171,32 @@ const TEXT_STYLE_PRESETS = Object.freeze([
   },
 ]);
 let activeTextPresetId = null;
-const EFFECT_CATEGORIES = Object.freeze([
-  {
-    id: 'mono',
-    label: '单色',
-    description: '黑白、铅笔与高对比画面。',
-    previewClass: 'mono',
-    effects: [
-      ['黑白', 'effects/black_and_white', 'black_and_white'],
-      ['铅笔', 'effects/pencil', 'pencil'],
-      ['边缘', 'effects/edge', 'edge'],
-      ['浮雕', 'effects/emboss', 'emboss'],
-    ],
-  },
-  {
-    id: 'color',
-    label: '色彩',
-    description: '提升饱和度、色相和综合色彩。',
-    previewClass: 'color',
-    effects: [
-      ['增强', 'effects/enrich', 'enrich'],
-      ['着色', 'effects/colorize', 'colorize'],
-      ['鲜艳', 'effects/vibrance', 'vibrance'],
-      ['热力图', 'effects/heatmap', 'heatmap'],
-    ],
-  },
-  {
-    id: 'retro',
-    label: '复古',
-    description: '颗粒、暗角与胶片色调。',
-    previewClass: 'retro',
-    effects: [
-      ['复古', 'effects/vintage', 'vintage'],
-      ['颗粒', 'effects/grains', 'grains'],
-      ['暗角', 'effects/vignette', 'vignette'],
-      ['1977', 'effects/instagram/1977', '1977'],
-      ['Aden', 'effects/instagram/aden', 'aden'],
-      ['Clarendon', 'effects/instagram/clarendon', 'clarendon'],
-      ['Gingham', 'effects/instagram/gingham', 'gingham'],
-      ['Inkwell', 'effects/instagram/inkwell', 'inkwell'],
-      ['Lofi', 'effects/instagram/lofi', 'lofi'],
-      ['Toaster', 'effects/instagram/toaster', 'toaster'],
-      ['Valencia', 'effects/instagram/valencia', 'valencia'],
-      ['Xpro2', 'effects/instagram/xpro2', 'xpro2'],
-    ],
-  },
-  {
-    id: 'creative',
-    label: '创意',
-    description: '像素、马赛克、油画与夜视。',
-    previewClass: 'creative',
-    effects: [
-      ['蓝图', 'effects/blueprint', 'blueprint'],
-      ['抖动', 'effects/dither', 'dither'],
-      ['点阵', 'effects/dot_screen', 'dot_screen'],
-      ['马赛克', 'effects/mosaic', 'mosaic'],
-      ['夜视', 'effects/night_vision', 'night_vision'],
-      ['油画', 'effects/oil', 'oil'],
-      ['太阳化', 'effects/solarize', 'solarize'],
-    ],
-  },
-  {
-    id: 'focus',
-    label: '焦点',
-    description: '局部柔化、变焦和降噪。',
-    previewClass: 'focus',
-    effects: [
-      ['方框模糊', 'effects/box_blur', 'box_blur'],
-      ['倾斜移轴', 'effects/tilt_shift', 'tilt_shift'],
-      ['变焦模糊', 'effects/zoom_blur', 'zoom_blur'],
-      ['降噪', 'effects/denoise', 'denoise'],
-    ],
-  },
+const EFFECT_CATEGORY_DEFINITIONS = Object.freeze([
+  { id: 'mono', label: '单色', description: '黑白、铅笔与高对比画面。', previewClass: 'mono', count: 11 },
+  { id: 'friends', label: '人像氛围', description: '柔和肤色、明暗和色彩氛围。', previewClass: 'color', count: 20 },
+  { id: 'instage', label: '即时胶片', description: '日常影像的低饱和和综合色调。', previewClass: 'retro', count: 12 },
+  { id: 'retro', label: '复古', description: '颗粒、暗角与胶片色调。', previewClass: 'retro', count: 10 },
+  { id: 'tuning', label: '调优', description: '清晰度、明度、对比和鲜艳度。', previewClass: 'focus', count: 5 },
+  { id: 'portrait', label: '肖像', description: '适用于人像的层次和柔和肤色。', previewClass: 'color', count: 5 },
+  { id: 'food', label: '食物', description: '提升食物照片的明亮和色彩。', previewClass: 'retro', count: 5 },
+  { id: 'urban', label: '城市', description: '建筑、街景和夜间色调。', previewClass: 'creative', count: 6 },
+  { id: 'nature', label: '自然', description: '天空、森林和海岸的自然色彩。', previewClass: 'focus', count: 3 },
+  { id: 'colors', label: '颜色', description: '按冷暖、色相和氛围组织的色彩配方。', previewClass: 'color', count: 21 },
+  { id: 'artzy', label: '艺术', description: '图形、艺术化和实验性影像风格。', previewClass: 'creative', count: 10 },
 ]);
+
+function localEffectRecipeId(category, index) {
+  if (category === 'mono' && index === 0) return 'black_and_white';
+  return `${category}-${String(index + 1).padStart(2, '0')}`;
+}
+
+const EFFECT_CATEGORIES = Object.freeze(EFFECT_CATEGORY_DEFINITIONS.map((category) => ({
+  ...category,
+  effects: Array.from({ length: category.count }, (_, index) => ({
+    id: localEffectRecipeId(category.id, index),
+    label: `${category.label} ${String(index + 1).padStart(2, '0')}`,
+  })),
+})));
 let activeEffectCategoryId = null;
 
 const EXPORT_TYPES = Object.freeze({
@@ -2003,8 +1956,8 @@ function renderEditorToolControls(key) {
       <span class="studio-effect-category-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
       <span class="studio-effect-category-copy"><strong>${category.label}</strong><small>${category.effects.length} 个本地效果</small></span>
     </button>`).join('');
-    const effectCards = activeCategory?.effects.map(([label, path, method]) => `<button type="button" class="studio-effect-preset studio-effect-preset--${activeCategory.previewClass}" data-testid="effect-preset-${activeCategory.id}-${method}" data-effect-path="${path}" data-effect-method="${method}"${effectDisabled}>
-      <span>${label}</span><small>本地预览与应用</small>
+    const effectCards = activeCategory?.effects.map((effect) => `<button type="button" class="studio-effect-preset studio-effect-preset--${activeCategory.previewClass}" data-testid="effect-preset-${activeCategory.id}-${effect.id}" data-effect-category="${activeCategory.id}" data-effect-recipe="${effect.id}"${effectDisabled}>
+      <span>${effect.label}</span><small>本地预览与应用</small>
     </button>`).join('') ?? '';
     target.innerHTML = `
       ${activeCategory ? `<div class="studio-effect-category-heading"><button type="button" data-testid="effect-category-back">‹ 返回分类</button><strong>${activeCategory.label}</strong></div>
@@ -2026,10 +1979,10 @@ function renderEditorToolControls(key) {
       activeEffectCategoryId = null;
       renderEditorToolControls('effect');
     });
-    target.querySelectorAll('[data-effect-path][data-effect-method]').forEach((button) => {
+    target.querySelectorAll('[data-effect-recipe]').forEach((button) => {
       button.addEventListener('click', () => {
         if (!activeImageLayerIsEditable()) return;
-        invokeEditorModule(button.dataset.effectPath, button.dataset.effectMethod);
+        invokeEditorModule('effects/local_presets', 'preset', button.dataset.effectRecipe, button.querySelector('span')?.textContent || '本地效果');
       });
     });
     target.querySelector('[data-testid="effect-browser"]')?.addEventListener('click', () => {
