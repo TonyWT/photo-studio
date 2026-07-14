@@ -101,7 +101,7 @@ const ADJUST_PANEL_DEFAULTS = Object.freeze({
   dehaze: 0,
 });
 let adjustPanelValues = { ...ADJUST_PANEL_DEFAULTS };
-const TEXT_STYLE_PRESETS = Object.freeze([
+const TEXT_STYLE_PRESET_BASES = Object.freeze([
   {
     id: 'editorial', label: 'STUDIO', font: 'Verdana', size: 56, fill: '#f8fafc', bold: true,
     italic: false, underline: false, align: 'center', stroke: '#111827', stroke_size: 0,
@@ -182,6 +182,43 @@ const TEXT_STYLE_PRESETS = Object.freeze([
     italic: false, underline: true, align: 'center', stroke: '#365314', stroke_size: 1,
     shadow_enabled: true, shadow_color: '#1a2e05', shadow_blur: 3,
   },
+]);
+const LOCAL_TEXT_PRESET_LABELS = Object.freeze([
+  'MOMENT', 'VOICE', 'FUTURE', 'STORY', 'BRIGHT', 'CREATE', 'MOTION', 'FIELD', 'WONDER', 'DAYLIGHT',
+  'SHAPE', 'GLOW', 'NORTH', 'WILD', 'OPEN', 'LEVEL', 'COLOR', 'ECHO', 'SPARK', 'START',
+  'RHYTHM', 'DREAM', 'HEART', 'BOLD', 'LIGHT', 'WAVE', 'ORIGIN', 'FRAME', 'TONE', 'WARM',
+  'PLACE', 'VISTA', 'PLAN', 'FRESH', 'FORM', 'RIVER', 'STILL', 'HORIZON', 'FLOW', 'CLOUD',
+  'LAYER', 'POINT', 'FOCUS', 'STREET', 'GARDEN', 'TRUE', 'SIMPLE', 'ALIVE', 'SPACE', 'MARK',
+  'SUNSET', 'MORNING', 'BREEZE', 'HAPPY', 'HELLO', 'GREAT', 'SMILE', 'TODAY', 'TOGETHER', 'NOW',
+]);
+const LOCAL_TEXT_PRESET_COLORS = Object.freeze([
+  '#f8fafc', '#22d3ee', '#f472b6', '#facc15', '#60a5fa', '#fb7185', '#a3e635', '#d8b4fe',
+  '#fb923c', '#67e8f9', '#fde68a', '#fca5a5', '#bef264', '#c4b5fd', '#5eead4', '#fda4af',
+]);
+const TEXT_STYLE_PRESETS = Object.freeze([
+  ...TEXT_STYLE_PRESET_BASES,
+  ...LOCAL_TEXT_PRESET_LABELS.map((label, index) => {
+    const base = TEXT_STYLE_PRESET_BASES[index % TEXT_STYLE_PRESET_BASES.length];
+    const color = LOCAL_TEXT_PRESET_COLORS[index % LOCAL_TEXT_PRESET_COLORS.length];
+    const stroke = LOCAL_TEXT_PRESET_COLORS[(index + 7) % LOCAL_TEXT_PRESET_COLORS.length];
+    return {
+      ...base,
+      id: `local-style-${String(index + 1).padStart(2, '0')}`,
+      label,
+      font: index % 3 === 0 ? 'Verdana' : 'Arial',
+      size: 40 + ((index * 7) % 34),
+      fill: color,
+      bold: index % 3 !== 1,
+      italic: index % 5 === 0,
+      underline: index % 7 === 0,
+      align: ['left', 'center', 'right'][index % 3],
+      stroke,
+      stroke_size: index % 4,
+      shadow_enabled: index % 2 === 0,
+      shadow_color: index % 2 === 0 ? stroke : '#000000',
+      shadow_blur: 2 + (index % 7),
+    };
+  }),
 ]);
 let activeTextPresetId = null;
 const EFFECT_CATEGORY_DEFINITIONS = Object.freeze([
