@@ -65,6 +65,7 @@ config.TOOLS = [
 		name: 'brush',
 		attributes: {
 			size: 4,
+			softness: 20,
 			pressure: false,
 		},
 	},

@@ -350,6 +350,14 @@ class Brush_class extends Base_tools_class {
 		ctx.lineWidth = params.size;
 		ctx.lineCap = 'round';
 		ctx.lineJoin = 'round';
+		// Keep the editor's drawing softness in the vector layer parameters so the
+		// same feathered stroke is rendered in the workspace, project restore and
+		// export. A zero value deliberately keeps miniPaint's original hard edge.
+		const softness = Math.max(0, Math.min(100, Number(params.softness) || 0));
+		if (softness > 0) {
+			ctx.shadowColor = layer.color;
+			ctx.shadowBlur = Math.max(0.5, params.size * softness / 100);
+		}
 
 		ctx.translate(layer.x, layer.y);
 

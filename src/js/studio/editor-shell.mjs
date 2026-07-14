@@ -1503,6 +1503,7 @@ function renderEditorToolControls(key) {
 
   if (key === 'drawing') {
     const brushSize = findToolConfig('brush')?.attributes?.size ?? 4;
+    const brushSoftness = findToolConfig('brush')?.attributes?.softness ?? 20;
     const opacity = Math.round((window.AppConfig?.ALPHA ?? 255) / 255 * 100);
     const color = window.AppConfig?.COLOR ?? '#008000';
     target.innerHTML = `
@@ -1511,6 +1512,9 @@ function renderEditorToolControls(key) {
       </label>
       <label class="studio-control-range">笔触尺寸 <output data-drawing-size-output>${brushSize}px</output>
         <input type="range" min="1" max="100" value="${brushSize}" data-testid="drawing-size">
+      </label>
+      <label class="studio-control-range">柔化 <output data-drawing-softness-output>${brushSoftness}%</output>
+        <input type="range" min="0" max="100" value="${brushSoftness}" data-testid="drawing-softness">
       </label>
       <label class="studio-control-range">不透明度 <output data-drawing-opacity-output>${opacity}%</output>
         <input type="range" min="1" max="100" value="${opacity}" data-testid="drawing-opacity">
@@ -1525,6 +1529,7 @@ function renderEditorToolControls(key) {
     `;
     const colorInput = target.querySelector('[data-testid="drawing-color"]');
     const sizeInput = target.querySelector('[data-testid="drawing-size"]');
+    const softnessInput = target.querySelector('[data-testid="drawing-softness"]');
     const opacityInput = target.querySelector('[data-testid="drawing-opacity"]');
     const sizeOutput = target.querySelector('[data-drawing-size-output]');
     const opacityOutput = target.querySelector('[data-drawing-opacity-output]');
@@ -1538,6 +1543,11 @@ function renderEditorToolControls(key) {
       ['brush', 'pencil', 'shape'].forEach((tool) => setToolAttribute(tool, 'size', size));
       sizeOutput.value = `${size}px`;
       sizeOutput.textContent = `${size}px`;
+    });
+    softnessInput.addEventListener('input', () => {
+      const softness = Number(softnessInput.value);
+      setToolAttribute('brush', 'softness', softness);
+      target.querySelector('[data-drawing-softness-output]').textContent = `${softness}%`;
     });
     opacityInput.addEventListener('input', () => {
       const value = Number(opacityInput.value);

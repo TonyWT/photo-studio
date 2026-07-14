@@ -2679,7 +2679,7 @@ test('裁剪进入锁定图层的不可用液化时，会按标准工具生命�
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyAfterToolExit);
 });
 
-test('Drawing 会激活画笔并将颜色、尺寸和不透明度写入本地配置', async ({ page }) => {
+test('Drawing 会激活画笔并将颜色、尺寸、不透明度和柔化写入本地配置', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
   await expect(page).toHaveURL(/\/editor\/$/);
@@ -2689,13 +2689,16 @@ test('Drawing 会激活画笔并将颜色、尺寸和不透明度写入本地配
   await page.getByTestId('drawing-color').fill('#d946ef');
   await page.getByTestId('drawing-size').fill('18');
   await page.getByTestId('drawing-opacity').fill('42');
+  await expect(page.getByTestId('drawing-softness')).toHaveValue('20');
+  await page.getByTestId('drawing-softness').fill('35');
   await page.getByTestId('drawing-brush').click();
   await expect(page.locator('#tools_container .brush')).toHaveClass(/active/);
   await expect.poll(() => page.evaluate(() => ({
     color: window.AppConfig.COLOR,
     alpha: window.AppConfig.ALPHA,
     size: window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.size,
-  }))).toEqual({ color: '#d946ef', alpha: 107, size: 18 });
+    softness: window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.softness,
+  }))).toEqual({ color: '#d946ef', alpha: 107, size: 18, softness: 35 });
 });
 
 test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
@@ -2752,6 +2755,55 @@ test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', asy
     return Array.from(context.getImageData(135, 135, 1, 1).data);
   })).toEqual(before.pixel);
   await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+});
+
+test('Drawing 柔化会改变画笔外缘像素，并可撤销回到底图', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'soft-brush-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#ffffff');
+  await page.getByTestId('drawing-size').fill('30');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-softness').fill('0');
+  await page.getByTestId('drawing-brush').click();
+
+  const pixelAtOuterEdge = () => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    return Array.from(context.getImageData(155, 135, 1, 1).data);
+  });
+  const basePixel = await pixelAtOuterEdge();
+  expect(basePixel).toEqual([20, 30, 40, 255]);
+  const baseHistory = await page.evaluate(() => window.State.action_history.length);
+
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(baseHistory + 1);
+  await expect.poll(pixelAtOuterEdge).toEqual(basePixel);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(pixelAtOuterEdge).toEqual(basePixel);
+  await page.getByTestId('drawing-softness').fill('100');
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(baseHistory + 1);
+  await expect.poll(pixelAtOuterEdge).not.toEqual(basePixel);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(pixelAtOuterEdge).toEqual(basePixel);
 });
 
 test('Drawing 填充不会修改锁定图片图层或写入历史', async ({ page }) => {
