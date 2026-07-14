@@ -3412,6 +3412,76 @@ test('Drawing 可创建可撤销的新空白绘制图层', async ({ page }) => {
   }))).toEqual(before);
 });
 
+test('Drawing 的 Sketchy 笔刷模式会保存在本地图层并可撤销', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'sketchy-brush-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-brush-mode-sketchy')).toBeVisible();
+  await page.getByTestId('drawing-color').fill('#ffffff');
+  await page.getByTestId('drawing-size').fill('20');
+  await page.getByTestId('drawing-softness').fill('0');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-brush-mode-sketchy').click();
+  await expect.poll(() => page.evaluate(() => {
+    const mode = window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.mode;
+    return mode?.value ?? mode;
+  })).toBe('sketchy');
+  await page.getByTestId('drawing-brush').click();
+
+  const before = await page.evaluate(() => ({
+    history: window.State.action_history.length,
+    pixel: (() => {
+      const canvas = document.getElementById('canvas_minipaint');
+      return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
+    })(),
+  }));
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+  await expect.poll(() => page.evaluate(() => ({
+    mode: window.AppConfig.layer.params.mode?.value ?? window.AppConfig.layer.params.mode,
+    pixel: (() => {
+      const canvas = document.getElementById('canvas_minipaint');
+      return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
+    })(),
+  }))).toEqual({ mode: 'sketchy', pixel: [255, 255, 255, 255] });
+
+  const sketchyHash = await page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const pixels = canvas.getContext('2d', { willReadFrequently: true }).getImageData(115, 115, 40, 40).data;
+    return Array.from(pixels).reduce((hash, value) => Math.imul(hash ^ value, 16777619), 2166136261) >>> 0;
+  });
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
+  })).toEqual(before.pixel);
+
+  await page.getByTestId('drawing-brush-mode-plain').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  const plainHash = await page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const pixels = canvas.getContext('2d', { willReadFrequently: true }).getImageData(115, 115, 40, 40).data;
+    return Array.from(pixels).reduce((hash, value) => Math.imul(hash ^ value, 16777619), 2166136261) >>> 0;
+  });
+  expect(plainHash).not.toBe(sketchyHash);
+});
+
 test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
   await openHome(page);
   const drawingFixture = await page.evaluate(() => {

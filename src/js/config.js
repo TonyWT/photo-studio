@@ -66,6 +66,10 @@ config.TOOLS = [
 		attributes: {
 			size: 4,
 			softness: 20,
+			mode: {
+				value: 'plain',
+				values: ['plain', 'parallel', 'sketchy', 'shaded', 'furry', 'trail', 'crayon', 'ink'],
+			},
 			pressure: false,
 		},
 	},

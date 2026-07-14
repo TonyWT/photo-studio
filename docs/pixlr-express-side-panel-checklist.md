@@ -174,7 +174,7 @@
 | D-00 | Add new layer / New empty paint layer | 保留 | 可用 | 顶部入口创建命名为“新建空白绘制图层”的本地空白图层，随后可承接画笔等工具；创建与 Undo 已由 Chromium E2E 验证 |
 | D-01 ～ D-05 | Draw 的 5 个工具图标 | 待取证 | 部分可用：Brush、Eraser、Eyedropper、Pencil、Fill、Gradient 与 Rectangle Shape 均已接入；Eraser、Pencil、Fill、Gradient、Rectangle 有本地像素/撤销验证，Eyedropper 仅本地取色且无历史 | 逐一确认截图中每个图标的准确名称/映射，并为其余 Shape 建立像素基准 |
 | D-06 | 颜色选择器 | 保留 | 可用 | 颜色会同步到画笔、形状描边与渐变前景；调色板与输入框均由 Chromium E2E 验证 |
-| D-07 | Brush 预览/笔刷选择 | 保留 | 可用 | 提供原创的柔边、硬圆本地预设，均写入尺寸与柔化参数；不复制 Pixlr 笔刷素材 |
+| D-07 | Brush 预览/笔刷选择与模式 | 保留 | 可用 | 提供柔边、硬圆本地预设，以及 Plain、Parallel、Sketchy、Shaded、Furry、Trail、Crayon、Ink 八种确定性本地笔刷模式；模式保存在图层参数中，画布、项目恢复和导出使用同一渲染路径。Sketchy 与 Plain 像素差异、Undo 已由 Chromium E2E 验证；不复制 Pixlr 笔刷素材 |
 | D-08 | Size | 保留 | 可用 | 尺寸同步到画笔、铅笔、橡皮和形状；真实笔触像素与 Undo 已由 Chromium E2E 覆盖 |
 | D-09 | Softness | 保留 | 可用 | 画笔支持 0～100% 本地软边；硬边/软边外缘像素差异及 Undo 已由 Chromium E2E 覆盖 |
 | D-10 | Transparency | 保留 | 可用 | 1～100% alpha 写入画笔本地合成；配置值、实际笔触和 Undo 已由 Chromium E2E 覆盖 |

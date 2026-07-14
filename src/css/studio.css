@@ -78,6 +78,10 @@ body.photo-studio-editor .studio-drawing-palette-swatches button:hover,
 body.photo-studio-editor .studio-drawing-palette-swatches button.is-selected { border-color: #fff; box-shadow: 0 0 0 2px #00a9df; }
 body.photo-studio-editor .studio-drawing-shapes { display: grid; gap: 7px; padding: 9px 0; border-top: 1px solid #3a3a3a; }
 body.photo-studio-editor .studio-drawing-shapes > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
+body.photo-studio-editor .studio-drawing-tools { display: grid; gap: 7px; padding: 9px 0; border-bottom: 1px solid #3a3a3a; }
+body.photo-studio-editor .studio-drawing-tools > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
+body.photo-studio-editor .studio-drawing-brush-modes { display: grid; gap: 7px; padding: 9px 0; border-top: 1px solid #3a3a3a; }
+body.photo-studio-editor .studio-drawing-brush-modes > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-control-group button { min-height: 34px; border: 1px solid #474747; border-radius: 5px; color: #c8c8c8; background: #303030; font: 12px/1 inherit; cursor: pointer; }
 body.photo-studio-editor .studio-control-group button:hover,
 body.photo-studio-editor .studio-control-group button.is-selected { border-color: #00a9df; color: #fff; background: #17465a; }

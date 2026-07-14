@@ -373,7 +373,7 @@ class Brush_class extends Base_tools_class {
 
 			if (params.pressure == false) {
 				//stabilized lines method does not support multiple line sizes
-				this.render_stabilized(ctx, group_data);
+				this.render_mode(ctx, group_data, params);
 			}
 			else {
 				if (group_data[0]) {
@@ -416,6 +416,78 @@ class Brush_class extends Base_tools_class {
 
 		ctx.translate(-layer.x, -layer.y);
 		ctx.restore();
+	}
+
+	/**
+	 * Render a deterministic local brush mode.  The stroke data stays unchanged
+	 * in the layer so the same mode is reproduced in the workspace, exports and
+	 * restored projects without a bitmap or remote brush asset.
+	 */
+	render_mode(ctx, queue, params) {
+		const mode = params.mode?.value || params.mode || 'plain';
+		const size = Math.max(1, Number(params.size) || 1);
+		const render = (data, { alpha = 1, width = size, translateX = 0, translateY = 0, dash = [] } = {}) => {
+			ctx.save();
+			ctx.globalAlpha *= alpha;
+			ctx.lineWidth = width;
+			ctx.translate(translateX, translateY);
+			if (dash.length > 0) ctx.setLineDash(dash);
+			this.render_stabilized(ctx, data);
+			ctx.restore();
+		};
+		const jitter = (amount, phase = 0) => queue.map((point, index) => {
+			if (point == null) return point;
+			const offsetX = Math.sin((index + 1) * 12.9898 + phase) * amount;
+			const offsetY = Math.cos((index + 1) * 78.233 + phase) * amount;
+			return [point[0] + offsetX, point[1] + offsetY, point[2]];
+		});
+
+		if (mode === 'parallel') {
+			const gap = Math.max(1, size * 0.34);
+			render(queue, { width: Math.max(1, size * 0.42), translateY: -gap });
+			render(queue, { width: Math.max(1, size * 0.42), translateY: gap });
+			return;
+		}
+		if (mode === 'sketchy') {
+			render(queue);
+			render(jitter(Math.max(1, size * 0.18), 0.4), { alpha: 0.42, width: Math.max(1, size * 0.36) });
+			render(jitter(Math.max(1, size * 0.12), 1.7), { alpha: 0.28, width: Math.max(1, size * 0.24) });
+			return;
+		}
+		if (mode === 'shaded') {
+			render(queue, { alpha: 0.22, width: Math.max(1, size * 1.8), translateX: size * 0.1, translateY: size * 0.16 });
+			render(queue, { width: Math.max(1, size * 0.62) });
+			return;
+		}
+		if (mode === 'furry') {
+			render(queue, { alpha: 0.85, width: Math.max(1, size * 0.52) });
+			for (let i = 0; i < 4; i++) {
+				render(jitter(Math.max(1, size * 0.28), i * 1.31), { alpha: 0.18, width: Math.max(1, size * 0.12) });
+			}
+			return;
+		}
+		if (mode === 'trail') {
+			for (let i = 3; i >= 0; i--) {
+				render(queue, {
+					alpha: 0.18 + (3 - i) * 0.13,
+					width: Math.max(1, size * (0.38 + i * 0.16)),
+					translateX: -i * size * 0.12,
+					translateY: -i * size * 0.08,
+				});
+			}
+			return;
+		}
+		if (mode === 'crayon') {
+			render(queue, { alpha: 0.72, width: Math.max(1, size * 0.68), dash: [Math.max(1, size * 0.22), Math.max(1, size * 0.14)] });
+			render(jitter(Math.max(0.5, size * 0.08), 2.4), { alpha: 0.2, width: Math.max(1, size * 0.28) });
+			return;
+		}
+		if (mode === 'ink') {
+			render(queue, { alpha: 0.94, width: Math.max(1, size * 0.78) });
+			render(queue, { alpha: 0.14, width: Math.max(1, size * 1.18), translateY: size * 0.04 });
+			return;
+		}
+		render(queue);
 	}
 
 	/**

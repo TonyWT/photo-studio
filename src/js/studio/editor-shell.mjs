@@ -27,6 +27,10 @@ const DRAWING_PALETTE = Object.freeze([
   ['blue', '#3b82f6', '蓝色'], ['purple', '#a855f7', '紫色'], ['pink', '#ec4899', '粉色'],
   ['white', '#f8fafc', '白色'], ['black', '#111827', '近黑'],
 ]);
+const DRAWING_BRUSH_MODES = Object.freeze([
+  ['plain', 'Plain'], ['parallel', 'Parallel'], ['sketchy', 'Sketchy'], ['shaded', 'Shaded'],
+  ['furry', 'Furry'], ['trail', 'Trail'], ['crayon', 'Crayon'], ['ink', 'Ink'],
+]);
 
 let cutoutSelection = {
   mode: 'selection',
@@ -2075,12 +2079,25 @@ function renderEditorToolControls(key) {
   if (key === 'drawing') {
     const brushSize = findToolConfig('brush')?.attributes?.size ?? 4;
     const brushSoftness = findToolConfig('brush')?.attributes?.softness ?? 20;
+    const brushMode = findToolConfig('brush')?.attributes?.mode?.value ?? findToolConfig('brush')?.attributes?.mode ?? 'plain';
     const opacity = Math.round((window.AppConfig?.ALPHA ?? 255) / 255 * 100);
     const color = window.AppConfig?.COLOR ?? '#008000';
     target.innerHTML = `
       <button type="button" class="studio-drawing-layer-create" data-testid="drawing-new-layer">
         <span><strong>添加新图层</strong><small>新建空白绘制图层</small></span>
       </button>
+      <section class="studio-drawing-tools" aria-label="本地绘制工具">
+        <strong>工具</strong>
+        <div class="studio-control-group studio-control-group-two">
+          <button type="button" data-testid="drawing-brush" data-core-tool="brush">画笔</button>
+          <button type="button" data-testid="drawing-eraser" data-core-tool="erase">橡皮</button>
+          <button type="button" data-testid="drawing-eyedropper" data-core-tool="pick_color">取色</button>
+          <button type="button" data-testid="drawing-pencil" data-core-tool="pencil">铅笔</button>
+          <button type="button" data-testid="drawing-fill" data-core-tool="fill">填充</button>
+          <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">渐变</button>
+          <button type="button" data-testid="drawing-shape" data-core-tool="shape">形状</button>
+        </div>
+      </section>
       <label class="studio-control-color">颜色
         <input type="color" value="${color}" data-testid="drawing-color">
       </label>
@@ -2103,15 +2120,12 @@ function renderEditorToolControls(key) {
         <button type="button" class="${brushSoftness >= 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-soft">柔边</button>
         <button type="button" class="${brushSoftness < 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-hard">硬圆</button>
       </div>
-      <div class="studio-control-group studio-control-group-two" aria-label="本地绘制工具">
-        <button type="button" data-testid="drawing-brush" data-core-tool="brush">画笔</button>
-        <button type="button" data-testid="drawing-eraser" data-core-tool="erase">橡皮</button>
-        <button type="button" data-testid="drawing-eyedropper" data-core-tool="pick_color">取色</button>
-        <button type="button" data-testid="drawing-pencil" data-core-tool="pencil">铅笔</button>
-        <button type="button" data-testid="drawing-fill" data-core-tool="fill">填充</button>
-        <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">渐变</button>
-        <button type="button" data-testid="drawing-shape" data-core-tool="shape">形状</button>
-      </div>
+      <section class="studio-drawing-brush-modes" aria-label="笔刷模式">
+        <strong>笔刷模式</strong>
+        <div class="studio-control-group studio-control-group-two">
+          ${DRAWING_BRUSH_MODES.map(([id, label]) => `<button type="button" class="${brushMode === id ? 'is-selected' : ''}" aria-pressed="${brushMode === id}" data-testid="drawing-brush-mode-${id}">${label}</button>`).join('')}
+        </div>
+      </section>
       <section class="studio-drawing-shapes" aria-label="本地形状快捷项">
         <strong>形状</strong>
         <div class="studio-control-group studio-control-group-three">
@@ -2176,6 +2190,17 @@ function renderEditorToolControls(key) {
     };
     target.querySelector('[data-testid="drawing-brush-preset-soft"]')?.addEventListener('click', () => applyBrushPreset({ size: 40, softness: 70 }));
     target.querySelector('[data-testid="drawing-brush-preset-hard"]')?.addEventListener('click', () => applyBrushPreset({ size: 18, softness: 0 }));
+    target.querySelectorAll('[data-testid^="drawing-brush-mode-"]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.testid.replace('drawing-brush-mode-', '');
+        setToolAttributeValue('brush', 'mode', mode);
+        target.querySelectorAll('[data-testid^="drawing-brush-mode-"]').forEach((candidate) => {
+          const selected = candidate === button;
+          candidate.classList.toggle('is-selected', selected);
+          candidate.setAttribute('aria-pressed', String(selected));
+        });
+      });
+    });
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
       button.addEventListener('click', () => activateCoreTool(button.dataset.coreTool));
     });

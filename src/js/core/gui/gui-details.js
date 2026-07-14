@@ -708,6 +708,38 @@ class GUI_details_class {
 
 				item_row.appendChild($colorInput[0]);
 			}
+			else if (typeof item == 'object' && item != null && item.values != null) {
+				// Select attributes are stored as { value, values } in tool config.
+				// Keep that shape in the layer params so renderers can restore the
+				// selected mode without relying on the currently active UI.
+				const elementInput = document.createElement('select');
+				elementInput.dataset.key = k;
+				const values = typeof item.values === 'function' ? item.values() : item.values;
+				const current = typeof config.layer.params[k] === 'object'
+					? config.layer.params[k].value
+					: config.layer.params[k];
+				for (let value of values) {
+					const option = document.createElement('option');
+					option.value = value;
+					option.textContent = value;
+					option.selected = value === current;
+					elementInput.appendChild(option);
+				}
+				elementInput.addEventListener('change', function () {
+					const layer = config.layer;
+					const params = JSON.parse(JSON.stringify(layer.params));
+					if (typeof params[k] === 'object' && params[k] != null) {
+						params[k].value = this.value;
+					}
+					else {
+						params[k] = this.value;
+					}
+					app.State.do_action(
+						new app.Actions.Update_layer_action(layer.id, { params: params })
+					);
+				});
+				item_row.appendChild(elementInput);
+			}
 			else {
 				alertify.error('Error: unsupported attribute type:' + typeof item + ', ' + k);
 			}
