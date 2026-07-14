@@ -162,7 +162,7 @@
 | R-05 | Spot 方法 | 保留 | 可用 | 本地确定性邻域中值修复、三档质量、单次历史与 Undo 已由 E2E 验证 |
 | R-06 | Object 方法 | **排除** | 已移除 | Pixlr 官方当前将 Object Healing 归为 AI 辅助对象修复；不提供入口、模型或远程请求。来源：<https://pixlr.com/tools/heal-tool/> |
 | R-07 | Size | 保留 | 可用 | 半径影响范围 |
-| R-08 | Clone / repair / blur / sharpen / dodge / burn 子工具 | 保留 | 部分可用 | Spot、Clone、Blur、Sharpen、Dodge/Burn 均为本地笔刷；Dodge/Burn 已有暗部/中间调/高光范围并实际参与像素权重。Clone 的 Paint/Source 与 Aligned 交互仍待补齐 |
+| R-08 | Clone / repair / blur / sharpen / dodge / burn 子工具 | 保留 | 部分可用 | Spot、Clone、Blur、Sharpen、Dodge/Burn 均为本地笔刷；Dodge/Burn 已有暗部/中间调/高光范围并实际参与像素权重。Clone 可切换当前/下一图层来源、连续采样（Aligned），右键或长按采样点；连续采样的跨笔像素基准仍待补 |
 | R-09 | 锁定图层禁用 | 保留 | 可用 | UI 与动作双重拦截 |
 | R-10 | Close | 保留 | 可用 | 工具生命周期清理 |
 | R-11 | Repair 的 Speed / Balanced / Quality | 保留 | 可用 | 三档均为本地确定性中值采样窗口（3×3 / 5×5 / 7×7），不调用模型；切换与 Spot 修复由 E2E 验证 |

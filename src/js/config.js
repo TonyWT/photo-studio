@@ -420,6 +420,7 @@ config.TOOLS = [
 		attributes: {
 			size: 30,
 			anti_aliasing: true,
+			aligned: false,
 			source_layer: {
 				value: 'Current',
 				values: ['Current', 'Previous'],

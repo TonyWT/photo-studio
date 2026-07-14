@@ -1937,8 +1937,9 @@ function renderEditorToolControls(key) {
 	const dodgeBurnMode = dodgeBurnAttributes.mode?.value ?? 'dodge';
 	const dodgeBurnRange = dodgeBurnAttributes.range?.value ?? 'mid';
 	const repairQuality = repairAttributes.quality?.value ?? repairAttributes.quality ?? 'balanced';
-	const activeRetouchTool = window.AppConfig?.TOOL?.name ?? 'clone';
+    const activeRetouchTool = window.AppConfig?.TOOL?.name ?? 'clone';
     const source = cloneAttributes.source_layer?.value ?? 'Current';
+	const cloneAligned = Boolean(cloneAttributes.aligned);
     target.innerHTML = `
       <section class="studio-retouch-section" aria-label="本地修饰工具">
         <strong>工具</strong>
@@ -1982,6 +1983,7 @@ function renderEditorToolControls(key) {
             <option value="Previous" ${source === 'Previous' ? 'selected' : ''}>下一图层</option>
           </select>
         </label>
+		<label class="studio-control-check"><input type="checkbox" data-testid="retouch-clone-aligned" ${cloneAligned ? 'checked' : ''} ${disabled}>连续采样（Aligned）</label>
         <div class="studio-control-group studio-control-group-two" aria-label="其他本地修饰工具">
           <button type="button" class="${activeRetouchTool === 'sharpen' ? 'is-selected' : ''}" data-testid="retouch-sharpen" data-core-tool="sharpen"${disabled}>局部锐化</button>
 		  <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}>减淡</button>
@@ -1993,6 +1995,7 @@ function renderEditorToolControls(key) {
     const sizeInput = target.querySelector('[data-testid="retouch-size"]');
     const strengthInput = target.querySelector('[data-testid="retouch-blur-strength"]');
     const sourceInput = target.querySelector('[data-testid="retouch-clone-source"]');
+	const alignedInput = target.querySelector('[data-testid="retouch-clone-aligned"]');
     const advancedSettings = target.querySelector('.studio-retouch-advanced');
     advancedSettings?.addEventListener('toggle', () => {
       retouchAdvancedOpen = advancedSettings.open;
@@ -2024,6 +2027,7 @@ function renderEditorToolControls(key) {
 	  });
 	});
     sourceInput?.addEventListener('change', () => setToolAttributeValue('clone', 'source_layer', sourceInput.value));
+	alignedInput?.addEventListener('change', () => setToolAttribute('clone', 'aligned', alignedInput.checked));
 	target.querySelector('[data-testid="retouch-dodge"]')?.addEventListener('click', () => {
 	  setToolAttributeValue('dodge_burn', 'mode', 'dodge');
 	});

@@ -17,6 +17,8 @@ class Clone_class extends Base_tools_class {
 		this.tmpCanvasCtx = null;
 		this.started = false;
 		this.clone_coords = null;
+		this.stroke_clone_coords = null;
+		this.aligned_clone_coords = null;
 		this.pressTimer = null;
 	}
 
@@ -140,6 +142,7 @@ class Clone_class extends Base_tools_class {
 				x: mouse_x,
 				y: mouse_y,
 			};
+			this.aligned_clone_coords = null;
 			alertify.success('Source coordinates saved.');
 		}
 	}
@@ -167,6 +170,7 @@ class Clone_class extends Base_tools_class {
 			x: mouse_x,
 			y: mouse_y,
 		};
+		this.aligned_clone_coords = null;
 		alertify.success('Source coordinates saved.');
 	}
 
@@ -219,6 +223,12 @@ class Clone_class extends Base_tools_class {
 				return;
 			}
 		}
+		// With Aligned enabled, the next stroke resumes from where the previous
+		// stroke's source ended. Without it every stroke restarts at the sampled
+		// point, matching the conventional clone-stamp interaction.
+		this.stroke_clone_coords = params.aligned && this.aligned_clone_coords
+			? {...this.aligned_clone_coords}
+			: {...this.clone_coords};
 		this.started = true;
 
 		//get canvas from layer
@@ -260,6 +270,18 @@ class Clone_class extends Base_tools_class {
 		if (this.started == false) {
 			return;
 		}
+		var params = this.getParams();
+		if (params.aligned && this.stroke_clone_coords) {
+			var mouse = this.get_mouse_info(e);
+			var end_x = this.adaptSize(Math.round(mouse.x) - config.layer.x, 'width');
+			var end_y = this.adaptSize(Math.round(mouse.y) - config.layer.y, 'height');
+			var start_x = this.adaptSize(Math.round(mouse.click_x) - config.layer.x, 'width');
+			var start_y = this.adaptSize(Math.round(mouse.click_y) - config.layer.y, 'height');
+			this.aligned_clone_coords = {
+				x: Math.round(this.stroke_clone_coords.x + end_x - start_x),
+				y: Math.round(this.stroke_clone_coords.y + end_y - start_y),
+			};
+		}
 		delete config.layer.link_canvas;
 
 		app.State.do_action(
@@ -299,8 +321,9 @@ class Clone_class extends Base_tools_class {
 		canvas_source.height = h;
 
 		//add data
-		var x_from = Math.round(this.clone_coords.x - (mouse.click_x - mouse_x));
-		var y_from = Math.round(this.clone_coords.y - (mouse.click_y - mouse_y));
+		var source_coords = this.stroke_clone_coords || this.clone_coords;
+		var x_from = Math.round(source_coords.x - (mouse.click_x - mouse_x));
+		var y_from = Math.round(source_coords.y - (mouse.click_y - mouse_y));
 		if (params.anti_aliasing == false) {
 			ctx_source.arc(half, half, half, 0, Math.PI * 2, false);
 			ctx_source.clip();
@@ -308,8 +331,8 @@ class Clone_class extends Base_tools_class {
 		if (params.source_layer.value == 'Previous') {
 			var previous_layer = this.Base_layers.find_previous(config.layer.id);
 
-			x_from = Math.round(this.clone_coords.x - (mouse.click_x - mouse_x)) - previous_layer.x + config.layer.x;
-			y_from = Math.round(this.clone_coords.y - (mouse.click_y - mouse_y)) - previous_layer.y + config.layer.y;
+			x_from = Math.round(source_coords.x - (mouse.click_x - mouse_x)) - previous_layer.x + config.layer.x;
+			y_from = Math.round(source_coords.y - (mouse.click_y - mouse_y)) - previous_layer.y + config.layer.y;
 
 			ctx_source.drawImage(previous_layer.link, x_from - half, y_from - half, w, h, 0, 0, w, h);
 		}

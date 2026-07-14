@@ -2772,6 +2772,7 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
   await page.getByTestId('retouch-size').fill('21');
   await page.getByTestId('retouch-blur-strength').fill('64');
   await page.getByTestId('retouch-clone-source').selectOption('Previous');
+  await page.getByTestId('retouch-clone-aligned').check();
   await expect.poll(() => page.evaluate(() => ({
     cloneSize: window.AppConfig.TOOLS.find((tool) => tool.name === 'clone').attributes.size,
     blurSize: window.AppConfig.TOOLS.find((tool) => tool.name === 'blur').attributes.size,
@@ -2779,7 +2780,8 @@ test('Retouch 提供本地修饰并将局部去色写入可撤销历史', async 
     desaturateSize: window.AppConfig.TOOLS.find((tool) => tool.name === 'desaturate').attributes.size,
     blurStrength: window.AppConfig.TOOLS.find((tool) => tool.name === 'blur').attributes.strength,
     cloneSource: window.AppConfig.TOOLS.find((tool) => tool.name === 'clone').attributes.source_layer.value,
-  }))).toEqual({ cloneSize: 21, blurSize: 21, sharpenSize: 21, desaturateSize: 21, blurStrength: 0.64, cloneSource: 'Previous' });
+    cloneAligned: window.AppConfig.TOOLS.find((tool) => tool.name === 'clone').attributes.aligned,
+  }))).toEqual({ cloneSize: 21, blurSize: 21, sharpenSize: 21, desaturateSize: 21, blurStrength: 0.64, cloneSource: 'Previous', cloneAligned: true });
   await page.getByTestId('retouch-desaturate').click();
   await expect(page.locator('#tools_container .desaturate')).toHaveClass(/active/);
   await page.evaluate(() => {
