@@ -1183,6 +1183,10 @@ function renderEditorToolControls(key) {
         <button type="button" data-testid="crop-reset">重置选区</button>
         <button type="button" data-testid="crop-cancel">取消</button>
       </div>
+      <div class="studio-control-group studio-control-group-two" aria-label="图片与画布尺寸">
+        <button type="button" data-testid="crop-image-size" ${disabled}>图片尺寸</button>
+        <button type="button" data-testid="crop-canvas-size" ${disabled}>画布尺寸</button>
+      </div>
       <p class="studio-control-hint">在画布上拖出区域后应用；按住 Command 或 Ctrl 可保持原始比例。旋转和翻转会暂存到本次裁剪会话，应用时与裁剪合并为一个撤销步骤。</p>
     `;
     target.querySelector('[data-testid="crop-apply"]')?.addEventListener('click', async () => {
@@ -1202,6 +1206,12 @@ function renderEditorToolControls(key) {
       if (panel) panel.hidden = true;
       document.body.dataset.canvasToolMode = 'crop';
       updateCanvasStatus();
+    });
+    target.querySelector('[data-testid="crop-image-size"]')?.addEventListener('click', () => {
+      invokeEditorModule('image/resize', 'resize');
+    });
+    target.querySelector('[data-testid="crop-canvas-size"]')?.addEventListener('click', () => {
+      invokeEditorModule('image/size', 'size');
     });
     target.querySelector('[data-testid="crop-rotate-left"]')?.addEventListener('click', () => {
       crop?.rotate_pending?.('left');

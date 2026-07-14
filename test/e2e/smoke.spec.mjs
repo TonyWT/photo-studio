@@ -1548,6 +1548,47 @@ test('Crop 输出宽高会更新临时选区并在应用后写入画布尺寸', 
   await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([1920, 1080]);
 });
 
+test('Crop 提供本地 Image size 与 Canvas size 入口，并打开可提交的尺寸对话框', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-crop').click();
+  await expect(page.getByTestId('crop-image-size')).toBeVisible();
+  await expect(page.getByTestId('crop-canvas-size')).toBeVisible();
+
+  await page.getByTestId('crop-image-size').click();
+  await expect(page.getByRole('dialog').getByRole('heading', { name: /Resize|调整大小/i })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByTestId('crop-canvas-size').click();
+  await expect(page.getByRole('dialog').getByRole('heading', { name: /Canvas Size|画布尺寸/i })).toBeVisible();
+});
+
+test('Crop Image size 与 Canvas size 会真实改变尺寸，并各自支持撤销', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-crop').click();
+
+  await page.getByTestId('crop-image-size').click();
+  await page.locator('#pop_data_width').fill('1920');
+  await page.locator('#pop_data_height').fill('1440');
+  await page.getByRole('dialog').getByRole('button', { name: /确定|OK|Apply/i }).click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([1920, 1440]);
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([3840, 2880]);
+
+  await page.getByTestId('tool-crop').click();
+  await page.getByTestId('crop-canvas-size').click();
+  await page.locator('#pop_data_w').fill('4000');
+  await page.locator('#pop_data_h').fill('3000');
+  await page.getByRole('dialog').getByRole('button', { name: /确定|OK|Apply/i }).click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([4000, 3000]);
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => [window.AppConfig.WIDTH, window.AppConfig.HEIGHT])).toEqual([3840, 2880]);
+});
+
 test('Crop 会话内的旋转和翻转仅作为临时变换，应用后以一个可撤销操作提交', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);
