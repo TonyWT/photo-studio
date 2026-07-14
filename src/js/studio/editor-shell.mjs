@@ -39,6 +39,7 @@ let cutoutSelection = {
   inverted: false,
   softness: 'none',
   hintRemoved: false,
+  advancedOpen: false,
   regions: [],
 };
 let cutoutPointer = null;
@@ -377,7 +378,7 @@ function currentCutoutRegions() {
 function resetCutoutSelection() {
   const previousMode = cutoutSelection.mode;
   cutoutSelection = {
-    mode: 'selection', operation: 'replace', intent: 'keep', inverted: false, softness: 'none', hintRemoved: false, regions: [],
+    mode: 'selection', operation: 'replace', intent: 'keep', inverted: false, softness: 'none', hintRemoved: false, advancedOpen: false, regions: [],
   };
   removeCutoutHintOverlay();
   const selection = getCoreToolModule('selection');
@@ -1498,20 +1499,23 @@ function renderEditorToolControls(key) {
       <span>Hint removed</span><span class="studio-cutout-hint-toggle-knob" aria-hidden="true"></span>
     </button>
     ` : ''}
-    <div class="studio-control-group studio-control-group-two" aria-label="选区操作">
-      <button type="button"${operationClass('replace')} data-cutout-operation="replace" data-testid="cutout-operation-replace">新选区</button>
-      <button type="button"${operationClass('add')} data-cutout-operation="add" data-testid="cutout-operation-add">加选</button>
-      <button type="button"${operationClass('subtract')} data-cutout-operation="subtract" data-testid="cutout-operation-subtract">减选</button>
-      <button type="button" aria-pressed="${cutoutSelection.inverted}"${cutoutSelection.inverted ? ' class="is-selected"' : ''} data-testid="cutout-invert">反选</button>
-    </div>
     <div class="studio-control-group studio-control-group-two" aria-label="抠图模式">
       <button type="button" aria-pressed="${cutoutSelection.intent === 'keep'}"${cutoutSelection.intent === 'keep' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="keep" data-testid="cutout-keep-selection">保留</button>
       <button type="button" aria-pressed="${cutoutSelection.intent === 'remove'}"${cutoutSelection.intent === 'remove' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="remove" data-testid="cutout-remove-selection">移除</button>
     </div>
-    <div class="studio-control-group studio-control-group-two" aria-label="抠图应用">
+    <button type="button" class="studio-cutout-full-action${cutoutSelection.inverted ? ' is-selected' : ''}" aria-pressed="${cutoutSelection.inverted}" data-testid="cutout-invert">反选抠图</button>
+    <div class="studio-cutout-primary-actions" aria-label="抠图应用">
+      <button type="button" data-testid="cutout-reset-selection">重置抠图</button>
       <button type="button"${disabledAttribute} data-testid="cutout-apply-selection">应用抠图</button>
-      <button type="button" data-testid="cutout-reset-selection">重置选区</button>
     </div>
+    <details class="studio-cutout-advanced" data-testid="cutout-selection-advanced"${cutoutSelection.advancedOpen ? ' open' : ''}>
+      <summary>更多选区操作</summary>
+      <div class="studio-control-group studio-control-group-three" aria-label="高级选区操作">
+        <button type="button"${operationClass('replace')} data-cutout-operation="replace" data-testid="cutout-operation-replace">新选区</button>
+        <button type="button"${operationClass('add')} data-cutout-operation="add" data-testid="cutout-operation-add">加选</button>
+        <button type="button"${operationClass('subtract')} data-cutout-operation="subtract" data-testid="cutout-operation-subtract">减选</button>
+      </div>
+    </details>
   `;
   const tolerance = target.querySelector('[data-testid="cutout-tolerance"]');
   const output = target.querySelector('[data-cutout-tolerance-output]');
@@ -1563,6 +1567,10 @@ function renderEditorToolControls(key) {
   target.querySelector('[data-testid="cutout-apply-selection"]')?.addEventListener('click', () => applyCutoutSelection(cutoutSelection.intent));
   target.querySelector('[data-testid="cutout-reset-selection"]')?.addEventListener('click', () => {
     resetCutoutSelection();
+    renderEditorToolControls('cutout');
+  });
+  target.querySelector('[data-testid="cutout-selection-advanced"]')?.addEventListener('toggle', (event) => {
+    cutoutSelection.advancedOpen = event.currentTarget.open;
   });
   target.querySelectorAll('[data-cutout-operation]').forEach((button) => {
     button.addEventListener('click', () => {
