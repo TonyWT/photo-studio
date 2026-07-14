@@ -1308,12 +1308,53 @@ test('桌面已加载图片状态提供图层收起与可撤销锁定', async ({
   await expect(page.locator('body')).toHaveClass(/layers-collapsed/);
 });
 
-test('Effect 从工具面板打开本地效果浏览器', async ({ page }) => {
+test('Effect 提供分类卡、真实本地预设，并保留全部效果浏览器', async ({ page }) => {
   await openHome(page);
-  await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
   await expect(page).toHaveURL(/\/editor\/$/);
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-effect').click();
+  const categories = page.locator('.studio-effect-category');
+  await expect(categories).toHaveCount(5);
+  await expect(page.getByTestId('effect-category-retro').locator('img')).toHaveAttribute('src', /^data:image\//);
+  await page.getByTestId('effect-category-mono').click();
+  await expect(page.getByTestId('effect-category-back')).toBeVisible();
+  await expect(page.locator('.studio-effect-preset')).toHaveCount(4);
+  const before = await page.evaluate(() => ({
+    historyIndex: window.app.State.action_history_index,
+    pixelHash: (() => {
+      const image = window.AppConfig.layer.link;
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(image, 0, 0);
+      return Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data).join(',');
+    })(),
+  }));
+  await page.getByTestId('effect-preset-mono-black_and_white').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.locator('[data-id="popup_ok"]').click();
+  await expect.poll(() => page.evaluate(() => window.app.State.action_history_index)).toBe(before.historyIndex + 1);
+  await expect.poll(() => page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    return Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data).join(',');
+  })).not.toBe(before.pixelHash);
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    return Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data).join(',');
+  })).toBe(before.pixelHash);
   await page.getByTestId('effect-browser').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('heading', { name: '特效浏览器' })).toBeVisible();

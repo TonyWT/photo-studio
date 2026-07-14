@@ -76,6 +76,80 @@ const TEXT_STYLE_PRESETS = Object.freeze([
   },
 ]);
 let activeTextPresetId = null;
+const EFFECT_CATEGORIES = Object.freeze([
+  {
+    id: 'mono',
+    label: '单色',
+    description: '黑白、铅笔与高对比画面。',
+    previewClass: 'mono',
+    effects: [
+      ['黑白', 'effects/black_and_white', 'black_and_white'],
+      ['铅笔', 'effects/pencil', 'pencil'],
+      ['边缘', 'effects/edge', 'edge'],
+      ['浮雕', 'effects/emboss', 'emboss'],
+    ],
+  },
+  {
+    id: 'color',
+    label: '色彩',
+    description: '提升饱和度、色相和综合色彩。',
+    previewClass: 'color',
+    effects: [
+      ['增强', 'effects/enrich', 'enrich'],
+      ['着色', 'effects/colorize', 'colorize'],
+      ['鲜艳', 'effects/vibrance', 'vibrance'],
+      ['热力图', 'effects/heatmap', 'heatmap'],
+    ],
+  },
+  {
+    id: 'retro',
+    label: '复古',
+    description: '颗粒、暗角与胶片色调。',
+    previewClass: 'retro',
+    effects: [
+      ['复古', 'effects/vintage', 'vintage'],
+      ['颗粒', 'effects/grains', 'grains'],
+      ['暗角', 'effects/vignette', 'vignette'],
+      ['1977', 'effects/instagram/1977', '1977'],
+      ['Aden', 'effects/instagram/aden', 'aden'],
+      ['Clarendon', 'effects/instagram/clarendon', 'clarendon'],
+      ['Gingham', 'effects/instagram/gingham', 'gingham'],
+      ['Inkwell', 'effects/instagram/inkwell', 'inkwell'],
+      ['Lofi', 'effects/instagram/lofi', 'lofi'],
+      ['Toaster', 'effects/instagram/toaster', 'toaster'],
+      ['Valencia', 'effects/instagram/valencia', 'valencia'],
+      ['Xpro2', 'effects/instagram/xpro2', 'xpro2'],
+    ],
+  },
+  {
+    id: 'creative',
+    label: '创意',
+    description: '像素、马赛克、油画与夜视。',
+    previewClass: 'creative',
+    effects: [
+      ['蓝图', 'effects/blueprint', 'blueprint'],
+      ['抖动', 'effects/dither', 'dither'],
+      ['点阵', 'effects/dot_screen', 'dot_screen'],
+      ['马赛克', 'effects/mosaic', 'mosaic'],
+      ['夜视', 'effects/night_vision', 'night_vision'],
+      ['油画', 'effects/oil', 'oil'],
+      ['太阳化', 'effects/solarize', 'solarize'],
+    ],
+  },
+  {
+    id: 'focus',
+    label: '焦点',
+    description: '局部柔化、变焦和降噪。',
+    previewClass: 'focus',
+    effects: [
+      ['方框模糊', 'effects/box_blur', 'box_blur'],
+      ['倾斜移轴', 'effects/tilt_shift', 'tilt_shift'],
+      ['变焦模糊', 'effects/zoom_blur', 'zoom_blur'],
+      ['降噪', 'effects/denoise', 'denoise'],
+    ],
+  },
+]);
+let activeEffectCategoryId = null;
 
 const EXPORT_TYPES = Object.freeze({
   png: 'PNG - Portable Network Graphics',
@@ -1547,14 +1621,44 @@ function renderEditorToolControls(key) {
 
   if (key === 'effect') {
     const effectDisabled = activeImageLayerIsEditable() ? '' : ' disabled aria-disabled="true"';
+    const layer = window.AppConfig?.layer;
+    const previewSource = typeof layer?.link?.src === 'string' && layer.link.src.startsWith('data:image/')
+      ? layer.link.src
+      : '';
+    const activeCategory = EFFECT_CATEGORIES.find((category) => category.id === activeEffectCategoryId) ?? null;
+    const categoryCards = EFFECT_CATEGORIES.map((category) => `<button type="button" class="studio-effect-category studio-effect-category--${category.previewClass}${activeCategory?.id === category.id ? ' is-selected' : ''}" data-testid="effect-category-${category.id}"${effectDisabled}>
+      <span class="studio-effect-category-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
+      <span class="studio-effect-category-copy"><strong>${category.label}</strong><small>${category.effects.length} 个本地效果</small></span>
+    </button>`).join('');
+    const effectCards = activeCategory?.effects.map(([label, path, method]) => `<button type="button" class="studio-effect-preset studio-effect-preset--${activeCategory.previewClass}" data-testid="effect-preset-${activeCategory.id}-${method}" data-effect-path="${path}" data-effect-method="${method}"${effectDisabled}>
+      <span>${label}</span><small>本地预览与应用</small>
+    </button>`).join('') ?? '';
     target.innerHTML = `
-      <p class="studio-control-hint">效果会先在本地预览；确认后才写入图层历史，可随时取消或撤销。</p>
-      <div class="studio-control-group studio-control-group-two" aria-label="本地效果">
-        <button type="button" data-testid="effect-browser"${effectDisabled}>浏览本地效果</button>
+      ${activeCategory ? `<div class="studio-effect-category-heading"><button type="button" data-testid="effect-category-back">‹ 返回分类</button><strong>${activeCategory.label}</strong></div>
+        <div class="studio-effect-preset-grid" aria-label="${activeCategory.label}本地效果">${effectCards}</div>` : `<div class="studio-effect-category-grid" aria-label="本地效果分类">${categoryCards}</div>`}
+      <div class="studio-control-group studio-control-group-two" aria-label="全部本地效果与常用参数">
+        <button type="button" data-testid="effect-browser"${effectDisabled}>全部本地效果</button>
         <button type="button" data-testid="effect-contrast"${effectDisabled}>对比度</button>
         <button type="button" data-testid="effect-blur"${effectDisabled}>模糊</button>
       </div>
     `;
+    target.querySelectorAll('.studio-effect-category[data-testid]')?.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!activeImageLayerIsEditable()) return;
+        activeEffectCategoryId = button.dataset.testid.replace('effect-category-', '');
+        renderEditorToolControls('effect');
+      });
+    });
+    target.querySelector('[data-testid="effect-category-back"]')?.addEventListener('click', () => {
+      activeEffectCategoryId = null;
+      renderEditorToolControls('effect');
+    });
+    target.querySelectorAll('[data-effect-path][data-effect-method]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!activeImageLayerIsEditable()) return;
+        invokeEditorModule(button.dataset.effectPath, button.dataset.effectMethod);
+      });
+    });
     target.querySelector('[data-testid="effect-browser"]')?.addEventListener('click', () => {
       if (activeImageLayerIsEditable()) invokeEditorModule('effects/browser', 'browser');
     });
