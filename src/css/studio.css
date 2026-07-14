@@ -77,6 +77,23 @@ body.photo-studio-editor .studio-control-number { display: grid; gap: 6px; color
 body.photo-studio-editor .studio-control-select select,
 body.photo-studio-editor .studio-control-number input { min-height: 30px; border: 1px solid #474747; border-radius: 4px; color: #e4e4e4; background: #303030; font: inherit; }
 body.photo-studio-editor .studio-control-group-three { grid-template-columns: repeat(3, 1fr); }
+body.photo-studio-editor .studio-adjust-presets { margin-bottom: 2px; }
+body.photo-studio-editor .studio-adjust-section { display: grid; gap: 11px; padding: 14px 12px 13px; border: 1px solid #383838; border-radius: 8px; background: #282828; }
+body.photo-studio-editor .studio-adjust-section-heading { display: flex; align-items: center; justify-content: space-between; color: #e1e1e1; font-size: 14px; }
+body.photo-studio-editor .studio-adjust-section-heading button { min-height: 24px; padding: 0 7px; border: 1px solid #484848; border-radius: 4px; color: #bdbdbd; background: #303030; font: 11px/1 inherit; cursor: pointer; }
+body.photo-studio-editor .studio-adjust-section-heading button:hover { border-color: #00a9df; color: #fff; }
+body.photo-studio-editor .studio-adjust-range { gap: 5px; color: #d0d0d0; }
+body.photo-studio-editor .studio-adjust-range output { color: #b9b9b9; font-variant-numeric: tabular-nums; }
+body.photo-studio-editor .studio-adjust-range input { appearance: none; height: 4px; border-radius: 99px; background: #4c4c4c; accent-color: #9c9c9c; }
+body.photo-studio-editor .studio-adjust-range input::-webkit-slider-thumb { width: 14px; height: 14px; border: 2px solid #a9a9a9; border-radius: 50%; background: #303030; cursor: pointer; -webkit-appearance: none; }
+body.photo-studio-editor .studio-adjust-range--vibrance input { background: linear-gradient(90deg, #6b4547, #d82832); }
+body.photo-studio-editor .studio-adjust-range--saturation input { background: linear-gradient(90deg, #477da2, #70a84c, #e0b226, #b54648); }
+body.photo-studio-editor .studio-adjust-range--temperature input { background: linear-gradient(90deg, #2789bd, #bbbc36); }
+body.photo-studio-editor .studio-adjust-range--tint input { background: linear-gradient(90deg, #a4479b, #4ca769); }
+body.photo-studio-editor .studio-adjust-range--hue input { background: linear-gradient(90deg, #d4392c, #d7bd27, #45a74c, #2d8fbe, #9f4caa, #d4392c); }
+body.photo-studio-editor .studio-adjust-range--brightness input,
+body.photo-studio-editor .studio-adjust-range--exposure input,
+body.photo-studio-editor .studio-adjust-range--contrast input { background: linear-gradient(90deg, #4c4c4c, #acacac); }
 body.photo-studio-editor .studio-control-hint { margin: 0; color: #898989; font-size: 11px; line-height: 1.5; }
 body.photo-studio-editor .studio-control-status { margin: 0; padding: 9px; border: 1px solid #3d3d3d; border-radius: 5px; color: #bcbcbc; background: #1e1e1e; font-size: 12px; line-height: 1.5; }
 body.photo-studio-editor .studio-control-status.is-available { border-color: #226a80; color: #b7e7f6; }

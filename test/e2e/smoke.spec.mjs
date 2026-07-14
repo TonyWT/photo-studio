@@ -1125,6 +1125,43 @@ test('Adjust 的自动修正会实际写入图片编辑历史', async ({ page })
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThan(historyBefore);
 });
 
+test('Adjust 面板提供 Color、Light 的对应滑杆，并将面板值带入本地预览和重置', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-adjust').click();
+
+  for (const testId of [
+    'adjust-vibrance', 'adjust-saturation', 'adjust-temperature', 'adjust-tint', 'adjust-hue',
+    'adjust-brightness', 'adjust-exposure', 'adjust-contrast',
+  ]) {
+    await expect(page.getByTestId(testId)).toBeVisible();
+  }
+  await page.getByTestId('adjust-vibrance').fill('20');
+  await page.getByTestId('adjust-saturation').fill('24');
+  await page.getByTestId('adjust-temperature').fill('30');
+  await page.getByTestId('adjust-tint').fill('-10');
+  await page.getByTestId('adjust-hue').fill('15');
+  await page.getByTestId('adjust-brightness').fill('8');
+  await page.getByTestId('adjust-exposure').fill('12');
+  await page.getByTestId('adjust-contrast').fill('18');
+  await page.getByTestId('adjust-preview-apply').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('#pop_data_param_s')).toHaveValue('34');
+  await expect(dialog.locator('#pop_data_param_red')).toHaveValue('20');
+  await expect(dialog.locator('#pop_data_param_green')).toHaveValue('10');
+  await expect(dialog.locator('#pop_data_param_blue')).toHaveValue('-40');
+  await expect(dialog.locator('#pop_data_param_b')).toHaveValue('8');
+  await expect(dialog.locator('#pop_data_param_l')).toHaveValue('12');
+  await expect(dialog.locator('#pop_data_param_c')).toHaveValue('18');
+  await dialog.locator('[data-id="popup_cancel"]').click();
+  await page.getByTestId('adjust-reset-panel').click();
+  await expect(page.getByTestId('adjust-vibrance')).toHaveValue('0');
+  await expect(page.getByTestId('adjust-contrast')).toHaveValue('0');
+});
+
 test('Adjust 预览对话框提供真实 Compare 和 Reset，不在确认前写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);

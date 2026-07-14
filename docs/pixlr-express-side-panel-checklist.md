@@ -78,15 +78,15 @@
 | J-01 | Auto | 保留 | 可用 | 像素变化与撤销 |
 | J-02 | B&W | 保留 | 可用 | 灰阶像素与撤销 |
 | J-03 | Pop | 保留 | 可用 | 像素变化与撤销 |
-| J-04 | Vibrance | 保留 | 部分可用 | 滑杆预览、Compare/Reset、Apply |
-| J-05 | Saturation | 保留 | 部分可用 | 同上 |
-| J-06 | Temperature | 保留 | 部分可用 | 同上 |
-| J-07 | Tint | 保留 | 部分可用 | 同上 |
-| J-08 | Hue | 保留 | 部分可用 | 同上 |
-| J-09 | Brightness | 保留 | 部分可用 | 同上 |
-| J-10 | Exposure | 保留 | 部分可用 | 同上 |
-| J-11 | Contrast | 保留 | 部分可用 | 同上 |
-| J-12 | Color / Light 分组折叠或设置入口 | 保留 | 待补 | 与参考一致的展开状态 |
+| J-04 | Vibrance | 保留 | 部分可用 | 面板值映射到本地 Saturation 预览；独立 vibrance 算法待补 |
+| J-05 | Saturation | 保留 | 可用 | 滑杆值进入本地 Compare/Reset/Apply 对话框 |
+| J-06 | Temperature | 保留 | 可用 | 滑杆值映射到本地 RGB 色温预览与 Apply |
+| J-07 | Tint | 保留 | 可用 | 滑杆值映射到本地 RGB 色调预览与 Apply |
+| J-08 | Hue | 保留 | 可用 | 滑杆值进入本地 Hue 预览与 Apply |
+| J-09 | Brightness | 保留 | 可用 | 滑杆值进入本地 Brightness 预览与 Apply |
+| J-10 | Exposure | 保留 | 可用 | 滑杆值进入本地 Luminance 预览与 Apply |
+| J-11 | Contrast | 保留 | 可用 | 滑杆值进入本地 Contrast 预览与 Apply |
+| J-12 | Color / Light 分组折叠或设置入口 | 保留 | 可用 | Color/Light 分组、对应高级入口和重置/预览应用入口已提供 |
 | J-13 | 截图下方未显示的 Light 项 | 待取证 | 未枚举 | 完整滚动取证后逐项新增 |
 | J-14 | Details 分组 | 保留 | 部分可用 | 锐化/清晰度等真实本地像素结果 |
 | J-15 | Scene 分组 | 保留 | 部分可用 | 真实本地像素结果 |

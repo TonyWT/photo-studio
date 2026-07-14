@@ -42,6 +42,17 @@ export function shouldUseWebGL2(canvas) {
 let currentProjectId = null;
 let currentProjectName = '未命名项目';
 let collageWorkspace = null;
+const ADJUST_PANEL_DEFAULTS = Object.freeze({
+  vibrance: 0,
+  saturation: 0,
+  temperature: 0,
+  tint: 0,
+  hue: 0,
+  brightness: 0,
+  exposure: 0,
+  contrast: 0,
+});
+let adjustPanelValues = { ...ADJUST_PANEL_DEFAULTS };
 
 const EXPORT_TYPES = Object.freeze({
   png: 'PNG - Portable Network Graphics',
@@ -63,6 +74,27 @@ function updateCanvasStatus() {
   if (zoom && window.AppConfig?.ZOOM) {
     zoom.textContent = `${Math.round(window.AppConfig.ZOOM * 100)}%`;
   }
+}
+
+function getAdjustPreviewDefaults() {
+  const values = adjustPanelValues;
+  return {
+    param_b: values.brightness,
+    param_c: values.contrast,
+    param_s: Math.max(-100, Math.min(100, Math.round(values.saturation + values.vibrance / 2))),
+    param_h: values.hue,
+    param_l: values.exposure,
+    param_red: Math.max(-255, Math.min(255, values.temperature + values.tint)),
+    param_green: Math.max(-255, Math.min(255, -values.tint)),
+    param_blue: Math.max(-255, Math.min(255, -values.temperature + values.tint)),
+  };
+}
+
+function renderAdjustRange({ key, label, min = -100, max = 100 }) {
+  const value = adjustPanelValues[key] ?? 0;
+  return `<label class="studio-control-range studio-adjust-range studio-adjust-range--${key}">${label} <output data-adjust-output="${key}">${value}</output>
+    <input type="range" min="${min}" max="${max}" value="${value}" data-adjust-value="${key}" data-testid="adjust-${key}">
+  </label>`;
 }
 
 function findToolConfig(name) {
@@ -1172,15 +1204,33 @@ function renderEditorToolControls(key) {
 
   if (key === 'adjust') {
     target.innerHTML = `
-      <p class="studio-control-hint">所有调整都在当前浏览器本地预览；应用后可从底部撤销。仅未锁定的图片图层可编辑。</p>
-      <div class="studio-control-group studio-control-group-two" aria-label="本地调整工作台">
+      <p class="studio-control-hint">所有调整都在当前浏览器本地预览；预览/应用后可从底部撤销。仅未锁定的图片图层可编辑。</p>
+      <div class="studio-control-group studio-control-group-three studio-adjust-presets" aria-label="快捷调整">
         <button type="button" data-testid="adjust-auto">Auto</button>
         <button type="button" data-testid="adjust-bw">B&amp;W</button>
         <button type="button" data-testid="adjust-pop">Pop</button>
-        <button type="button" data-testid="adjust-color">Color</button>
-        <button type="button" data-testid="adjust-light">Light</button>
+      </div>
+      <section class="studio-adjust-section" aria-label="Color">
+        <div class="studio-adjust-section-heading"><strong>Color</strong><button type="button" data-testid="adjust-color">高级色彩</button></div>
+        ${renderAdjustRange({ key: 'vibrance', label: 'Vibrance' })}
+        ${renderAdjustRange({ key: 'saturation', label: 'Saturation' })}
+        ${renderAdjustRange({ key: 'temperature', label: 'Temperature' })}
+        ${renderAdjustRange({ key: 'tint', label: 'Tint' })}
+        ${renderAdjustRange({ key: 'hue', label: 'Hue', min: -180, max: 180 })}
+      </section>
+      <section class="studio-adjust-section" aria-label="Light">
+        <div class="studio-adjust-section-heading"><strong>Light</strong><button type="button" data-testid="adjust-light">高级光线</button></div>
+        ${renderAdjustRange({ key: 'brightness', label: 'Brightness' })}
+        ${renderAdjustRange({ key: 'exposure', label: 'Exposure' })}
+        ${renderAdjustRange({ key: 'contrast', label: 'Contrast' })}
+      </section>
+      <div class="studio-control-group studio-control-group-two" aria-label="细节与场景">
         <button type="button" data-testid="adjust-details">Details</button>
         <button type="button" data-testid="adjust-scene">Scene</button>
+      </div>
+      <div class="studio-control-group studio-control-group-two" aria-label="调整应用">
+        <button type="button" data-testid="adjust-reset-panel">重置</button>
+        <button type="button" data-testid="adjust-preview-apply">预览并应用</button>
       </div>
     `;
     const adjustments = {
@@ -1203,6 +1253,27 @@ function renderEditorToolControls(key) {
         invokeEditableImageModule(path, method, options);
       });
     }
+    target.querySelectorAll('[data-adjust-value]').forEach((input) => {
+      input.addEventListener('input', () => {
+        const value = Number(input.value);
+        adjustPanelValues[input.dataset.adjustValue] = Number.isFinite(value) ? value : 0;
+        const output = target.querySelector(`[data-adjust-output="${input.dataset.adjustValue}"]`);
+        if (output) {
+          output.value = String(adjustPanelValues[input.dataset.adjustValue]);
+          output.textContent = String(adjustPanelValues[input.dataset.adjustValue]);
+        }
+      });
+    });
+    target.querySelector('[data-testid="adjust-reset-panel"]')?.addEventListener('click', () => {
+      adjustPanelValues = { ...ADJUST_PANEL_DEFAULTS };
+      renderEditorToolControls('adjust');
+    });
+    target.querySelector('[data-testid="adjust-preview-apply"]')?.addEventListener('click', () => {
+      invokeEditableImageModule('image/color_corrections', 'color_corrections', {
+        title: 'Adjust Preview',
+        defaults: getAdjustPreviewDefaults(),
+      });
+    });
     return;
   }
 
