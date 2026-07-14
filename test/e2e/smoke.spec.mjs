@@ -1396,6 +1396,19 @@ test('Effect 更新已有实时效果时撤销会恢复原有参数', async ({ p
   ]);
 });
 
+test('Filter 以当前本地图片生成可点击的卡片预览，而非静态素材占位', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-filter').click();
+  const cards = page.locator('.studio-filter-card');
+  await expect(cards).toHaveCount(6);
+  const hdr = page.getByTestId('filter-hdr');
+  await expect(hdr).toHaveClass(/studio-filter-card/);
+  await expect(hdr.locator('img')).toHaveAttribute('src', /^data:image\//);
+});
+
 test('六项滤镜均在非均匀样图上实际提交，且撤销恢复原始像素', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);

@@ -1548,16 +1548,23 @@ function renderEditorToolControls(key) {
     const layer = window.AppConfig?.layer;
     const filterIsEditable = Boolean(layer && layer.type === 'image' && !layer.locked);
     const filterDisabled = filterIsEditable ? '' : ' disabled aria-disabled="true"';
+    const previewSource = typeof layer?.link?.src === 'string' && layer.link.src.startsWith('data:image/')
+      ? layer.link.src
+      : '';
+    const filterCards = [
+      ['filter-hdr', 'HDR', '提升局部明暗与照片层次。'],
+      ['filter-focus-bokeh', 'Focus / Bokeh', '创建局部焦点和背景虚化。'],
+      ['filter-reflect', 'Reflect', '在本地图片上构建反射效果。'],
+      ['filter-dispersion', 'Dispersion', '生成本地像素分散效果。'],
+      ['filter-glitch', 'Glitch', '生成本地故障艺术效果。'],
+      ['filter-colorize', 'Colorize', '以可配置色彩重新着色。'],
+    ].map(([testId, title, description]) => `<button type="button" class="studio-filter-card studio-filter-card--${testId.replace('filter-', '')}" data-testid="${testId}"${filterDisabled}>
+      <span class="studio-filter-card-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
+      <span class="studio-filter-card-copy"><strong>${title}</strong><small>${description}</small></span>
+    </button>`).join('');
     target.innerHTML = `
       <p class="studio-control-hint">所有滤镜均在当前浏览器中本地处理，应用后可通过底部撤销恢复。</p>
-      <div class="studio-control-group studio-control-group-two" aria-label="本地滤镜工作台">
-        <button type="button" data-testid="filter-hdr"${filterDisabled}>HDR</button>
-        <button type="button" data-testid="filter-focus-bokeh"${filterDisabled}>Focus / Bokeh</button>
-        <button type="button" data-testid="filter-reflect"${filterDisabled}>Reflect</button>
-        <button type="button" data-testid="filter-dispersion"${filterDisabled}>Dispersion</button>
-        <button type="button" data-testid="filter-glitch"${filterDisabled}>Glitch</button>
-        <button type="button" data-testid="filter-colorize"${filterDisabled}>Colorize</button>
-      </div>
+      <div class="studio-filter-card-list" aria-label="本地滤镜工作台">${filterCards}</div>
     `;
     const localFilters = {
       'filter-hdr': ['effects/enrich', 'enrich'],
