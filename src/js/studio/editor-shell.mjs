@@ -1803,11 +1803,10 @@ function renderEditorToolControls(key) {
           <input type="range" min="-45" max="45" step="0.1" value="${straighten}" data-testid="crop-straighten" ${disabled}>
         </label>
       </div>
-      <div class="studio-control-group studio-control-group-two" aria-label="裁剪操作">
-        <button type="button" data-testid="crop-apply" ${disabled}>应用裁剪</button>
-        <button type="button" data-testid="crop-reset">重置选区</button>
+      <footer class="studio-crop-panel-footer" data-testid="crop-panel-footer" aria-label="裁剪操作">
         <button type="button" data-testid="crop-cancel">取消</button>
-      </div>
+        <button type="button" data-testid="crop-apply" ${disabled}>应用</button>
+      </footer>
       <div class="studio-control-group studio-control-group-two" aria-label="图片与画布尺寸">
         <button type="button" data-testid="crop-image-size" ${disabled}>图片尺寸</button>
         <button type="button" data-testid="crop-canvas-size" ${disabled}>画布尺寸</button>

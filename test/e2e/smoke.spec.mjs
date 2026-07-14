@@ -1960,6 +1960,25 @@ test('Crop 的应用按钮会按当前裁剪选区改变画布尺寸并保留所
   })).toEqual(expectedPixel);
 });
 
+test('Crop 固定操作区将取消和应用固定在编辑器状态栏上方', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'crop-footer.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-crop').click();
+
+  const footer = page.getByTestId('crop-panel-footer');
+  await expect(footer).toBeVisible();
+  await expect(footer.locator('button')).toHaveCount(2);
+  const bounds = await footer.boundingBox();
+  const viewport = page.viewportSize();
+  expect(bounds).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(Math.round(bounds.y + bounds.height)).toBe(viewport.height - 56);
+  await footer.getByTestId('crop-cancel').click();
+  await expect(page.getByTestId('editor-tool-panel')).toBeHidden();
+});
+
 test('裁剪后的 PNG 导出可解码，并保留当前画布的精确 RGBA 像素', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'export-crop.png', mimeType: 'image/png', buffer: samplePng });

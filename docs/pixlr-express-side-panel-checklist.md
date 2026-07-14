@@ -74,7 +74,7 @@
 | C-12 | Image size | 保留 | 可用：打开本地 Resize 对话框，重采样所有图层与画布尺寸；指定尺寸和 Undo 已验证 | 导出尺寸/不同重采样模式基准 |
 | C-13 | Canvas size | 保留 | 可用：打开本地 Canvas Size 对话框；指定尺寸和 Undo 已验证 | 画布扩展/收缩后的多图层位置基准 |
 | C-14 | Smart resize | **排除** | 已移除 | Pixlr 官方将 Smart Resize 描述为 AI Image Resizer；本项目不提供入口、模型或远程请求。来源：<https://pixlr.com/ai/ai-image-resizer/> |
-| C-15 | Cancel / Apply | 保留 | 可用 | Cancel 零历史，Apply 一条原子历史 |
+| C-15 | Cancel / Apply | 保留 | 可用：底部固定 Cancel / Apply 区位于编辑器状态栏上方；Cancel 丢弃临时裁剪会话并关闭面板，Apply 保持单条原子历史 | Chromium E2E 断言固定底栏几何、Cancel 零历史、Apply 一条原子历史 |
 
 ## S-02 Cutout
 
