@@ -627,6 +627,43 @@ test('手动 Cutout 会先选择 Keep/Remove 模式，再由 Apply cutout 单次
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
 });
 
+test('手动 Cutout 的 Hint removed 只在本地预览即将移除区域，不写入历史', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-cutout').click();
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds.x + bounds.width * 0.28, bounds.y + bounds.height * 0.28);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.58, bounds.y + bounds.height * 0.58);
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => {
+    const selection = window.app.GUI.GUI_tools.tools_modules.selection.object.selection;
+    return Boolean(selection?.width && selection?.height);
+  })).toBe(true);
+
+  const history = await page.evaluate(() => window.State.action_history.length);
+  await expect(page.getByTestId('cutout-hint-removed')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByTestId('cutout-hint-removed').click();
+  await expect(page.getByTestId('cutout-hint-removed')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cutout-hint-overlay')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const overlay = document.querySelector('[data-testid="cutout-hint-overlay"]');
+    if (!(overlay instanceof HTMLCanvasElement)) return 0;
+    return overlay.getContext('2d').getImageData(0, 0, overlay.width, overlay.height).data
+      .filter((_, index) => index % 4 === 3)
+      .reduce((sum, alpha) => sum + alpha, 0);
+  })).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history);
+  await page.getByTestId('cutout-hint-removed').click();
+  await expect(page.getByTestId('cutout-hint-removed')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('cutout-hint-overlay')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history);
+});
+
 test('手动 Cutout 的三角、星形、心形与直线选区会生成对应本地遮罩，且 Keep 可撤销', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);

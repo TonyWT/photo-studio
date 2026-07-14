@@ -70,6 +70,14 @@ body.photo-studio-editor .studio-control-group-four { grid-template-columns: rep
 body.photo-studio-editor .studio-cutout-tool-section { display: grid; gap: 8px; padding: 10px 0; border-bottom: 1px solid #3a3a3a; }
 body.photo-studio-editor .studio-cutout-tool-section > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-cutout-tool-section + .studio-control-group { margin-top: 10px; }
+body.photo-studio-editor .studio-cutout-hint-toggle { display: flex; width: 100%; min-height: 36px; align-items: center; justify-content: space-between; padding: 0 10px; border: 1px solid #474747; border-radius: 5px; color: #c8c8c8; background: #303030; font: 12px/1 inherit; cursor: pointer; }
+body.photo-studio-editor .studio-cutout-hint-toggle:hover { border-color: #666; color: #fff; }
+body.photo-studio-editor .studio-cutout-hint-toggle-knob { position: relative; width: 30px; height: 16px; border-radius: 10px; background: #595959; transition: background .12s ease; }
+body.photo-studio-editor .studio-cutout-hint-toggle-knob::after { position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; border-radius: 50%; background: #c5c5c5; content: ''; transition: transform .12s ease, background .12s ease; }
+body.photo-studio-editor .studio-cutout-hint-toggle.is-selected { border-color: #00a9df; color: #fff; background: #17465a; }
+body.photo-studio-editor .studio-cutout-hint-toggle.is-selected .studio-cutout-hint-toggle-knob { background: #00a9df; }
+body.photo-studio-editor .studio-cutout-hint-toggle.is-selected .studio-cutout-hint-toggle-knob::after { transform: translateX(14px); background: #fff; }
+body.photo-studio-editor .studio-cutout-hint-overlay { position: absolute; z-index: 4; display: block; box-sizing: border-box; pointer-events: none; }
 body.photo-studio-editor .studio-drawing-palette { display: grid; gap: 7px; padding: 9px 0; border-bottom: 1px solid #3a3a3a; }
 body.photo-studio-editor .studio-drawing-palette > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-drawing-palette-swatches { display: flex; flex-wrap: wrap; gap: 7px; }

@@ -38,6 +38,7 @@ let cutoutSelection = {
   intent: 'keep',
   inverted: false,
   softness: 'none',
+  hintRemoved: false,
   regions: [],
 };
 let cutoutPointer = null;
@@ -376,8 +377,9 @@ function currentCutoutRegions() {
 function resetCutoutSelection() {
   const previousMode = cutoutSelection.mode;
   cutoutSelection = {
-    mode: 'selection', operation: 'replace', intent: 'keep', inverted: false, softness: 'none', regions: [],
+    mode: 'selection', operation: 'replace', intent: 'keep', inverted: false, softness: 'none', hintRemoved: false, regions: [],
   };
+  removeCutoutHintOverlay();
   const selection = getCoreToolModule('selection');
   // A custom mask must never mutate miniPaint's rectangle-selection state.
   // Only an explicit reset while using the native rectangle mode clears it.
@@ -404,6 +406,7 @@ function addCutoutRegion(region) {
   } else {
     cutoutSelection.regions.push({ ...region, operation: cutoutSelection.operation });
   }
+  renderCutoutHintOverlay();
   window.AppConfig.need_render = true;
 }
 
@@ -534,6 +537,71 @@ function createCutoutMask(regions, layer, inverted) {
   return inverse;
 }
 
+function invertCutoutMask(mask) {
+  const inverse = document.createElement('canvas');
+  inverse.width = mask.width;
+  inverse.height = mask.height;
+  const context = inverse.getContext('2d');
+  context.fillStyle = '#fff';
+  context.fillRect(0, 0, inverse.width, inverse.height);
+  context.globalCompositeOperation = 'destination-out';
+  context.drawImage(mask, 0, 0);
+  return inverse;
+}
+
+function removeCutoutHintOverlay() {
+  document.querySelector('[data-testid="cutout-hint-overlay"]')?.remove();
+}
+
+function renderCutoutHintOverlay() {
+  removeCutoutHintOverlay();
+  if (!cutoutSelection.hintRemoved || !activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return;
+  const regions = currentCutoutRegions();
+  const layer = window.AppConfig?.layer;
+  const canvas = document.getElementById('canvas_minipaint');
+  const wrapper = document.getElementById('canvas_wrapper');
+  if (!canvas || !wrapper || !layer || regions.length === 0) return;
+
+  const selectedMask = createCutoutMask(regions, layer, cutoutSelection.inverted);
+  if (!selectedMask) return;
+  // Keep preserves the selected part, so its removed preview is the inverse.
+  // Remove does the opposite and previews the selected part itself.
+  const removedMask = cutoutSelection.intent === 'keep'
+    ? invertCutoutMask(selectedMask)
+    : selectedMask;
+  const overlay = document.createElement('canvas');
+  overlay.dataset.testid = 'cutout-hint-overlay';
+  overlay.className = 'studio-cutout-hint-overlay';
+  overlay.width = canvas.width;
+  overlay.height = canvas.height;
+  const context = overlay.getContext('2d');
+  const documentMask = document.createElement('canvas');
+  documentMask.width = overlay.width;
+  documentMask.height = overlay.height;
+  documentMask.getContext('2d').drawImage(removedMask, layer.x, layer.y, layer.width, layer.height);
+
+  // Pixlr calls this Hint removed: retain a faint local ghost of the source
+  // while darkening exactly the pixels that the staged cutout would remove.
+  context.fillStyle = '#0d0d0d';
+  context.fillRect(0, 0, overlay.width, overlay.height);
+  context.globalCompositeOperation = 'destination-in';
+  context.drawImage(documentMask, 0, 0);
+  context.globalCompositeOperation = 'source-over';
+  context.globalAlpha = 0.33;
+  context.drawImage(layer.link, layer.x, layer.y, layer.width, layer.height);
+  context.globalCompositeOperation = 'destination-in';
+  context.drawImage(documentMask, 0, 0);
+  context.globalCompositeOperation = 'source-over';
+  context.globalAlpha = 1;
+
+  const canvasStyle = getComputedStyle(canvas);
+  overlay.style.left = `${canvas.offsetLeft}px`;
+  overlay.style.top = `${canvas.offsetTop}px`;
+  overlay.style.width = canvasStyle.width;
+  overlay.style.height = canvasStyle.height;
+  wrapper.append(overlay);
+}
+
 async function applyCutoutSelection(intent) {
   if (!activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return false;
   const regions = currentCutoutRegions();
@@ -552,6 +620,8 @@ async function applyCutoutSelection(intent) {
   context.drawImage(mask, 0, 0);
   context.globalCompositeOperation = 'source-over';
   await window.State.do_action(new window.app.Actions.Update_layer_image_action(result));
+  cutoutSelection.hintRemoved = false;
+  removeCutoutHintOverlay();
   if (cutoutSelection.regions.length === 0) {
     const selection = getCoreToolModule('selection');
     if (selection?.selection) {
@@ -1423,6 +1493,11 @@ function renderEditorToolControls(key) {
       <button type="button"${cutoutSelection.softness === 'medium' ? ' class="is-selected"' : ''} data-cutout-softness="medium" data-testid="cutout-softness-medium">Medium</button>
     </div>
     ` : ''}
+    ${(cutoutFamily === 'shape' || cutoutFamily === 'lasso') ? `
+    <button type="button"${disabledAttribute} class="studio-cutout-hint-toggle${cutoutSelection.hintRemoved ? ' is-selected' : ''}" aria-pressed="${cutoutSelection.hintRemoved}" data-testid="cutout-hint-removed">
+      <span>Hint removed</span><span class="studio-cutout-hint-toggle-knob" aria-hidden="true"></span>
+    </button>
+    ` : ''}
     <div class="studio-control-group studio-control-group-two" aria-label="选区操作">
       <button type="button"${operationClass('replace')} data-cutout-operation="replace" data-testid="cutout-operation-replace">新选区</button>
       <button type="button"${operationClass('add')} data-cutout-operation="add" data-testid="cutout-operation-add">加选</button>
@@ -1465,6 +1540,7 @@ function renderEditorToolControls(key) {
       cutoutSelection.softness = button.dataset.cutoutSoftness;
       setToolAttribute('magic_erase', 'anti_aliasing', cutoutSelection.softness !== 'none');
       target.querySelectorAll('[data-cutout-softness]').forEach((item) => item.classList.toggle('is-selected', item === button));
+      renderCutoutHintOverlay();
     });
   });
   target.querySelectorAll('[data-cutout-intent]').forEach((button) => {
@@ -1475,7 +1551,14 @@ function renderEditorToolControls(key) {
         item.setAttribute('aria-pressed', String(selected));
         item.classList.toggle('is-selected', selected);
       });
+      renderCutoutHintOverlay();
     });
+  });
+  target.querySelector('[data-testid="cutout-hint-removed"]')?.addEventListener('click', (event) => {
+    cutoutSelection.hintRemoved = !cutoutSelection.hintRemoved;
+    event.currentTarget.setAttribute('aria-pressed', String(cutoutSelection.hintRemoved));
+    event.currentTarget.classList.toggle('is-selected', cutoutSelection.hintRemoved);
+    renderCutoutHintOverlay();
   });
   target.querySelector('[data-testid="cutout-apply-selection"]')?.addEventListener('click', () => applyCutoutSelection(cutoutSelection.intent));
   target.querySelector('[data-testid="cutout-reset-selection"]')?.addEventListener('click', () => {
@@ -1485,12 +1568,14 @@ function renderEditorToolControls(key) {
     button.addEventListener('click', () => {
       cutoutSelection.operation = button.dataset.cutoutOperation;
       target.querySelectorAll('[data-cutout-operation]').forEach((item) => item.classList.toggle('is-selected', item === button));
+      renderCutoutHintOverlay();
     });
   });
   target.querySelector('[data-testid="cutout-invert"]')?.addEventListener('click', (event) => {
     cutoutSelection.inverted = !cutoutSelection.inverted;
     event.currentTarget.setAttribute('aria-pressed', String(cutoutSelection.inverted));
     event.currentTarget.classList.toggle('is-selected', cutoutSelection.inverted);
+    renderCutoutHintOverlay();
   });
   target.querySelectorAll('[data-cutout-mode]').forEach((button) => {
     button.addEventListener('click', async () => {
@@ -2434,7 +2519,10 @@ async function restoreHandoff() {
 async function activateEditorTool(key) {
   const tool = EDITOR_TOOL_REGISTRY[key];
   if (!tool) return;
-  if (key !== 'cutout') uninstallCutoutCoreEventShield();
+  if (key !== 'cutout') {
+    uninstallCutoutCoreEventShield();
+    removeCutoutHintOverlay();
+  }
   const panel = document.querySelector('[data-testid="editor-tool-panel"]');
   const title = document.querySelector('[data-editor-tool-title]');
   const description = document.querySelector('[data-editor-tool-description]');
@@ -2489,6 +2577,7 @@ function bindWorkbenchControls() {
     const panel = document.querySelector('[data-testid="editor-tool-panel"]');
     if (panel) panel.hidden = true;
     document.body.classList.remove('studio-tool-panel-open');
+    removeCutoutHintOverlay();
     syncCanvasInteractionOffset();
   });
 
@@ -2529,6 +2618,7 @@ function bindWorkbenchControls() {
   });
   document.querySelector('[data-editor-zoom="out"]')?.addEventListener('click', () => document.getElementById('zoom_less')?.click());
   document.querySelector('[data-editor-zoom="in"]')?.addEventListener('click', () => document.getElementById('zoom_more')?.click());
+  window.addEventListener('resize', renderCutoutHintOverlay);
   document.querySelector('[data-testid="export-image"]')?.addEventListener('click', exportImage);
   document.querySelector('[data-testid="export-project"]')?.addEventListener('click', exportNativeProject);
   document.querySelector('[data-testid="layers-rail-close"]')?.addEventListener('click', (event) => {

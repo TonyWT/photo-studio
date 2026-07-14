@@ -43,6 +43,7 @@ test.describe('1920 × 878 已加载图片工作台', () => {
     await expect(page).toHaveURL(/\/editor\/$/);
     await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
     await page.evaluate(() => window.app.GUI.GUI_preview.zoom(26));
+    await expect(page.getByTestId('editor-zoom')).toHaveText('26%');
     await page.getByTestId('tool-drawing').click();
     await expect(page.getByTestId('drawing-brush-mode-plain')).toBeVisible();
     await expect(page).toHaveScreenshot('editor-drawing.png', { animations: 'disabled', maxDiffPixelRatio: 0.01 });
