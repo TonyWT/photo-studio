@@ -9,7 +9,11 @@ config.WIDTH = null;
 config.HEIGHT = null;
 config.visible_width = null;
 config.visible_height = null;
-config.COLOR = '#008000';
+// Draw starts from a neutral white foreground like the reference workspace.
+// This is only the initial tool colour; users can still choose any local
+// swatch or native picker value and it is persisted by the existing project
+// state.
+config.COLOR = '#ffffff';
 config.ALPHA = 255;
 config.ZOOM = 1;
 config.SNAP = true;

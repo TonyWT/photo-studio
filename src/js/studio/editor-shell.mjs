@@ -2300,14 +2300,11 @@ function renderEditorToolControls(key) {
     const brushSoftness = findToolConfig('brush')?.attributes?.softness ?? 20;
     const brushMode = findToolConfig('brush')?.attributes?.mode?.value ?? findToolConfig('brush')?.attributes?.mode ?? 'plain';
     const opacity = Math.round((window.AppConfig?.ALPHA ?? 255) / 255 * 100);
-    const color = window.AppConfig?.COLOR ?? '#008000';
+    const color = window.AppConfig?.COLOR ?? '#ffffff';
     target.innerHTML = `
-      <button type="button" class="studio-drawing-layer-create" data-testid="drawing-new-layer">
-        <span><strong>添加新图层</strong><small>新建空白绘制图层</small></span>
-      </button>
       <section class="studio-drawing-tools" aria-label="本地绘制工具">
         <strong>工具</strong>
-        <div class="studio-control-group studio-control-group-five" data-testid="drawing-primary-tools">
+        <div class="studio-control-group studio-drawing-primary-grid" data-testid="drawing-primary-tools">
           <button type="button" data-testid="drawing-brush" data-core-tool="brush" aria-label="画笔" title="画笔"><img src="../images/icons/brush.svg" alt=""><span class="sr_only">画笔</span></button>
           <button type="button" data-testid="drawing-eraser" data-core-tool="erase" aria-label="橡皮" title="橡皮"><img src="../images/icons/erase.svg" alt=""><span class="sr_only">橡皮</span></button>
           <button type="button" data-testid="drawing-pen" data-core-tool="pencil" aria-label="笔" title="笔"><img src="../images/icons/pencil.svg" alt=""><span class="sr_only">笔</span></button>
@@ -2315,15 +2312,9 @@ function renderEditorToolControls(key) {
           <button type="button" data-testid="drawing-shape" data-core-tool="shape" aria-label="形状" title="形状"><img src="../images/icons/shape.svg" alt=""><span class="sr_only">形状</span></button>
         </div>
       </section>
-      <label class="studio-control-color">颜色
+      <label class="studio-control-color studio-drawing-color">颜色
         <input type="color" value="${color}" data-testid="drawing-color">
       </label>
-      <section class="studio-drawing-palette" aria-label="本地调色板">
-        <strong>色样</strong>
-        <div class="studio-drawing-palette-swatches">
-          ${DRAWING_PALETTE.map(([id, value, label]) => `<button type="button" class="${color.toLowerCase() === value ? 'is-selected' : ''}" style="--drawing-swatch:${value}" data-testid="drawing-palette-${id}" aria-label="${label}" title="${label}"></button>`).join('')}
-        </div>
-      </section>
       <label class="studio-control-range">笔触尺寸 <output data-drawing-size-output>${brushSize}px</output>
         <input type="range" min="1" max="100" value="${brushSize}" data-testid="drawing-size">
       </label>
@@ -2333,6 +2324,12 @@ function renderEditorToolControls(key) {
       <label class="studio-control-range">不透明度 <output data-drawing-opacity-output>${opacity}%</output>
         <input type="range" min="1" max="100" value="${opacity}" data-testid="drawing-opacity">
       </label>
+      <section class="studio-drawing-palette" aria-label="本地调色板">
+        <strong>色样</strong>
+        <div class="studio-drawing-palette-swatches">
+          ${DRAWING_PALETTE.map(([id, value, label]) => `<button type="button" class="${color.toLowerCase() === value ? 'is-selected' : ''}" style="--drawing-swatch:${value}" data-testid="drawing-palette-${id}" aria-label="${label}" title="${label}"></button>`).join('')}
+        </div>
+      </section>
       <div class="studio-control-group studio-control-group-two" aria-label="本地笔刷预设">
         <button type="button" class="${brushSoftness >= 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-soft">柔边</button>
         <button type="button" class="${brushSoftness < 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-hard">硬圆</button>
@@ -2361,6 +2358,9 @@ function renderEditorToolControls(key) {
           <button type="button" data-testid="drawing-shape-line" data-core-tool="line">直线</button>
         </div>
       </section>
+      <button type="button" class="studio-drawing-layer-create" data-testid="drawing-new-layer">
+        <span><strong>添加新图层</strong><small>新建空白绘制图层</small></span>
+      </button>
     `;
     const colorInput = target.querySelector('[data-testid="drawing-color"]');
     const sizeInput = target.querySelector('[data-testid="drawing-size"]');
