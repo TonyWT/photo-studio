@@ -4342,6 +4342,30 @@ test('Text 的新增文字入口明确展示默认文字说明', async ({ page }
   await expect(create).toContainText('默认文字');
 });
 
+test('Text 首屏预设卡保持参考面板的浏览密度', async ({ page }) => {
+  await page.goto('/editor/');
+  await page.getByTestId('tool-text').click();
+  const geometry = await page.evaluate(() => {
+    const box = (selector) => {
+      const { top, bottom, height } = document.querySelector(selector).getBoundingClientRect();
+      return { top, bottom, height };
+    };
+    const create = box('[data-testid="text-create"]');
+    const first = box('.studio-text-preset:nth-child(1)');
+    const third = box('.studio-text-preset:nth-child(3)');
+    return {
+      firstHeight: first.height,
+      createToGridGap: first.top - create.bottom,
+      rowGap: third.top - first.bottom,
+    };
+  });
+  expect(geometry).toEqual({
+    firstHeight: 118,
+    createToGridGap: 49,
+    rowGap: 14,
+  });
+});
+
 test('Text 提供原创本地样式预设卡，并真实写回可编辑文字工具配置', async ({ page }) => {
   await page.goto('/editor/');
   await page.getByTestId('tool-text').click();
