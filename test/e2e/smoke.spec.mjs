@@ -2859,6 +2859,46 @@ test('Drawing 铅笔笔触会写入本地像素，并可通过撤销精确恢复
   await expect.poll(strokeRegionHash).toBe(before);
 });
 
+test('Drawing 填充会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'fill-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-fill').click();
+  await expect(page.locator('#tools_container .fill')).toHaveClass(/active/);
+
+  const centerPixel = () => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  });
+  const before = await centerPixel();
+  expect(before).toEqual([20, 30, 40, 255]);
+  const history = await page.evaluate(() => window.State.action_history.length);
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
+  await expect.poll(centerPixel).toEqual([217, 70, 239, 255]);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(centerPixel).toEqual(before);
+});
+
 test('Drawing 填充不会修改锁定图片图层或写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });
