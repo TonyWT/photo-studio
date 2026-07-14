@@ -20,6 +20,8 @@
 - [P2] 底栏额外显示“保存项目”，这是本地优先产品的必要能力；后续将它与导出收束为更紧凑的保存组，减少与参考的密度差异。
 - [P2] 各工具参数面板的深度和控件密度尚未完全对齐，优先继续补齐 Cutout、Adjust、Effect、Filter、Liquify、Retouch、Drawing、Text 的真实能力。
 
+- 2026-07-15：Adjust 面板的 Cancel / Apply 已改为固定在编辑器底栏上方的双按钮区；Cancel 会关闭面板、丢弃尚未应用的滑杆值且不写历史，Apply 进入既有的本地 Compare / Reset / Confirm 预览流程。Chromium E2E 固定断言该操作区底边与状态栏相邻。截图级的图标密度仍属于上述 P2 项，未据此宣称完整视觉验收。
+
 ## 功能验证证据
 
 - 固定图片打开、图层缩略图、锁定并撤销、收起图层轨：`test/e2e/smoke.spec.mjs`。

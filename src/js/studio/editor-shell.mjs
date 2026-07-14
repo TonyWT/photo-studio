@@ -1692,10 +1692,10 @@ function renderEditorToolControls(key) {
         ${renderAdjustRange({ key: 'bloom', label: 'Bloom', min: 0, max: 100 })}
         ${renderAdjustRange({ key: 'dehaze', label: 'Dehaze', min: 0, max: 100 })}
       </section>
-      <div class="studio-control-group studio-control-group-two" aria-label="调整应用">
-        <button type="button" data-testid="adjust-reset-panel">重置</button>
-        <button type="button" data-testid="adjust-preview-apply">预览并应用</button>
-      </div>
+      <footer class="studio-adjust-panel-footer" data-testid="adjust-panel-footer" aria-label="调整操作">
+        <button type="button" data-testid="adjust-cancel">取消</button>
+        <button type="button" data-testid="adjust-apply">应用</button>
+      </footer>
     `;
     const adjustments = {
       'adjust-auto': ['image/auto_adjust', 'auto_adjust'],
@@ -1728,11 +1728,14 @@ function renderEditorToolControls(key) {
         }
       });
     });
-    target.querySelector('[data-testid="adjust-reset-panel"]')?.addEventListener('click', () => {
+    target.querySelector('[data-testid="adjust-cancel"]')?.addEventListener('click', () => {
       adjustPanelValues = { ...ADJUST_PANEL_DEFAULTS };
-      renderEditorToolControls('adjust');
+      const panel = document.querySelector('[data-testid="editor-tool-panel"]');
+      if (panel) panel.hidden = true;
+      document.body.classList.remove('studio-tool-panel-open');
+      syncCanvasInteractionOffset();
     });
-    target.querySelector('[data-testid="adjust-preview-apply"]')?.addEventListener('click', () => {
+    target.querySelector('[data-testid="adjust-apply"]')?.addEventListener('click', () => {
       invokeEditableImageModule('image/color_corrections', 'color_corrections', {
         title: 'Adjust Preview',
         defaults: getAdjustPreviewDefaults(),

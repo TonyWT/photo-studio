@@ -1251,7 +1251,7 @@ test('Adjust 面板提供 Color、Light 的对应滑杆，并将面板值带入�
   await page.getByTestId('adjust-brightness').fill('8');
   await page.getByTestId('adjust-exposure').fill('12');
   await page.getByTestId('adjust-contrast').fill('18');
-  await page.getByTestId('adjust-preview-apply').click();
+  await page.getByTestId('adjust-apply').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expect(dialog.locator('#pop_data_param_v')).toHaveValue('20');
@@ -1263,9 +1263,37 @@ test('Adjust 面板提供 Color、Light 的对应滑杆，并将面板值带入�
   await expect(dialog.locator('#pop_data_param_l')).toHaveValue('12');
   await expect(dialog.locator('#pop_data_param_c')).toHaveValue('18');
   await dialog.locator('[data-id="popup_cancel"]').click();
-  await page.getByTestId('adjust-reset-panel').click();
+  await page.getByTestId('adjust-cancel').click();
+  await expect(page.getByTestId('editor-tool-panel')).toBeHidden();
+  await page.getByTestId('tool-adjust').click();
   await expect(page.getByTestId('adjust-vibrance')).toHaveValue('0');
   await expect(page.getByTestId('adjust-contrast')).toHaveValue('0');
+});
+
+test('Adjust 固定操作区取消会关闭面板并丢弃未应用的滑杆值', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-adjust').click();
+
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+  await expect(page.getByTestId('adjust-brightness')).toBeVisible();
+  await page.getByTestId('adjust-brightness').fill('28');
+  await expect(page.getByTestId('adjust-panel-footer')).toBeVisible();
+  const footer = await page.getByTestId('adjust-panel-footer').boundingBox();
+  const viewport = page.viewportSize();
+  expect(footer).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(Math.round(footer.y + footer.height)).toBe(viewport.height - 56);
+  await page.getByTestId('adjust-cancel').click();
+  await expect(page.getByTestId('editor-tool-panel')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+
+  await page.getByTestId('tool-adjust').click();
+  await expect(page.getByTestId('adjust-brightness')).toHaveValue('0');
+  await page.getByTestId('adjust-apply').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
 });
 
 test('Adjust 补齐 Light、Details、Scene 的 13 条本地滑杆，并能预览应用后撤销', async ({ page }) => {
@@ -1290,7 +1318,7 @@ test('Adjust 补齐 Light、Details、Scene 的 13 条本地滑杆，并能预�
     historyIndex: await page.evaluate(() => window.app.State.action_history_index),
     pixels: await page.evaluate(readActiveLayerPixelHash),
   };
-  await page.getByTestId('adjust-preview-apply').click();
+  await page.getByTestId('adjust-apply').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.locator('#pop_data_param_black')).toHaveValue('-20');
   await expect(dialog.locator('#pop_data_param_white')).toHaveValue('18');
@@ -1335,7 +1363,7 @@ test('Adjust 的 Vibrance 独立于 Saturation 写入本地像素并可撤销', 
     return Array.from(context.getImageData(0, 0, 1, 1).data);
   });
   await page.getByTestId('adjust-vibrance').fill('100');
-  await page.getByTestId('adjust-preview-apply').click();
+  await page.getByTestId('adjust-apply').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.locator('#pop_data_param_v')).toHaveValue('100');
   await expect(dialog.locator('#pop_data_param_s')).toHaveValue('0');
