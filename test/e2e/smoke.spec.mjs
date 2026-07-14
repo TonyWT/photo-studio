@@ -3467,7 +3467,7 @@ test('Text 提供原创本地样式预设卡，并真实写回可编辑文字工
   await page.goto('/editor/');
   await page.getByTestId('tool-text').click();
   const presets = page.locator('.studio-text-preset');
-  await expect(presets).toHaveCount(4);
+  await expect(presets).toHaveCount(8);
   await page.getByTestId('text-preset-poster').click();
   await expect(page.getByTestId('text-preset-poster')).toHaveClass(/is-selected/);
   await expect(page.getByTestId('text-font')).toHaveValue('Arial');

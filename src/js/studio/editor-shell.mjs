@@ -74,6 +74,26 @@ const TEXT_STYLE_PRESETS = Object.freeze([
     italic: false, underline: true, align: 'center', stroke: '#713f12', stroke_size: 1,
     shadow_enabled: false, shadow_color: '#000000', shadow_blur: 4,
   },
+  {
+    id: 'ocean', label: 'OCEAN', font: 'Verdana', size: 48, fill: '#60a5fa', bold: true,
+    italic: false, underline: false, align: 'center', stroke: '#082f49', stroke_size: 1,
+    shadow_enabled: true, shadow_color: '#0c4a6e', shadow_blur: 5,
+  },
+  {
+    id: 'sunrise', label: 'SUN', font: 'Arial', size: 60, fill: '#fb7185', bold: true,
+    italic: true, underline: false, align: 'center', stroke: '#7c2d12', stroke_size: 1,
+    shadow_enabled: true, shadow_color: '#f97316', shadow_blur: 4,
+  },
+  {
+    id: 'signal', label: 'SIGNAL', font: 'Verdana', size: 42, fill: '#a3e635', bold: true,
+    italic: false, underline: false, align: 'left', stroke: '#1a2e05', stroke_size: 2,
+    shadow_enabled: false, shadow_color: '#000000', shadow_blur: 4,
+  },
+  {
+    id: 'classic', label: 'CLASSIC', font: 'Arial', size: 46, fill: '#f5f5f4', bold: false,
+    italic: false, underline: true, align: 'center', stroke: '#57534e', stroke_size: 1,
+    shadow_enabled: true, shadow_color: '#292524', shadow_blur: 4,
+  },
 ]);
 let activeTextPresetId = null;
 const EFFECT_CATEGORIES = Object.freeze([
