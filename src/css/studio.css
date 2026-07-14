@@ -67,6 +67,8 @@ body.photo-studio-editor .studio-tool-controls { display: grid; gap: 9px; margin
 body.photo-studio-editor .studio-control-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 body.photo-studio-editor .studio-control-group-two { grid-template-columns: repeat(2, 1fr); }
 body.photo-studio-editor .studio-control-group-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+body.photo-studio-editor .studio-control-group-five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+body.photo-studio-editor .studio-control-group-five button { min-width: 0; padding: 4px 1px; font-size: 10px; }
 body.photo-studio-editor .studio-cutout-tool-section { display: grid; gap: 8px; padding: 10px 0; border-bottom: 1px solid #3a3a3a; }
 body.photo-studio-editor .studio-cutout-tool-section > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-cutout-tool-section + .studio-control-group { margin-top: 10px; }
@@ -102,6 +104,8 @@ body.photo-studio-editor .studio-drawing-tools { display: grid; gap: 7px; paddin
 body.photo-studio-editor .studio-drawing-tools > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-drawing-brush-modes { display: grid; gap: 7px; padding: 9px 0; border-top: 1px solid #3a3a3a; }
 body.photo-studio-editor .studio-drawing-brush-modes > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
+body.photo-studio-editor .studio-drawing-advanced-tools { display: grid; gap: 7px; padding: 9px 0; border-top: 1px solid #3a3a3a; }
+body.photo-studio-editor .studio-drawing-advanced-tools > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
 body.photo-studio-editor .studio-control-group button { min-height: 34px; border: 1px solid #474747; border-radius: 5px; color: #c8c8c8; background: #303030; font: 12px/1 inherit; cursor: pointer; }
 body.photo-studio-editor .studio-control-group button:hover,
 body.photo-studio-editor .studio-control-group button.is-selected { border-color: #00a9df; color: #fff; background: #17465a; }

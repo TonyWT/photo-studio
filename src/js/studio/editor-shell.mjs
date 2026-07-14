@@ -2255,13 +2255,11 @@ function renderEditorToolControls(key) {
       </button>
       <section class="studio-drawing-tools" aria-label="本地绘制工具">
         <strong>工具</strong>
-        <div class="studio-control-group studio-control-group-two">
+        <div class="studio-control-group studio-control-group-five" data-testid="drawing-primary-tools">
           <button type="button" data-testid="drawing-brush" data-core-tool="brush">画笔</button>
           <button type="button" data-testid="drawing-eraser" data-core-tool="erase">橡皮</button>
-          <button type="button" data-testid="drawing-eyedropper" data-core-tool="pick_color">取色</button>
-          <button type="button" data-testid="drawing-pencil" data-core-tool="pencil">铅笔</button>
+          <button type="button" data-testid="drawing-pen" data-core-tool="pencil">笔</button>
           <button type="button" data-testid="drawing-fill" data-core-tool="fill">填充</button>
-          <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">渐变</button>
           <button type="button" data-testid="drawing-shape" data-core-tool="shape">形状</button>
         </div>
       </section>
@@ -2291,6 +2289,13 @@ function renderEditorToolControls(key) {
         <strong>笔刷模式</strong>
         <div class="studio-control-group studio-control-group-two">
           ${DRAWING_BRUSH_MODES.map(([id, label]) => `<button type="button" class="${brushMode === id ? 'is-selected' : ''}" aria-pressed="${brushMode === id}" data-testid="drawing-brush-mode-${id}">${label}</button>`).join('')}
+        </div>
+      </section>
+      <section class="studio-drawing-advanced-tools" aria-label="其他本地绘制工具">
+        <strong>其他本地工具</strong>
+        <div class="studio-control-group studio-control-group-two">
+          <button type="button" data-testid="drawing-eyedropper" data-core-tool="pick_color">取色</button>
+          <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">渐变</button>
         </div>
       </section>
       <section class="studio-drawing-shapes" aria-label="本地形状快捷项">
