@@ -25,6 +25,34 @@ test('工作台选中工具使用中性底色，不显示青色侧边条', async
 test.describe('1920 × 878 已加载图片工作台', () => {
   test.use({ viewport: { width: 1920, height: 878 } });
 
+  const sidebarVisualBaselines = [
+    ['Crop', 'crop'],
+    ['Cutout', 'cutout'],
+    ['Adjust', 'adjust'],
+    ['Effect', 'effect'],
+    ['Filter', 'filter'],
+    ['Liquify', 'liquify'],
+    ['Retouch', 'retouch'],
+    ['Text', 'text'],
+  ];
+
+  for (const [label, key] of sidebarVisualBaselines) {
+    test(`${label} 侧栏视觉基准`, async ({ page }) => {
+      await page.goto('/');
+      await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+      await expect(page).toHaveURL(/\/editor\/$/);
+      await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+      await page.getByTestId(`tool-${key}`).click();
+      await expect(page.getByTestId('editor-tool-panel')).toBeVisible();
+      // A side panel changes the available workspace. Freeze the reference
+      // state only after that layout transition, matching the user's desktop
+      // screenshots at the same document scale.
+      await page.evaluate(() => window.app.GUI.GUI_preview.zoom(26));
+      await expect(page.getByTestId('editor-zoom')).toHaveText('26%');
+      await expect(page).toHaveScreenshot(`editor-${key}.png`, { animations: 'disabled', maxDiffPixelRatio: 0.01 });
+    });
+  }
+
   test('编辑器已加载本地图像视觉基准', async ({ page }) => {
     await page.goto('/');
     await page.getByTestId('image-picker').setInputFiles(desktopFixture);
