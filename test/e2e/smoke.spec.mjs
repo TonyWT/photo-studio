@@ -436,6 +436,43 @@ test('导入合法原生项目后选择 PNG 会下载图片而不是 JSON', asyn
   expect(download.suggestedFilename()).not.toMatch(/\.json$/);
 });
 
+test('原生项目导出并导入会保留文字、锁定图层与参考线', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'roundtrip-source.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig?.layer?.link?.naturalWidth))).toBe(true);
+  await page.getByTestId('tool-text').click();
+  await expect(page.getByTestId('text-create')).toBeVisible();
+  await page.getByTestId('text-create').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 1, y: 1 } });
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layers.some((layer) => layer.type === 'text'))).toBe(true);
+  await page.locator('#text_tool_keyboard_input').fill('Project Round Trip');
+  await page.locator('#text_tool_keyboard_input').blur();
+  await page.locator('.layers_list .item.active').getByTestId('layer-lock').click();
+  await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.locked))).toBe(true);
+  await page.evaluate(() => {
+    window.AppConfig.guides = [{ x: 1, y: null }, { x: null, y: 1 }];
+    window.AppConfig.guides_enabled = true;
+  });
+
+  await openSaveMenu(page);
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId('export-project').click();
+  const download = await downloadPromise;
+  await openHome(page);
+  await page.getByTestId('project-picker').setInputFiles(await download.path());
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => window.AppConfig ? ({
+    hasText: window.AppConfig.layers.some((layer) => layer.type === 'text'),
+    lockedText: window.AppConfig.layers.some((layer) => layer.type === 'text' && layer.locked),
+    guides: window.AppConfig.guides,
+  }) : null)).toEqual({
+    hasText: true,
+    lockedText: true,
+    guides: [{ x: 1, y: null }, { x: null, y: 1 }],
+  });
+});
+
 test('导入无效项目不会离开首页并显示本地错误', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('project-picker').setInputFiles({

@@ -43,6 +43,9 @@ export class Insert_layer_action extends Base_action {
 			height: null,
 			height_original: null,
 			visible: true,
+			// Persisted project documents may carry edit protection. Keep it as a
+			// first-class layer field so JSON import does not silently unlock layers.
+			locked: false,
 			is_vector: false,
 			hide_selection_if_active: false,
 			opacity: 100,
