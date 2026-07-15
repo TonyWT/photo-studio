@@ -3288,6 +3288,34 @@ test('Arrange 可重命名、自由变换和添加可撤销的基础 Frame，锁
   await expect(page.getByTestId('arrange-delete')).toBeDisabled();
 });
 
+test('Arrange 可将活动图层下移，并以撤销/重做恢复图层顺序', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-arrange').click();
+  await expect(page.getByTestId('arrange-duplicate')).toBeVisible();
+  await page.getByTestId('arrange-duplicate').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layers.length)).toBe(2);
+
+  const before = await page.evaluate(() => ({
+    activeId: window.AppConfig.layer.id,
+    orders: window.AppConfig.layers.map((layer) => ({ id: layer.id, order: layer.order })),
+  }));
+  const activeBeforeOrder = before.orders.find((layer) => layer.id === before.activeId)?.order;
+  expect(activeBeforeOrder).toBeDefined();
+
+  await page.getByTestId('arrange-down').click();
+  await expect.poll(() => page.evaluate((activeId) => window.AppConfig.layers
+    .find((layer) => layer.id === activeId)?.order, before.activeId)).toBeLessThan(activeBeforeOrder);
+  const moved = await page.evaluate(() => window.AppConfig.layers.map((layer) => ({ id: layer.id, order: layer.order })));
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layers.map((layer) => ({ id: layer.id, order: layer.order })))).toEqual(before.orders);
+  await page.locator('[data-editor-history="redo"]').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layers.map((layer) => ({ id: layer.id, order: layer.order })))).toEqual(moved);
+});
+
 test('Arrange 在空白新画布添加 Frame 时替换占位层，并保持单层可撤销', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('create-new').click();
