@@ -57,6 +57,8 @@
 
 22. 2026-07-15：以用户的 Adjust 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-e0c8a20b-5d10-449a-a8f2-30d329a2c3c2.png` 与本地 `2048 × 960` 状态截图合并为 `/tmp/adjust-reference-vs-local-section-icons.png`。Color 的设置和 Light 的半明暗入口已从文字按钮收敛为同层级本地图标，并保留中文无障碍名称、提示和现有本地参数预览流程。高级 Details/Scene 的图标密度、分组间距与精细字重仍是 P2 差异；完整视觉验收继续保持 blocked。
 
+23. 2026-07-15：以用户的 Crop 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-3241fff8-a541-45be-a1c1-fc1f40185d54.png` 与本地相同工具状态合并为 `/tmp/crop-reference-vs-local-after-structure.png`。本轮将宽/高从并列输入收敛为参考对应的纵向行，并将四个旋转/翻转工具与两个尺寸入口分别放入具名、分层的操作区；所有既有本地处理、固定确认区和自动化语义保持不变。字体、按钮尺寸、精确留白和参考中未实施的 Smart resize 仍存在差异，其中 Smart resize 按无 AI 范围明确排除；完整视觉验收继续保持 blocked。
+
 23. 2026-07-15：以用户的 Draw 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-70d08cad-e759-49dd-8719-64ef55994f06.png` 与本地 `2048 × 960` 状态截图合并为 `/tmp/draw-reference-vs-local-final.png`。首轮对照确认项目的五个图标曾被压成一行、顶部“添加新图层”挤掉了参考的核心参数层级，且颜色仅显示为窄色块。修复后，首屏按参考变为 3 + 2 图标格、通栏白色颜色输入及 Size / Softness / Transparency；新建图层、调色板、笔刷模式、取色、渐变与形状快捷项仍保留在可滚动扩展区。Chromium E2E 固定了首项顺序、3 列网格、85px 图标格高度、默认白色及 315px 通栏输入；当前未提供参考的笔刷预览细节、图标线条、中文文案和纵向间距仍属 P2，完整视觉验收继续保持 blocked。
 
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。

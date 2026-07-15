@@ -2201,6 +2201,30 @@ test('Crop 固定操作区将取消和应用固定在编辑器状态栏上方', 
   await expect(page.getByTestId('editor-tool-panel')).toBeHidden();
 });
 
+test('Crop 首屏将尺寸、旋转和调整尺寸保持为参考对应的纵向分组', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'crop-panel-groups.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-crop').click();
+  await expect(page.getByTestId('crop-apply')).toBeVisible();
+
+  const controls = page.locator('[data-editor-tool-controls]');
+  await expect(controls.locator('.studio-crop-dimensions')).toHaveCount(1);
+  await expect(controls.locator('.studio-crop-dimensions .studio-control-number')).toHaveCount(2);
+  await expect(controls.locator('.studio-crop-operation-section')).toHaveCount(2);
+  await expect(controls.locator('.studio-crop-operation-section').nth(0).locator('strong')).toHaveText('旋转与翻转');
+  await expect(controls.locator('.studio-crop-operation-section').nth(1).locator('strong')).toHaveText('调整尺寸');
+  await expect(controls.locator('.studio-crop-resize-actions button')).toHaveCount(2);
+
+  const order = await controls.evaluate((root) => [
+    root.querySelector('.studio-crop-dimensions'),
+    root.querySelector('.studio-crop-operation-section'),
+    root.querySelector('.studio-crop-resize-actions'),
+  ].map((element) => [...root.children].findIndex((child) => child === element || child.contains(element))));
+  expect(order).toEqual([...order].sort((left, right) => left - right));
+});
+
 test('Crop 的旋转与翻转首屏使用四个有名称的图标工具格', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'crop-transform-icons.png', mimeType: 'image/png', buffer: samplePng });
