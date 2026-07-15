@@ -343,8 +343,8 @@ body.photo-studio-editor .layers_list .visibility { left: 6px; }
 body.photo-studio-editor .layers_list .delete { right: 6px; opacity: 0; pointer-events: none; transition: opacity .14s ease; }
 body.photo-studio-editor .layers_list .item:hover .delete,
 body.photo-studio-editor .layers_list .item:focus-within .delete { opacity: .85; pointer-events: auto; }
-body.photo-studio-editor .layers_list .lock { top: 50%; right: 50%; display: grid; width: 34px; min-width: 34px; height: 34px; padding: 0; border: 1px solid rgba(255,255,255,.32); border-radius: 50%; background: rgba(20,20,20,.91); cursor: pointer; place-items: center; transform: translate(50%, -50%); }
-body.photo-studio-editor .layers_list .lock img { width: 15px; height: 15px; filter: invert(1) grayscale(1) brightness(2); }
+body.photo-studio-editor .layers_list .lock { top: 50%; right: 50%; display: grid; width: 32px; min-width: 32px; height: 32px; padding: 0; border: 1px solid rgba(255,255,255,.32); border-radius: 50%; background: rgba(20,20,20,.91); cursor: pointer; place-items: center; transform: translate(50%, -50%); }
+body.photo-studio-editor .layers_list .lock img { width: 14px; height: 14px; filter: invert(1) grayscale(1) brightness(2); }
 body.photo-studio-editor .layers_list .lock:hover,
 body.photo-studio-editor .layers_list .lock:focus-visible { border-color: #00b7ee; opacity: 1; outline: 0; }
 body.photo-studio-editor .layers_list .item.is-locked .lock { border-color: rgba(255,255,255,.32); background: rgba(20,20,20,.94); opacity: 1; }

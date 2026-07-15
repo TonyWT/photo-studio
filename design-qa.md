@@ -16,7 +16,7 @@
 ## 仍需收敛的视觉差异
 
 - [P2] 左侧工具轨及其工作区起点已统一为 56px；Home、Cutout、Adjust、Effect、Filter、Liquify、Retouch 已换成本地开源功能图标。Liquify 的螺旋笔画、其余图标精确笔画、按钮分隔与工具间距仍需逐项收敛。
-- [P2] 图层锁定已使用本地圆形锁定/解锁图标；图标精确大小、外圈和图层轨留白仍需继续对照。
+- [P2] 图层锁定已使用本地圆形锁定/解锁图标，并按同状态参考收敛为 32px 外圈、14px 图标；图层轨留白和外圈精细描边仍需继续对照。
 - [P2] 各工具参数面板的深度和控件密度尚未完全对齐，优先继续补齐 Cutout、Adjust、Effect、Filter、Liquify、Retouch、Drawing、Text 的真实能力。
 
 - 2026-07-15：Adjust 面板的 Cancel / Apply 已改为固定在编辑器底栏上方的双按钮区；Cancel 会关闭面板、丢弃尚未应用的滑杆值且不写历史，Apply 进入既有的本地 Compare / Reset / Confirm 预览流程。Chromium E2E 固定断言该操作区底边与状态栏相邻。截图级的图标密度仍属于上述 P2 项，未据此宣称完整视觉验收。
@@ -91,5 +91,7 @@
 38. 2026-07-15：以用户 Adjust 参考图与当前同状态截图合并为 `/tmp/adjust-reference-vs-current-after-shortcuts.png`。此前本地将 Auto、B&W、Pop 画成三个独立描边卡，参考则是在同一个连续快捷调整容器中排列三项，且 Color 区的起点更低。现已使用共享容器、80px 快捷项高度和无独立边框的真实按钮，使 Color 区首行与参考的垂直节奏对齐；原有三项本地效果映射、历史和撤销不变。快捷容器几何专项、Adjust Darwin 视觉基准、`npm test`、生产构建与 CI `29415965785` 均通过。首轮 Ubuntu Nightly `29416024093` 的 155 项功能/其余视觉用例通过，仅 Adjust 因旧 Linux 基准差异失败；已从同一 runner 的实际图刷新该平台基准，最终 CI `29416791232`、Pages `29416791306` 与 Ubuntu Nightly `29416791332` 均通过（156/156）。完整视觉验收继续保持 blocked。
 
 39. 2026-07-15：以用户 Filter 参考图与当前同状态截图合并为 `/tmp/filter-reference-vs-current-padded-cards.png`。此前本地六个可点击滤镜卡是全宽、紧凑的通用按钮，图片贴边、说明区高度不足；参考以边距明确的浏览卡呈现图片、标题、说明和分类图标。现已给每张真实本地滤镜卡增加 16px/18px 内边距、132px 预览、80px 说明区和 18px 卡间距，仍使用用户当前本地图片而不复制参考摄影素材。六卡几何专项、Filter Darwin 视觉基准、`npm test` 与生产构建已通过；首轮 Ubuntu Nightly `29418557819` 为 155/156，仅 Filter 因旧 Linux 快照失败。已从该 runner 产物刷新 Linux 基准，CI `29419228637`、Pages `29419228168` 与最终 Ubuntu Nightly `29419238796` 均成功（156/156）。完整视觉验收继续保持 blocked。
+
+40. 2026-07-15：以用户编辑器参考图与本地已加载图片状态合并为 `/tmp/main-reference-vs-current-lock-32.png`。参考截图先剥离浏览器 Chrome 区域，再与 1920×878 本地工作台对齐，避免把浏览器框架误判成编辑器差异。右侧缩略图中央锁定圆标从 34px/15px 收敛为 32px/14px，以贴近参考的圆标尺度；锁定、解锁和单步撤销行为不变，并由 Chromium E2E 固定。工具轨细笔画、图层轨留白和外圈描边仍是 P2，完整视觉验收继续保持 blocked。
 
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
