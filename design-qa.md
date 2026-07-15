@@ -104,4 +104,6 @@
 
 45. 2026-07-15：以用户编辑器参考图与本地工作台合并为 `/tmp/main-reference-vs-current-footer-copy.png`。参考底栏使用放大镜缩放、百分比、UNDO、REDO、Close 与 Save；项目已使用本地放大镜 SVG，本轮将剩余可见文案从中文收敛为 UNDO、REDO、Close、Save，并同步保存菜单的可见英文工作流名称。按钮保留中文无障碍标签，实际本地保存、PNG/JPEG/WebP 导出、原生项目导出和最近项目恢复不变。先见证 Close/Save 文案断言失败，再通过保存/恢复定向 Chromium E2E；Darwin 快照以强制更新方式写入当前稳定状态。`npm test` 13/13、生产构建、CI `29429658191`、Pages `29429658418` 与 Ubuntu Nightly `29429753536` 均成功，Nightly 157/157。工具图标精细笔画、按钮分隔和图层轨留白仍为 P2，完整视觉验收保持 blocked。
 
-final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
+46. 2026-07-15：对九张用户侧栏参考图的逐项清单进行了状态审计。Crop、Cutout、Adjust、Effect、Filter、Liquify、Retouch、Draw、Text 的控件级范围保持 C/K/J/E/F/L/R/D/T 编号；保留项均有真实本地行为和测试证据，AI Cutout、Smart Resize、Object Healing、AI Tools 与 Element 均保持明确排除。新增 `test/requirements-audit.test.mjs`，会校验高层需求/矩阵使用“功能可用；视觉 P2”双维状态、覆盖九个侧栏范围，并保护 AI/Element 排除约束；`npm test` 为 16/16。此批仅修正验收语义，不刷新视觉截图。图标笔画、轨道留白、面板密度等 P2 仍阻止完整视觉还原结论。
+
+final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
