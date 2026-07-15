@@ -95,6 +95,9 @@ body.photo-studio-editor .studio-tool-panel-heading::after { position: absolute;
 body.photo-studio-editor .studio-tool-panel-heading button { position: absolute; z-index: 1; right: 14px; border: 0; color: #bfbfbf; background: transparent; font: 22px/1 sans-serif; cursor: pointer; }
 body.photo-studio-editor .studio-tool-panel-description { display: none; }
 body.photo-studio-editor .studio-tool-controls { display: grid; gap: 9px; margin-bottom: 9px; }
+/* The Crop reference leaves a 32px handoff from the hatched header before
+   the first card. Other tools start at the standard 16px rhythm. */
+body.photo-studio-editor .studio-tool-controls:has(.studio-crop-primary-section) { padding-top: 16px; }
 body.photo-studio-editor .studio-control-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 body.photo-studio-editor .studio-control-group-two { grid-template-columns: repeat(2, 1fr); }
 body.photo-studio-editor .studio-control-group-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }

@@ -2486,6 +2486,7 @@ test('Crop 首屏将尺寸、旋转和调整尺寸保持为参考对应的纵向
   await expect(controls.locator('.studio-crop-operation-section').nth(0).locator('strong')).toHaveText('Rotate & flip');
   await expect(controls.locator('.studio-crop-operation-section').nth(1).locator('strong')).toHaveText('Resize');
   await expect(controls.locator('.studio-crop-resize-actions button')).toHaveCount(2);
+  await expect.poll(() => controls.locator('.studio-crop-primary-section').evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(88);
   await expect(controls.getByTestId('crop-output-width').locator('..')).toContainText('Width');
   await expect(controls.getByTestId('crop-output-height').locator('..')).toContainText('Height');
   await expect(controls.getByTestId('crop-straighten').locator('..')).toContainText('Straighten');
@@ -4311,8 +4312,8 @@ test('Drawing 同状态首屏按参考先呈现 3 加 2 图标工具格与颜色
     columns: 3,
     height: 85,
     color: '#ffffff',
-    colorWidth: 274,
-    colorFieldWidth: 315,
+    colorWidth: 254,
+    colorFieldWidth: 295,
     paletteToggleWidth: 39,
   });
   await expect(page.getByTestId('drawing-color')).toBeVisible();
