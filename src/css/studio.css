@@ -68,7 +68,7 @@ body.photo-studio-editor[data-collage-canvas-gestures="true"] #canvas_minipaint 
 body.photo-studio-editor[data-collage-canvas-dragging="true"] #canvas_minipaint { cursor: grabbing; }
 body.photo-studio-editor .studio-tool-rail { position: fixed; z-index: 30; inset: 0 auto 56px 0; display: flex; width: var(--studio-rail-width); flex-direction: column; align-items: center; background: #292929; border-right: 1px solid #333; }
 body.photo-studio-editor .studio-rail-home,
-body.photo-studio-editor .studio-tool-button { position: relative; display: grid; place-items: center; width: var(--studio-rail-width); height: 58px; padding: 0; border: 0; border-radius: 0 !important; box-shadow: none !important; color: #c8c8c8; background: transparent; text-decoration: none; cursor: pointer; }
+body.photo-studio-editor .studio-tool-button { position: relative; display: grid; place-items: center; width: var(--studio-rail-width); height: 54px; padding: 0; border: 0; border-radius: 0 !important; box-shadow: none !important; color: #c8c8c8; background: transparent; text-decoration: none; cursor: pointer; }
 body.photo-studio-editor .studio-rail-home { height: 56px; }
 body.photo-studio-editor .studio-rail-home img { width: 21px; height: 21px; filter: invert(1) grayscale(1) brightness(1.8); }
 body.photo-studio-editor .studio-tool-button img { width: 21px; height: 21px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .82; }
@@ -84,6 +84,10 @@ body.photo-studio-editor .studio-tool-button::after { position: absolute; z-inde
 body.photo-studio-editor .studio-tool-button:hover::after,
 body.photo-studio-editor .studio-tool-button:focus-visible::after { display: flex; }
 body.photo-studio-editor .studio-rail-divider { width: 100%; height: 6px; background: repeating-linear-gradient(45deg, #292929 0 3px, #222 3px 5px); }
+/* Pixlr keeps a deliberate handoff below the hatched home divider.  The
+   retained tools then follow a 54px rhythm; this preserves the source's
+   vertical cadence after the excluded AI and Element entries are removed. */
+body.photo-studio-editor .studio-rail-divider + .studio-tool-button { margin-top: 20px; }
 body.photo-studio-editor .studio-tool-panel { position: fixed; z-index: 25; top: 0; bottom: 56px; left: var(--studio-rail-width); box-sizing: border-box; width: var(--studio-panel-width); padding: 0 14px 16px; overflow-y: auto; border-right: 1px solid #414141; background: #252525; box-shadow: 9px 0 18px rgba(0,0,0,.25); }
 body.photo-studio-editor.studio-drawing-palette-open .studio-tool-panel { z-index: 55; overflow: visible; }
 body.photo-studio-editor .studio-tool-panel[hidden] { display: none; }

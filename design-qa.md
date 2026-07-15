@@ -136,4 +136,6 @@
 
 61. 2026-07-16：基准提交后，GitHub CI `29448781896`、Pages `29448781997` 与 Ubuntu Nightly `29448799141` 全部成功。CI 覆盖 145 条 Chromium 本地工作流，Nightly 覆盖 156 条功能与视觉检查；静态站点已部署到 `https://tonywt.github.io/photo-studio/`。这确认当前已审阅 Linux 视觉状态、非 AI 功能矩阵、无远程模型约束和发布链路均未回退；精确字体、图标笔画和留白的 P2 像素级差异仍不应表述为完全逐像素复刻。
 
+62. 2026-07-16：以用户 Crop 参考图 `codex-clipboard-3241fff8-a541-45be-a1c1-fc1f40185d54.png` 归一化后的 `1914×878` 画面，与 Ubuntu Nightly `29450973738` 的同状态实际图合并为 `/tmp/crop-reference-vs-current-final-gap.png`。本轮先将工作台横向几何收敛为 60px 工具轨 + 324px 参数面板、打开态工作区起点 384px，并将 Crop 首卡相对标题的间距收敛为 32px；CI `29450955793` 和 Pages `29450955553` 成功。随后测得参考轨道在移除 AI/Element 后仍保留首项 20px 手off、后续 54px 的垂直节奏，已在本地加入固定几何 E2E 断言。Nightly 的 9 张失败图来自变更后的旧 Linux 基准；下一轮只以新 runner 实际图更新对应 Linux 基准并复验，不修改 Darwin 基准。完整视觉验收继续保持 blocked。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
