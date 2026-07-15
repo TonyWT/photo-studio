@@ -174,7 +174,7 @@
 | D-00 | Add new layer / New empty paint layer | 保留 | 可用：为保持参考首屏的 Tool → Color → Brush 参数层级，新建空白绘制图层收纳在后续扩展区；创建与 Undo 已由 Chromium E2E 验证 | 点击入口创建命名为“新建空白绘制图层”的本地空白图层，随后可承接画笔等工具 |
 | D-01 ～ D-05 | Draw 的 5 个工具图标 | 保留 | 可用：首屏严格按 Brush、Eraser、Pen、Fill、Shape 顺序呈现为参考同层级的 **3 + 2** 本地图标格；Pen 映射到本地 Pencil 画布工具。取色与渐变不是删减，收纳到后续“其他本地工具”；Eraser、Pen、Fill、Gradient、Rectangle 均有像素/撤销验证，Eyedropper 仅本地取色且无历史 | Chromium E2E 断言五入口、图标资源映射、Pen 激活 Pencil、3 + 2 网格和首屏顺序；其余本地工具仍有独立流程验证 |
 | D-06 | 颜色选择器 | 保留 | 可用：首屏使用参考同层级的通栏颜色输入，默认白色；颜色会同步到画笔、形状描边与渐变前景 | Chromium E2E 固定通栏宽度、默认色和调色板/输入同步 |
-| D-07 | Brush 预览/笔刷选择与模式 | 保留 | 可用 | 提供柔边、硬圆本地预设，以及 Plain、Parallel、Sketchy、Shaded、Furry、Trail、Crayon、Ink 八种确定性本地笔刷模式；模式保存在图层参数中，画布、项目恢复和导出使用同一渲染路径。Sketchy 与 Plain 像素差异、Undo 已由 Chromium E2E 验证；不复制 Pixlr 笔刷素材 |
+| D-07 | Brush 预览/笔刷选择与模式 | 保留 | 可用 | 首屏提供随颜色、Size、Softness、Transparency 实时重绘的本地 Canvas 棋盘格笔刷预览，默认 40px 白色柔边笔刷；并提供柔边、硬圆本地预设，以及 Plain、Parallel、Sketchy、Shaded、Furry、Trail、Crayon、Ink 八种确定性本地笔刷模式。模式保存在图层参数中，画布、项目恢复和导出使用同一渲染路径。Sketchy 与 Plain 像素差异、预览状态变化与 Undo 已由 Chromium E2E 验证；不复制 Pixlr 笔刷素材 |
 | D-08 | Size | 保留 | 可用 | 尺寸同步到画笔、铅笔、橡皮和形状；真实笔触像素与 Undo 已由 Chromium E2E 覆盖 |
 | D-09 | Softness | 保留 | 可用 | 画笔支持 0～100% 本地软边；硬边/软边外缘像素差异及 Undo 已由 Chromium E2E 覆盖 |
 | D-10 | Transparency | 保留 | 可用 | 1～100% alpha 写入画笔本地合成；配置值、实际笔触和 Undo 已由 Chromium E2E 覆盖 |

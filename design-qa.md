@@ -68,4 +68,8 @@
 
 23. 2026-07-15：以用户的 Draw 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-70d08cad-e759-49dd-8719-64ef55994f06.png` 与本地 `2048 × 960` 状态截图合并为 `/tmp/draw-reference-vs-local-final.png`。首轮对照确认项目的五个图标曾被压成一行、顶部“添加新图层”挤掉了参考的核心参数层级，且颜色仅显示为窄色块。修复后，首屏按参考变为 3 + 2 图标格、通栏白色颜色输入及 Size / Softness / Transparency；新建图层、调色板、笔刷模式、取色、渐变与形状快捷项仍保留在可滚动扩展区。Chromium E2E 固定了首项顺序、3 列网格、85px 图标格高度、默认白色及 315px 通栏输入；当前未提供参考的笔刷预览细节、图标线条、中文文案和纵向间距仍属 P2，完整视觉验收继续保持 blocked。
 
+28. 2026-07-15：以用户的 Draw 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-70d08cad-e759-49dd-8719-64ef55994f06.png` 和本地同状态画面复核后，补上参考可见的棋盘格笔刷预览：它是随颜色、尺寸、柔化、透明度实时重绘的本地 Canvas，默认展示 40px 白色柔边笔刷，而非静态图片。Chromium E2E 覆盖预览状态变化；初轮 Linux Nightly 仅因旧 Draw 基准差异失败，更新实际基准后，CI `29390724440`、Pages `29390724444` 与 Nightly `29390735917` 全部通过，Nightly 为 150/150。调色板弧形布局、图标线条、中文文案和纵向间距仍属 P2，完整视觉验收继续保持 blocked。
+
+29. 2026-07-15：九张用户参考图均体现工具轨悬停时会出现跨入参数面板的蓝色工具标签，而此前本地工具轨只提供浏览器原生 title，无法形成同样的可见反馈。本轮为十个保留非 AI 工具加入本地伪元素标签，保留中文 title/无障碍语义，同时以 ARRANGE、CROP、CUTOUT、ADJUST、EFFECT、FILTER、LIQUIFY、RETOUCH、DRAW、TEXT 对齐参考的视觉层级。Chromium E2E 同时验证十个标签及 hover 的内容、显示状态、色值；该状态默认不显示，不改变已建立的初始截图基准。图标具体形制和逐工具细部间距仍属 P2，完整视觉验收继续保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。

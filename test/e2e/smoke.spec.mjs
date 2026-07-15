@@ -491,6 +491,34 @@ test('编辑器提供 Pixlr 风格的非 AI 工作台骨架', async ({ page }) =
   await expect(page.getByTestId('tool-text')).toBeVisible();
 });
 
+test('工作台工具轨在悬停时显示 Pixlr 风格的工具标签', async ({ page }) => {
+  await page.goto('/editor/');
+  const expectedLabels = [
+    ['tool-arrange', 'ARRANGE'],
+    ['tool-crop', 'CROP'],
+    ['tool-cutout', 'CUTOUT'],
+    ['tool-adjust', 'ADJUST'],
+    ['tool-effect', 'EFFECT'],
+    ['tool-filter', 'FILTER'],
+    ['tool-liquify', 'LIQUIFY'],
+    ['tool-retouch', 'RETOUCH'],
+    ['tool-drawing', 'DRAW'],
+    ['tool-text', 'TEXT'],
+  ];
+
+  for (const [testId, label] of expectedLabels) {
+    const tool = page.getByTestId(testId);
+    await expect(tool).toHaveAttribute('data-tooltip', label);
+  }
+
+  const arrange = page.getByTestId('tool-arrange');
+  await arrange.hover();
+  await expect.poll(() => arrange.evaluate((element) => {
+    const style = getComputedStyle(element, '::after');
+    return { content: style.content, display: style.display, background: style.backgroundColor };
+  })).toEqual({ content: '"ARRANGE"', display: 'flex', background: 'rgb(0, 169, 223)' });
+});
+
 test('手动 Cutout 从工作台打开并切换到底层本地选区工具', async ({ page }) => {
   await page.goto('/editor/');
   await page.getByTestId('tool-cutout').click();
