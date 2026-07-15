@@ -340,6 +340,12 @@ test('Cutout 自定义面板不渲染空的原生属性盒', async ({ page }) =>
   await page.getByTestId('tool-cutout').click();
   await expect(page.getByTestId('cutout-apply-selection')).toBeVisible();
   await expect(page.locator('#action_attributes')).toBeHidden();
+  await expect(page.getByTestId('cutout-tool-card')).toBeVisible();
+  await expect(page.getByTestId('cutout-shape-card')).toBeVisible();
+  await expect(page.getByTestId('cutout-action-card')).toBeVisible();
+  await expect(page.getByTestId('cutout-keep-selection')).toHaveText('Keep');
+  await expect(page.getByTestId('cutout-remove-selection')).toHaveText('Remove');
+  await expect(page.getByTestId('cutout-apply-selection')).toHaveText('Apply cutout');
 });
 
 test('关闭 Cutout 面板会丢弃未应用的抠图会话状态', async ({ page }) => {

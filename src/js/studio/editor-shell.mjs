@@ -1696,7 +1696,7 @@ function renderEditorToolControls(key) {
     const eraseSize = Number(eraseConfig.size) || 30;
     target.innerHTML = `
     ${customMaskDisabled ? '<p class="studio-control-hint studio-control-warning" data-testid="cutout-rotation-warning">当前图片图层已旋转。为避免错误的遮罩几何，形状选区和 Keep/Remove 已禁用；请先将图层旋转归零。</p>' : ''}
-    <section class="studio-cutout-tool-section" aria-label="手动抠图工具">
+    <section class="studio-cutout-card studio-cutout-tool-card" aria-label="手动抠图工具" data-testid="cutout-tool-card">
       <strong>工具</strong>
       <div class="studio-control-group studio-control-group-four studio-cutout-tool-grid" aria-label="手动抠图工具">
         <button type="button"${familyClass('shape')}${disabledAttribute} aria-label="形状选区" title="形状选区" data-cutout-mode="selection" data-testid="cutout-tool-shape"><img src="../images/icons/shape.svg" alt=""><span class="sr_only">形状选区</span></button>
@@ -1704,21 +1704,28 @@ function renderEditorToolControls(key) {
         <button type="button"${familyClass('draw')} aria-label="画笔抠图" title="画笔抠图" data-cutout-mode="erase" data-testid="cutout-mode-erase"><img src="../images/icons/brush.svg" alt=""><span class="sr_only">画笔抠图</span></button>
         <button type="button"${familyClass('lasso')}${disabledAttribute} aria-label="自由套索" title="自由套索" data-cutout-mode="lasso" data-testid="cutout-mode-lasso"><img src="../images/icons/selection.svg" alt=""><span class="sr_only">自由套索</span></button>
       </div>
+      <strong>模式</strong>
+      <div class="studio-control-group studio-control-group-two" aria-label="抠图模式">
+        <button type="button" aria-pressed="${cutoutSelection.intent === 'keep'}"${cutoutSelection.intent === 'keep' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="keep" data-testid="cutout-keep-selection">Keep</button>
+        <button type="button" aria-pressed="${cutoutSelection.intent === 'remove'}"${cutoutSelection.intent === 'remove' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="remove" data-testid="cutout-remove-selection">Remove</button>
+      </div>
     </section>
-    <div class="studio-control-group studio-control-group-two" aria-label="抠图模式">
-      <button type="button" aria-pressed="${cutoutSelection.intent === 'keep'}"${cutoutSelection.intent === 'keep' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="keep" data-testid="cutout-keep-selection">保留</button>
-      <button type="button" aria-pressed="${cutoutSelection.intent === 'remove'}"${cutoutSelection.intent === 'remove' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="remove" data-testid="cutout-remove-selection">移除</button>
-    </div>
     ${cutoutFamily === 'shape' ? `
-      <section class="studio-cutout-tool-section" aria-label="形状选区">
+      <section class="studio-cutout-card studio-cutout-shape-card" aria-label="形状选区" data-testid="cutout-shape-card">
         <strong>形状</strong>
         <div class="studio-control-group studio-control-group-three">
-          <button type="button"${modeClass('selection')}${disabledAttribute} data-cutout-mode="selection" data-testid="cutout-mode-selection">矩形</button>
-          <button type="button"${modeClass('ellipse')}${disabledAttribute} data-cutout-mode="ellipse" data-testid="cutout-mode-ellipse">圆形</button>
-          <button type="button"${modeClass('triangle')}${disabledAttribute} data-cutout-mode="triangle" data-testid="cutout-mode-triangle">三角</button>
-          <button type="button"${modeClass('star')}${disabledAttribute} data-cutout-mode="star" data-testid="cutout-mode-star">星形</button>
-          <button type="button"${modeClass('heart')}${disabledAttribute} data-cutout-mode="heart" data-testid="cutout-mode-heart">心形</button>
-          <button type="button"${modeClass('line')}${disabledAttribute} data-cutout-mode="line" data-testid="cutout-mode-line">直线</button>
+          <button type="button"${modeClass('selection')}${disabledAttribute} data-cutout-mode="selection" data-testid="cutout-mode-selection">Rectangle</button>
+          <button type="button"${modeClass('ellipse')}${disabledAttribute} data-cutout-mode="ellipse" data-testid="cutout-mode-ellipse">Circle</button>
+          <button type="button"${modeClass('triangle')}${disabledAttribute} data-cutout-mode="triangle" data-testid="cutout-mode-triangle">Triangle</button>
+          <button type="button"${modeClass('star')}${disabledAttribute} data-cutout-mode="star" data-testid="cutout-mode-star">Star</button>
+          <button type="button"${modeClass('heart')}${disabledAttribute} data-cutout-mode="heart" data-testid="cutout-mode-heart">Heart</button>
+          <button type="button"${modeClass('line')}${disabledAttribute} data-cutout-mode="line" data-testid="cutout-mode-line">Line</button>
+        </div>
+        <strong>Softness</strong>
+        <div class="studio-control-group studio-control-group-three" aria-label="选区柔化">
+          <button type="button"${cutoutSelection.softness === 'none' ? ' class="is-selected"' : ''} data-cutout-softness="none" data-testid="cutout-softness-none">None</button>
+          <button type="button"${cutoutSelection.softness === 'light' ? ' class="is-selected"' : ''} data-cutout-softness="light" data-testid="cutout-softness-light">Light</button>
+          <button type="button"${cutoutSelection.softness === 'medium' ? ' class="is-selected"' : ''} data-cutout-softness="medium" data-testid="cutout-softness-medium">Medium</button>
         </div>
       </section>
     ` : ''}
@@ -1739,23 +1746,28 @@ function renderEditorToolControls(key) {
         <p class="studio-control-hint">画笔会直接擦除活动图片图层的透明区域；每次笔触均可撤销。</p>
       </section>
     ` : ''}
-    ${(cutoutFamily === 'shape' || cutoutFamily === 'lasso') ? `
-    <div class="studio-control-group studio-control-group-three" aria-label="选区柔化">
-      <button type="button"${cutoutSelection.softness === 'none' ? ' class="is-selected"' : ''} data-cutout-softness="none" data-testid="cutout-softness-none">None</button>
-      <button type="button"${cutoutSelection.softness === 'light' ? ' class="is-selected"' : ''} data-cutout-softness="light" data-testid="cutout-softness-light">Light</button>
-      <button type="button"${cutoutSelection.softness === 'medium' ? ' class="is-selected"' : ''} data-cutout-softness="medium" data-testid="cutout-softness-medium">Medium</button>
-    </div>
+    ${cutoutFamily === 'lasso' ? `
+      <section class="studio-cutout-card studio-cutout-softness-card" aria-label="选区柔化" data-testid="cutout-softness-card">
+        <strong>Softness</strong>
+        <div class="studio-control-group studio-control-group-three" aria-label="选区柔化">
+          <button type="button"${cutoutSelection.softness === 'none' ? ' class="is-selected"' : ''} data-cutout-softness="none" data-testid="cutout-softness-none">None</button>
+          <button type="button"${cutoutSelection.softness === 'light' ? ' class="is-selected"' : ''} data-cutout-softness="light" data-testid="cutout-softness-light">Light</button>
+          <button type="button"${cutoutSelection.softness === 'medium' ? ' class="is-selected"' : ''} data-cutout-softness="medium" data-testid="cutout-softness-medium">Medium</button>
+        </div>
+      </section>
     ` : ''}
-    ${(cutoutFamily === 'shape' || cutoutFamily === 'lasso') ? `
-    <button type="button"${disabledAttribute} class="studio-cutout-hint-toggle${cutoutSelection.hintRemoved ? ' is-selected' : ''}" aria-pressed="${cutoutSelection.hintRemoved}" data-testid="cutout-hint-removed">
-      <span>Hint removed</span><span class="studio-cutout-hint-toggle-knob" aria-hidden="true"></span>
-    </button>
-    ` : ''}
-    <button type="button" class="studio-cutout-full-action${cutoutSelection.inverted ? ' is-selected' : ''}" aria-pressed="${cutoutSelection.inverted}" data-testid="cutout-invert">反选抠图</button>
-    <div class="studio-cutout-primary-actions" aria-label="抠图应用">
-      <button type="button" data-testid="cutout-reset-selection">重置抠图</button>
-      <button type="button"${disabledAttribute} data-testid="cutout-apply-selection">应用抠图</button>
-    </div>
+    <section class="studio-cutout-card studio-cutout-action-card" aria-label="抠图操作" data-testid="cutout-action-card">
+      ${(cutoutFamily === 'shape' || cutoutFamily === 'lasso') ? `
+      <button type="button"${disabledAttribute} class="studio-cutout-hint-toggle${cutoutSelection.hintRemoved ? ' is-selected' : ''}" aria-pressed="${cutoutSelection.hintRemoved}" data-testid="cutout-hint-removed">
+        <span>Hint removed</span><span class="studio-cutout-hint-toggle-knob" aria-hidden="true"></span>
+      </button>
+      ` : ''}
+      <button type="button" class="studio-cutout-full-action${cutoutSelection.inverted ? ' is-selected' : ''}" aria-pressed="${cutoutSelection.inverted}" data-testid="cutout-invert">Invert cutout</button>
+      <div class="studio-cutout-primary-actions" aria-label="抠图应用">
+        <button type="button" data-testid="cutout-reset-selection">Reset cutout</button>
+        <button type="button"${disabledAttribute} data-testid="cutout-apply-selection">Apply cutout</button>
+      </div>
+    </section>
     <details class="studio-cutout-advanced" data-testid="cutout-selection-advanced"${cutoutSelection.advancedOpen ? ' open' : ''}>
       <summary>更多选区操作</summary>
       <div class="studio-control-group studio-control-group-three" aria-label="高级选区操作">
