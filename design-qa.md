@@ -112,4 +112,6 @@
 
 49. 2026-07-16：以用户 Cutout 参考图和本地同状态面板合并为 `/tmp/cutout-reference-vs-local-card.png`。在明确删除 AI Cutout 后，参考剩余的手动工作流仍有三段清晰卡片：工具/模式、形状/羽化、操作；原本本地以分散横线分组，首屏层级较弱。现将手动工具、形状与操作收敛为三张有描边的本地卡片，保留 Shape/Magic/Draw/Lasso、Keep/Remove、羽化、反选、重置、应用、加减选及本地撤销；可见操作文案收敛为通用英文，中文无障碍标签不变。浏览器实测三卡均为 `7px` 圆角且有边框；`npm test` 17/17、生产构建通过。未复制 AI 入口、Pixlr 品牌或外部素材；其余图标笔画、字体及画布图片载入差异仍为 P2。
 
+50. 2026-07-16：以用户 Retouch 参考图和本地加载实图后的同状态工作台合并为 `/tmp/retouch-reference-vs-local-injected-method-card.png`。参考把 Method 与 Size 放在同一张次级卡片；本地此前将 Size 游离在卡片之外，且“修复方法”中文文案破坏了英文工作流层级。现将保留的 Spot 修复与 Size 收进同一张 Method 卡，Spot 在 Object（明确排除的 AI 依赖能力）不存在时占完整可用宽度；Repair/Clone/Detail/Toning 四个本地工具、笔刷像素处理、锁定保护和撤销均不变。浏览器实测 Method 卡的 Spot、Size 与无 Object 条件；`npm test` 17/17、生产构建通过。图标笔画、细微尺寸与其余面板密度仍为 P2。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。

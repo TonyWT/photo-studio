@@ -2394,15 +2394,15 @@ function renderEditorToolControls(key) {
           <button type="button" class="${activeRetouchTool === 'dodge_burn' && dodgeBurnMode === 'dodge' ? 'is-selected' : ''}" aria-label="明暗" title="明暗" data-testid="retouch-dodge" data-core-tool="dodge_burn"${disabled}><img src="../images/icons/retouch-dodge.svg" alt=""><span class="sr_only">明暗</span></button>
         </div>
       </section>
-      <section class="studio-retouch-section" aria-label="Spot 修复方法">
-        <strong>修复方法</strong>
-        <div class="studio-control-group studio-control-group-two">
+      <section class="studio-retouch-section studio-retouch-method-section" aria-label="Spot 修复方法" data-testid="retouch-method-card">
+        <strong>Method</strong>
+        <div class="studio-control-group studio-retouch-method-group">
           <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" data-testid="retouch-spot" data-core-tool="repair"${disabled}>Spot</button>
         </div>
+        <label class="studio-control-range">Size <output data-retouch-size-output>${size}px</output>
+          <input type="range" min="1" max="300" value="${size}" data-testid="retouch-size" ${disabled}>
+        </label>
       </section>
-      <label class="studio-control-range">笔刷大小 <output data-retouch-size-output>${size}px</output>
-        <input type="range" min="1" max="300" value="${size}" data-testid="retouch-size" ${disabled}>
-      </label>
       <details class="studio-retouch-advanced"${retouchAdvancedOpen ? ' open' : ''}>
         <summary>更多本地修饰设置</summary>
         <div class="studio-control-group studio-control-group-three" aria-label="Spot 修复质量">
