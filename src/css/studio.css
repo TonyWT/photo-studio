@@ -69,8 +69,12 @@ body.photo-studio-editor .studio-rail-divider { width: 100%; height: 6px; backgr
 body.photo-studio-editor .studio-tool-panel { position: fixed; z-index: 25; top: 0; bottom: 56px; left: var(--studio-rail-width); box-sizing: border-box; width: 344px; padding: 0 14px 16px; overflow-y: auto; border-right: 1px solid #414141; background: #252525; box-shadow: 9px 0 18px rgba(0,0,0,.25); }
 body.photo-studio-editor.studio-drawing-palette-open .studio-tool-panel { z-index: 55; overflow: visible; }
 body.photo-studio-editor .studio-tool-panel[hidden] { display: none; }
-body.photo-studio-editor .studio-tool-panel-heading { position: relative; display: grid; height: 56px; margin: 0 -14px 16px; padding: 0 14px; border-bottom: 1px solid #3a3a3a; color: #fff; font-size: 16px; font-weight: 700; place-items: center; }
-body.photo-studio-editor .studio-tool-panel-heading button { position: absolute; right: 14px; border: 0; color: #bfbfbf; background: transparent; font: 22px/1 sans-serif; cursor: pointer; }
+body.photo-studio-editor .studio-tool-panel-heading { position: relative; display: grid; height: 56px; margin: 0 -14px 16px; padding: 0 14px; overflow: hidden; border-bottom: 1px solid #3a3a3a; color: #fff; background: #252525; font-size: 16px; font-weight: 700; place-items: center; }
+/* The narrow hatched seam under the title is a structural workbench cue from
+   the reference. It belongs to the header itself, so every tool retains the
+   same 56px title rhythm without shifting the first real control downward. */
+body.photo-studio-editor .studio-tool-panel-heading::after { position: absolute; right: 0; bottom: 0; left: 0; height: 6px; background: repeating-linear-gradient(45deg, #2a2a2a 0 3px, #202020 3px 5px); content: ''; pointer-events: none; }
+body.photo-studio-editor .studio-tool-panel-heading button { position: absolute; z-index: 1; right: 14px; border: 0; color: #bfbfbf; background: transparent; font: 22px/1 sans-serif; cursor: pointer; }
 body.photo-studio-editor .studio-tool-panel-description { display: none; }
 body.photo-studio-editor .studio-tool-controls { display: grid; gap: 9px; margin-bottom: 9px; }
 body.photo-studio-editor .studio-control-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
@@ -153,6 +157,10 @@ body.photo-studio-editor .studio-control-select select,
 body.photo-studio-editor .studio-control-number input { min-height: 30px; border: 1px solid #474747; border-radius: 4px; color: #e4e4e4; background: #303030; font: inherit; }
 body.photo-studio-editor .studio-control-group-three { grid-template-columns: repeat(3, 1fr); }
 body.photo-studio-editor .studio-crop-aspect { display: grid; gap: 8px; padding: 9px; border: 1px solid #383838; border-radius: 7px; background: #282828; }
+body.photo-studio-editor .studio-crop-primary-section { display: grid; gap: 13px; padding: 10px; border: 1px solid #383838; border-radius: 7px; background: #282828; }
+body.photo-studio-editor .studio-crop-primary-section .studio-crop-dimensions,
+body.photo-studio-editor .studio-crop-primary-section .studio-crop-aspect { padding: 0; border: 0; border-radius: 0; background: transparent; }
+body.photo-studio-editor .studio-crop-primary-section .studio-crop-straighten { display: block; }
 body.photo-studio-editor .studio-crop-aspect-toggle { justify-content: space-between; min-height: 28px; }
 body.photo-studio-editor .studio-crop-aspect-toggle input { appearance: none; width: 30px; height: 18px; border: 1px solid #676767; border-radius: 999px; background: #505050; transition: background .15s ease; }
 body.photo-studio-editor .studio-crop-aspect-toggle input::after { display: block; width: 12px; height: 12px; margin: 2px; border-radius: 50%; background: #d7d7d7; content: ''; transition: transform .15s ease; }
@@ -161,6 +169,7 @@ body.photo-studio-editor .studio-crop-aspect-toggle input:checked::after { trans
 body.photo-studio-editor .studio-crop-aspect-options { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 7px; }
 body.photo-studio-editor .studio-crop-aspect [hidden] { display: none; }
 body.photo-studio-editor .studio-crop-dimensions { display: grid; gap: 7px; padding: 10px; border: 1px solid #383838; border-radius: 7px; background: #282828; }
+body.photo-studio-editor .studio-crop-primary-section .studio-crop-dimensions { padding: 0; border: 0; border-radius: 0; background: transparent; }
 body.photo-studio-editor .studio-crop-dimensions .studio-control-number { grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: 8px; }
 body.photo-studio-editor .studio-crop-dimensions .studio-control-number input { width: 76px; box-sizing: border-box; text-align: right; }
 body.photo-studio-editor .studio-crop-operation-section { display: grid; gap: 8px; padding: 10px; border: 1px solid #383838; border-radius: 7px; background: #282828; }

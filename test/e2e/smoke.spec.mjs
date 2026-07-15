@@ -2410,6 +2410,14 @@ test('Crop 首屏将尺寸、旋转和调整尺寸保持为参考对应的纵向
   await expect(page.getByTestId('crop-apply')).toBeVisible();
 
   const controls = page.locator('[data-editor-tool-controls]');
+  const heading = page.locator('.studio-tool-panel-heading');
+  await expect(heading).toHaveCount(1);
+  expect(await heading.evaluate((element) => getComputedStyle(element, '::after').height)).toBe('6px');
+  // 参考图把输出尺寸、拉直和比例折叠在同一张首屏主卡中；它们不能
+  // 回退成三张彼此割裂的小卡，否则 Crop 的信息层级会明显偏离工作台。
+  await expect(controls.locator('.studio-crop-primary-section')).toHaveCount(1);
+  await expect(controls.locator('.studio-crop-primary-section .studio-crop-dimensions')).toHaveCount(1);
+  await expect(controls.locator('.studio-crop-primary-section .studio-crop-aspect')).toHaveCount(1);
   await expect(controls.locator('.studio-crop-dimensions')).toHaveCount(1);
   await expect(controls.locator('.studio-crop-dimensions .studio-control-number')).toHaveCount(2);
   await expect(controls.locator('.studio-crop-operation-section')).toHaveCount(2);
@@ -2418,7 +2426,7 @@ test('Crop 首屏将尺寸、旋转和调整尺寸保持为参考对应的纵向
   await expect(controls.locator('.studio-crop-resize-actions button')).toHaveCount(2);
 
   const order = await controls.evaluate((root) => [
-    root.querySelector('.studio-crop-dimensions'),
+    root.querySelector('.studio-crop-primary-section'),
     root.querySelector('.studio-crop-operation-section'),
     root.querySelector('.studio-crop-resize-actions'),
   ].map((element) => [...root.children].findIndex((child) => child === element || child.contains(element))));

@@ -1951,36 +1951,38 @@ function renderEditorToolControls(key) {
     };
     const straighten = Number(transform.straighten) || 0;
     target.innerHTML = `
-      <div class="studio-crop-dimensions" aria-label="裁剪输出尺寸">
-        <label class="studio-control-number">宽度
-          <input type="number" min="1" max="32768" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
-        </label>
-        <label class="studio-control-number">高度
-          <input type="number" min="1" max="32768" value="${cropHeight}" data-testid="crop-output-height" ${disabled}>
-        </label>
-      </div>
-      <div class="studio-control-group" aria-label="裁剪拉直">
-        <label class="studio-control-range">拉直 <output data-testid="crop-straighten-value">${straighten.toFixed(1).replace(/\.0$/, '')}°</output>
-          <input type="range" min="-45" max="45" step="0.1" value="${straighten}" data-testid="crop-straighten" ${disabled}>
-        </label>
-      </div>
-      <section class="studio-crop-aspect" aria-label="裁剪比例">
-        <label class="studio-control-check studio-crop-aspect-toggle">选择比例
-          <input type="checkbox" role="switch" ${cropAspectEnabled ? 'checked' : ''} data-testid="crop-aspect-enabled" ${disabled}>
-        </label>
-        <div class="studio-crop-aspect-options" ${cropAspectEnabled ? '' : 'hidden'} data-testid="crop-aspect-options">
-          <label class="studio-control-select">比例
-            <select data-testid="crop-aspect-ratio" ${disabled}>
-              ${CROP_ASPECT_OPTIONS.map(([value, label]) => `<option value="${value}" ${selectedAspectValue === value ? 'selected' : ''}>${label}</option>`).join('')}
-            </select>
+      <section class="studio-crop-primary-section" aria-label="裁剪主参数">
+        <div class="studio-crop-dimensions" aria-label="裁剪输出尺寸">
+          <label class="studio-control-number">宽度
+            <input type="number" min="1" max="32768" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
           </label>
-          <label class="studio-control-select">输出尺寸
-            <select data-testid="crop-output-preset" ${disabled}>
-              <option value="" ${cropOutputSize ? '' : 'selected'}>自定义</option>
-              ${CROP_OUTPUT_PRESETS.map(([value, label]) => `<option value="${value}" ${value === `${cropOutputSize?.width}x${cropOutputSize?.height}` ? 'selected' : ''}>${label}</option>`).join('')}
-            </select>
+          <label class="studio-control-number">高度
+            <input type="number" min="1" max="32768" value="${cropHeight}" data-testid="crop-output-height" ${disabled}>
           </label>
         </div>
+        <div class="studio-control-group studio-crop-straighten" aria-label="裁剪拉直">
+          <label class="studio-control-range">拉直 <output data-testid="crop-straighten-value">${straighten.toFixed(1).replace(/\.0$/, '')}°</output>
+            <input type="range" min="-45" max="45" step="0.1" value="${straighten}" data-testid="crop-straighten" ${disabled}>
+          </label>
+        </div>
+        <section class="studio-crop-aspect" aria-label="裁剪比例">
+          <label class="studio-control-check studio-crop-aspect-toggle">选择比例
+            <input type="checkbox" role="switch" ${cropAspectEnabled ? 'checked' : ''} data-testid="crop-aspect-enabled" ${disabled}>
+          </label>
+          <div class="studio-crop-aspect-options" ${cropAspectEnabled ? '' : 'hidden'} data-testid="crop-aspect-options">
+            <label class="studio-control-select">比例
+              <select data-testid="crop-aspect-ratio" ${disabled}>
+                ${CROP_ASPECT_OPTIONS.map(([value, label]) => `<option value="${value}" ${selectedAspectValue === value ? 'selected' : ''}>${label}</option>`).join('')}
+              </select>
+            </label>
+            <label class="studio-control-select">输出尺寸
+              <select data-testid="crop-output-preset" ${disabled}>
+                <option value="" ${cropOutputSize ? '' : 'selected'}>自定义</option>
+                ${CROP_OUTPUT_PRESETS.map(([value, label]) => `<option value="${value}" ${value === `${cropOutputSize?.width}x${cropOutputSize?.height}` ? 'selected' : ''}>${label}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+        </section>
       </section>
       <section class="studio-crop-operation-section" aria-label="旋转与翻转">
         <strong>旋转与翻转</strong>
