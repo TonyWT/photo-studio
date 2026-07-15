@@ -489,11 +489,18 @@ test('编辑器提供 Pixlr 风格的非 AI 工作台骨架', async ({ page }) =
   await expect(page.getByTestId('tool-element')).toHaveCount(0);
   await expect(page.getByTestId('tool-cutout')).toBeVisible();
   await expect(page.getByTestId('tool-text')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const rail = document.querySelector('[data-testid="editor-tool-rail"]');
+    const workspace = document.querySelector('[data-testid="editor-workspace"]');
+    return [Math.round(rail.getBoundingClientRect().width), Math.round(workspace.getBoundingClientRect().left)];
+  })).toEqual([56, 56]);
   for (const [testId, icon] of [
     ['editor-home', 'home.svg'],
     ['tool-cutout', 'scissors.svg'],
     ['tool-adjust', 'sliders.svg'],
-    ['tool-effect', 'magic-wand.svg'],
+    ['tool-effect', 'desaturate.svg'],
+    ['tool-filter', 'braille.svg'],
+    ['tool-liquify', 'yin-yang.svg'],
     ['tool-retouch', 'bandage.svg'],
   ]) {
     await expect(page.getByTestId(testId).locator('img')).toHaveAttribute('src', new RegExp(`\\.\\./images/icons/${icon.replace('.', '\\.')}$`));
