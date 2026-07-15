@@ -100,4 +100,6 @@
 
 43. 2026-07-15：以用户编辑器参考图剥离浏览器框架后的同视口状态，与本地工作台合并为 `/tmp/main-reference-vs-current-liquify-hurricane.png`。此前 Liquify 在工具轨中使用阴阳符号，和参考的旋涡变形语义不对应；现改为仓库内 Font Awesome Free 6.7.2 的 Hurricane 图标，保持既有本地 Liquify 路由、无障碍标签和无 AI 边界。先见证工具轨资产断言失败，再通过专项 Chromium E2E、Darwin 工作台视觉快照、`npm test` 13/13 和生产构建。Linux CI `29424078297`、Pages `29424078122` 与 Ubuntu Nightly `29424662244` 已通过，Nightly 为 156/156；图标精细笔画、按钮分隔和图层轨留白继续是 P2，完整视觉验收保持 blocked。
 
+44. 2026-07-15：以用户 Adjust 参考图和本地非悬停打开态合并为 `/tmp/adjust-reference-vs-current-open-panel.png`。十个工具的可见面板标题从本地化描述收敛为参考同层级的 Arrange、Crop、Cutout、Adjust、Effect、Filter、Liquify、Retouch、Draw、Text；工具按钮仍保留中文 `title` 和无障碍语义。截图测试在点击后将指针移回画布，避免把蓝色悬停标签误冻结为面板常态，同时保留专门的 hover 交互断言。先见证 Adjust 旧基准失败，再更新 Darwin 9 张侧栏快照；Ubuntu Nightly `29427267592` 的 148 项非基准检查通过，9 项旧 Linux 快照如预期失败。下载实际图并逐项与旧图对照后，仅回写这 9 张同 runner 基准；最终 CI `29428152228`、Pages `29428150216` 与 Ubuntu Nightly `29428195889` 均通过，Nightly 157/157。图标精细笔画、按钮分隔和图层轨留白继续是 P2，完整视觉验收保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
