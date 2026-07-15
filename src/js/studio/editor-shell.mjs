@@ -62,16 +62,16 @@ function hasUnsupportedCutoutRotation(layer = window.AppConfig?.layer) {
 }
 
 export const EDITOR_TOOL_REGISTRY = Object.freeze({
-  arrange: { label: '排列', description: '选择、移动、缩放和排列当前图层。', coreTool: 'select' },
-  crop: { label: '裁剪', description: '裁剪图像或画布，并支持比例约束。', coreTool: 'crop' },
-  cutout: { label: '手动抠图', description: '使用选区、魔术橡皮和橡皮工具手动抠图。', coreTool: 'selection' },
-  adjust: { label: '调整', description: '色彩、光线与细节调整将在此处显示。', coreTool: null },
-  effect: { label: '效果', description: '图像效果将在此处显示。', coreTool: null },
-  filter: { label: '滤镜', description: '本地图层滤镜将在此处显示。', coreTool: null },
-  liquify: { label: '液化', description: '在支持 WebGL2 的浏览器中使用变形笔刷。', coreTool: 'bulge_pinch' },
-  retouch: { label: '修饰', description: '修复、克隆与局部细节工具将在此处显示。', coreTool: 'repair' },
-  drawing: { label: '绘制', description: '画笔、填充、形状和颜色工具。', coreTool: 'brush' },
-  text: { label: '文字', description: '添加和编辑本机字体文字图层。', coreTool: 'text' },
+  arrange: { label: 'Arrange', description: '选择、移动、缩放和排列当前图层。', coreTool: 'select' },
+  crop: { label: 'Crop', description: '裁剪图像或画布，并支持比例约束。', coreTool: 'crop' },
+  cutout: { label: 'Cutout', description: '使用选区、魔术橡皮和橡皮工具手动抠图。', coreTool: 'selection' },
+  adjust: { label: 'Adjust', description: '色彩、光线与细节调整将在此处显示。', coreTool: null },
+  effect: { label: 'Effect', description: '图像效果将在此处显示。', coreTool: null },
+  filter: { label: 'Filter', description: '本地图层滤镜将在此处显示。', coreTool: null },
+  liquify: { label: 'Liquify', description: '在支持 WebGL2 的浏览器中使用变形笔刷。', coreTool: 'bulge_pinch' },
+  retouch: { label: 'Retouch', description: '修复、克隆与局部细节工具将在此处显示。', coreTool: 'repair' },
+  drawing: { label: 'Draw', description: '画笔、填充、形状和颜色工具。', coreTool: 'brush' },
+  text: { label: 'Text', description: '添加和编辑本机字体文字图层。', coreTool: 'text' },
 });
 
 export function shouldUseWebGL2(canvas) {

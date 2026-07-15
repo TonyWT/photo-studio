@@ -610,7 +610,7 @@ test('手动 Cutout 从工作台打开并切换到底层本地选区工具', asy
   await page.goto('/editor/');
   await page.getByTestId('tool-cutout').click();
   await expect(page.getByTestId('editor-tool-panel')).toBeVisible();
-  await expect(page.locator('[data-editor-tool-title]')).toHaveText('手动抠图');
+  await expect(page.locator('[data-editor-tool-title]')).toHaveText('Cutout');
   await expect(page.locator('#tools_container .selection')).toHaveClass(/active/);
   await page.locator('[data-editor-panel-close]').click();
   await expect(page.getByTestId('editor-tool-panel')).toBeHidden();

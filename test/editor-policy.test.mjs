@@ -31,4 +31,8 @@ test('编辑器工具注册表只包含明确保留的非 AI 工具', () => {
   ]);
   assert.equal('ai' in EDITOR_TOOL_REGISTRY, false);
   assert.equal('element' in EDITOR_TOOL_REGISTRY, false);
+  assert.deepEqual(Object.fromEntries(Object.entries(EDITOR_TOOL_REGISTRY).map(([key, tool]) => [key, tool.label])), {
+    arrange: 'Arrange', crop: 'Crop', cutout: 'Cutout', adjust: 'Adjust', effect: 'Effect',
+    filter: 'Filter', liquify: 'Liquify', retouch: 'Retouch', drawing: 'Draw', text: 'Text',
+  });
 });

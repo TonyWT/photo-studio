@@ -48,6 +48,10 @@ test.describe('1920 × 878 已加载图片工作台', () => {
       // inserted. Capture only after the concrete tool is ready; otherwise a
       // green snapshot could hide an empty sidebar.
       await expect(page.getByTestId(readyTestId)).toBeVisible();
+      // The captured parity state is the opened panel, not the transient
+      // pointer-hover state left behind by the click. Tool-label hover is
+      // verified separately in the smoke suite.
+      await page.mouse.move(960, 440);
       // A side panel changes the available workspace. Freeze the reference
       // state only after that layout transition, matching the user's desktop
       // screenshots at the same document scale.
@@ -79,6 +83,7 @@ test.describe('1920 × 878 已加载图片工作台', () => {
     await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
     await page.getByTestId('tool-drawing').click();
     await expect(page.getByTestId('drawing-brush-mode-plain')).toBeVisible();
+    await page.mouse.move(960, 440);
     // Opening the workbench resizes miniPaint's interactive viewport and may
     // recompute its automatic zoom. Fix the visual state only after that
     // layout transition so the screenshot is cross-runner deterministic.
