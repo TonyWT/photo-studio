@@ -80,4 +80,6 @@
 
 33. 2026-07-15：以用户的编辑器参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-4c219a47-27ec-4d7e-b429-edfc99354ca4.png` 与本地截图合并为 `/tmp/tool-rail-reference-vs-local.png`。本轮将 Home、Cutout、Adjust、Effect、Retouch 从底层编辑内核的无关图标收敛到本地开源的房屋、剪刀、滑杆、魔法棒和创可贴图标，保持原有工具路由与无 AI 范围。对照确认功能图标层级与参考一致；参考和本地的截图画布内容不同不作为判定，轨道的精确宽度、剩余五个图标笔画和按钮间距仍为 P2，完整视觉验收继续保持 blocked。
 
+34. 2026-07-15：工具轨图标变更后，Darwin 基准在本地按视觉分组通过；Linux Nightly 首轮 144 条功能用例通过、9 条视觉用例仅因旧工具轨基准失败。已从 GitHub Ubuntu runner 的实际截图回写 9 张 Linux 基准，并移除 Nightly 诊断中的 trace zip，避免基准问题下载数百 MB 的无关产物。最终 CI `29400335816`、Pages `29400336162` 与 Nightly `29400356619` 全部成功；完整视觉验收仍因矩阵其他 P2 项保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
