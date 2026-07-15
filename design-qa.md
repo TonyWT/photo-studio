@@ -114,4 +114,6 @@
 
 50. 2026-07-16：以用户 Retouch 参考图和本地加载实图后的同状态工作台合并为 `/tmp/retouch-reference-vs-local-injected-method-card.png`。参考把 Method 与 Size 放在同一张次级卡片；本地此前将 Size 游离在卡片之外，且“修复方法”中文文案破坏了英文工作流层级。现将保留的 Spot 修复与 Size 收进同一张 Method 卡，Spot 在 Object（明确排除的 AI 依赖能力）不存在时占完整可用宽度；Repair/Clone/Detail/Toning 四个本地工具、笔刷像素处理、锁定保护和撤销均不变。浏览器实测 Method 卡的 Spot、Size 与无 Object 条件；`npm test` 17/17、生产构建通过。图标笔画、细微尺寸与其余面板密度仍为 P2。
 
+51. 2026-07-16：Liquify 参考图在正式可用态直接以六个变形入口、Size、Strength、Density 与 High quality preview 组织首屏；本地此前在 WebGL2 可用但尚未开始会话时仍显示一条状态文案，且滑杆标题为中文，压低了工具首屏。现将可用且无预览会话的状态行隐藏（不可用或预览进行中仍明确显示本地状态），并将四个首屏参数文案收敛为英文。六个纯本地 WebGL2 模式、预览、取消、应用、锁定保护和回退提示均不变；Chromium 断言参数标签和原有可用/不可用分支仍存在，`npm test` 17/17、生产构建通过。图标笔画与细微密度继续为 P2。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。

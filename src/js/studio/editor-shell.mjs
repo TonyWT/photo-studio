@@ -1603,7 +1603,7 @@ function renderEditorToolControls(key) {
     const previewActive = Boolean(liquifyTool?.has_session?.());
     const disabled = availability.enabled ? '' : 'disabled';
     target.innerHTML = `
-      <p class="studio-control-status ${availability.enabled ? 'is-available' : 'is-unavailable'}" data-testid="liquify-status">${previewActive ? '液化预览中：继续点按可叠加，应用后写入一次历史。' : availability.message}</p>
+      <p class="studio-control-status ${availability.enabled ? 'is-available' : 'is-unavailable'}" data-testid="liquify-status"${availability.enabled && !previewActive ? ' hidden' : ''}>${previewActive ? '液化预览中：继续点按可叠加，应用后写入一次历史。' : availability.message}</p>
       <div class="studio-control-group studio-liquify-mode-grid" aria-label="液化模式">
         <button type="button" class="${mode === 'push' ? 'is-selected' : ''}" aria-pressed="${mode === 'push'}" aria-label="推移" title="推移" data-testid="liquify-mode-push" ${disabled}><img src="../images/icons/liquify-push.svg" alt=""><span class="sr_only">推移</span></button>
         <button type="button" class="${mode === 'bulge' ? 'is-selected' : ''}" aria-pressed="${mode === 'bulge'}" aria-label="膨胀" title="膨胀" data-testid="liquify-mode-bulge" ${disabled}><img src="../images/icons/liquify-bulge.svg" alt=""><span class="sr_only">膨胀</span></button>
@@ -1612,16 +1612,16 @@ function renderEditorToolControls(key) {
         <button type="button" class="${mode === 'twirl_right' ? 'is-selected' : ''}" aria-pressed="${mode === 'twirl_right'}" aria-label="右旋" title="右旋" data-testid="liquify-mode-twirl-right" ${disabled}><img src="../images/icons/liquify-twirl-right.svg" alt=""><span class="sr_only">右旋</span></button>
         <button type="button" class="${mode === 'restore' ? 'is-selected' : ''}" aria-pressed="${mode === 'restore'}" aria-label="恢复" title="恢复" data-testid="liquify-mode-restore" ${disabled}><img src="../images/icons/liquify-restore.svg" alt=""><span class="sr_only">恢复</span></button>
       </div>
-      <label class="studio-control-range">半径 <output data-liquify-radius-output>${radius}px</output>
+      <label class="studio-control-range">Size <output data-liquify-radius-output>${radius}px</output>
         <input type="range" min="1" max="500" value="${radius}" data-testid="liquify-radius" ${disabled}>
       </label>
-      <label class="studio-control-range">强度 <output data-liquify-strength-output>${power}%</output>
+      <label class="studio-control-range">Strength <output data-liquify-strength-output>${power}%</output>
         <input type="range" min="1" max="100" value="${power}" data-testid="liquify-strength" ${disabled}>
       </label>
-      <label class="studio-control-range">密度 <output data-liquify-density-output>${density}%</output>
+      <label class="studio-control-range">Density <output data-liquify-density-output>${density}%</output>
         <input type="range" min="1" max="100" value="${density}" data-testid="liquify-density" ${disabled}>
       </label>
-      <label class="studio-control-check studio-liquify-quality"><input type="checkbox" data-testid="liquify-high-quality" ${highQuality ? 'checked' : ''} ${disabled}>高质量预览</label>
+      <label class="studio-control-check studio-liquify-quality"><input type="checkbox" data-testid="liquify-high-quality" ${highQuality ? 'checked' : ''} ${disabled}>High quality preview</label>
       <div class="studio-control-group studio-control-group-two" aria-label="液化预览操作">
         <button type="button" data-testid="liquify-cancel" ${previewActive && availability.enabled ? '' : 'disabled'}>取消预览</button>
         <button type="button" data-testid="liquify-apply" ${previewActive && availability.enabled ? '' : 'disabled'}>应用液化</button>
