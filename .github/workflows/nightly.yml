@@ -26,6 +26,10 @@ jobs:
         with:
           name: nightly-visual-diagnostics
           path: |
-            test-results/
-            playwright-report/
+            test-results/**/editor-*-actual.png
+            test-results/**/editor-*-expected.png
+            test-results/**/editor-*-diff.png
+            test-results/**/test-failed-*.png
+            test-results/**/error-context.md
+            test-results/**/trace.zip
           if-no-files-found: ignore
