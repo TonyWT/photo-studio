@@ -448,7 +448,7 @@ function currentCutoutRegions() {
       : [];
 }
 
-function resetCutoutSelection() {
+function resetCutoutSelection({ clearNativeSelection = true } = {}) {
   const previousMode = cutoutSelection.mode;
   cutoutSelection = {
     mode: 'selection', operation: 'replace', intent: 'keep', inverted: false, softness: 'none', hintRemoved: false, advancedOpen: false, regions: [],
@@ -457,7 +457,7 @@ function resetCutoutSelection() {
   const selection = getCoreToolModule('selection');
   // A custom mask must never mutate miniPaint's rectangle-selection state.
   // Only an explicit reset while using the native rectangle mode clears it.
-  if (previousMode === 'selection') selection?.clear_selection?.();
+  if (clearNativeSelection && previousMode === 'selection') selection?.clear_selection?.();
   window.AppConfig.need_render = true;
 }
 
@@ -2860,19 +2860,31 @@ function refreshLiquifyControlsForActiveLayer() {
   }
 }
 
+async function closeActiveEditorToolPanel() {
+  const activeTool = document.querySelector('[data-editor-tool].is-active')?.dataset.editorTool;
+  if (activeTool === 'cutout') {
+    // The header close is a dismissal, not an Apply. Clear only our transient
+    // mask state; clearing miniPaint's native selection would add an undo item.
+    resetCutoutSelection({ clearNativeSelection: false });
+    uninstallCutoutCoreEventShield();
+    document.body.dataset.canvasToolMode = 'inactive';
+  }
+
+  const panel = document.querySelector('[data-testid="editor-tool-panel"]');
+  if (panel) panel.hidden = true;
+  document.body.classList.remove('studio-tool-panel-open');
+  document.body.dataset.collageCanvasGestures = 'false';
+  removeCutoutHintOverlay();
+  syncCanvasInteractionOffset();
+  updateCanvasStatus();
+}
+
 function bindWorkbenchControls() {
   bindCutoutCanvasGestures();
   document.querySelectorAll('[data-editor-tool]').forEach((button) => {
     button.addEventListener('click', () => activateEditorTool(button.dataset.editorTool));
   });
-  document.querySelector('[data-editor-panel-close]')?.addEventListener('click', () => {
-    const panel = document.querySelector('[data-testid="editor-tool-panel"]');
-    if (panel) panel.hidden = true;
-    document.body.classList.remove('studio-tool-panel-open');
-    document.body.dataset.collageCanvasGestures = 'false';
-    removeCutoutHintOverlay();
-    syncCanvasInteractionOffset();
-  });
+  document.querySelector('[data-editor-panel-close]')?.addEventListener('click', closeActiveEditorToolPanel);
 
   // miniPaint owns the layer-rail click handler. Defer one tick after its
   // lock action so an already-open workbench panel reflects the new

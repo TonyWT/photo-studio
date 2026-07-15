@@ -313,6 +313,32 @@ test('Cutout 自定义面板不渲染空的原生属性盒', async ({ page }) =>
   await expect(page.locator('#action_attributes')).toBeHidden();
 });
 
+test('关闭 Cutout 面板会丢弃未应用的抠图会话状态', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-cutout').click();
+  await expect(page.getByTestId('cutout-apply-selection')).toBeVisible();
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+
+  await page.getByTestId('cutout-remove-selection').click();
+  await page.getByTestId('cutout-invert').click();
+  await page.getByTestId('cutout-hint-removed').click();
+  await expect(page.getByTestId('cutout-remove-selection')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cutout-invert')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cutout-hint-removed')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.locator('[data-editor-panel-close]').click();
+  await expect(page.getByTestId('editor-tool-panel')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+
+  await page.getByTestId('tool-cutout').click();
+  await expect(page.getByTestId('cutout-keep-selection')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cutout-invert')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('cutout-hint-removed')).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('导出格式选择器提供 JPEG、WebP 与原生项目入口', async ({ page }) => {
   await page.goto('/editor/');
   await openSaveMenu(page);
