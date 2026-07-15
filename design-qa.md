@@ -76,4 +76,6 @@
 
 31. 2026-07-15：以用户的 Draw 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-70d08cad-e759-49dd-8719-64ef55994f06.png` 和本地浏览器同状态截图 `/Users/messy/.config/browser-harness/tmp/shot.png` 合并为 `/tmp/draw-palette-reference-vs-local.png`。此前本地 11 个色样常驻在侧栏内，和参考的颜色输入右端下拉入口、画布边缘浮层不一致；现改为本地下拉按钮与浮层，打开/关闭和色样选择均为实际交互，选择后会同步画笔、形状、渐变并自动收起。对照确认首屏工具、输入、笔刷预览、滑杆和色样浮层的层级已对应；色样的精确弧形轨迹、图标线条、中文文案和纵向间距仍属 P2，完整视觉验收继续保持 blocked。
 
+32. 2026-07-15：以用户的编辑器参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-4c219a47-27ec-4d7e-b429-edfc99354ca4.png` 与本地锁定图层状态截图合并为 `/tmp/layer-lock-reference-vs-local.png`。此前右侧图层卡只显示中文“锁定/解锁”胶囊，和参考的缩略图中央圆形锁定状态明显不一致；现使用仓库本地的 Font Awesome Free 锁定/解锁 SVG，锁定时以中置深色圆形白锁呈现，缩略图青色选中边仍独立保留。点击图标或按钮本身均保持同一可撤销锁定动作，并有 aria 标签和 E2E 验收。图片内容不同只来自本地空白画布，不作为视觉差异结论；图标精确大小和轨道边距仍属 P2，完整视觉验收继续保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。

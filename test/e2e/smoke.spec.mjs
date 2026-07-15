@@ -1767,8 +1767,12 @@ test('桌面已加载图片状态提供图层收起与可撤销锁定', async ({
   await expect(page.getByTestId('layers-rail-close')).toBeVisible();
   const lock = page.getByTestId('layer-lock');
   await expect(lock).toHaveCount(1);
+  await expect(lock).toHaveAttribute('aria-label', '锁定图层');
+  await expect(lock.locator('img')).toHaveAttribute('src', /\/images\/icons\/unlock\.svg$/);
   await lock.click();
   await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.locked))).toBe(true);
+  await expect(lock).toHaveAttribute('aria-label', '解锁图层');
+  await expect(lock.locator('img')).toHaveAttribute('src', /\/images\/icons\/lock\.svg$/);
   await page.locator('[data-editor-history="undo"]').click();
   await expect.poll(() => page.evaluate(() => Boolean(window.AppConfig.layer.locked))).toBe(false);
   await page.getByTestId('layers-rail-close').click();

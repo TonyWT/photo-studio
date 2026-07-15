@@ -57,7 +57,9 @@ class GUI_layers_class {
 		};
 
 		document.getElementById('layers_base').addEventListener('click', function (event) {
-			var target = event.target;
+			// Layer controls now contain an icon. Resolve their button so clicks on the
+			// icon use the same undoable action as clicks on the button itself.
+			var target = event.target.closest('button') || event.target;
 			if (target.id == 'insert_layer') {
 				//new layer
 				app.State.do_action(
@@ -143,7 +145,7 @@ class GUI_layers_class {
 		});
 
 		document.getElementById('layers_base').addEventListener('dblclick', function (event) {
-			var target = event.target;
+			var target = event.target.closest('button') || event.target;
 			if (target.id == 'layer_name') {
 				//rename layer
 				if (!targetLayerIsEditable(target.dataset.id)) return;
@@ -186,7 +188,9 @@ class GUI_layers_class {
 					html += '	<button class="visibility visible trn" id="visibility" data-id="' + value.id + '" title="Hide"></button>';
 				else
 					html += '	<button class="visibility trn" id="visibility" data-id="' + value.id + '" title="Show"></button>';
-				html += '	<button class="lock" id="lock" data-testid="layer-lock" data-id="' + value.id + '" title="' + (value.locked ? 'Unlock layer' : 'Lock layer') + '">' + (value.locked ? '解锁' : '锁定') + '</button>';
+				const lockAction = value.locked ? '解锁图层' : '锁定图层';
+				const lockIcon = value.locked ? 'lock' : 'unlock';
+				html += '	<button class="lock" id="lock" data-testid="layer-lock" data-id="' + value.id + '" title="' + lockAction + '" aria-label="' + lockAction + '"><img src="../images/icons/' + lockIcon + '.svg" alt=""></button>';
 				html += '	<button class="delete trn" id="delete" data-id="' + value.id + '" title="Delete"' + disabled + '></button>';
 				
 				if(value.composition === 'source-atop'){
