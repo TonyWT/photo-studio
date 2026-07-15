@@ -355,6 +355,9 @@ body.photo-studio-editor .studio-status-actions button,
 body.photo-studio-editor .studio-status-actions output,
 body.photo-studio-editor .studio-close-button { border: 0; color: #bcbcbc; background: transparent; font: 700 12px/1 inherit; letter-spacing: .02em; text-decoration: none; }
 body.photo-studio-editor .studio-status-actions button { min-width: 26px; cursor: pointer; }
+body.photo-studio-editor .studio-status-actions [data-editor-zoom] { display: grid; width: 26px; height: 26px; padding: 0; place-items: center; }
+body.photo-studio-editor .studio-status-actions [data-editor-zoom] img { width: 16px; height: 16px; filter: invert(1) grayscale(1) brightness(1.5); opacity: .8; }
+body.photo-studio-editor .studio-status-actions [data-editor-zoom]:hover img { opacity: 1; }
 body.photo-studio-editor .studio-status-actions button:hover,
 body.photo-studio-editor .studio-close-button:hover { color: #fff; }
 body.photo-studio-editor .studio-status-actions output { min-width: 38px; text-align: center; }
