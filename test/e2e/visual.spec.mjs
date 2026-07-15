@@ -26,17 +26,17 @@ test.describe('1920 × 878 已加载图片工作台', () => {
   test.use({ viewport: { width: 1920, height: 878 } });
 
   const sidebarVisualBaselines = [
-    ['Crop', 'crop'],
-    ['Cutout', 'cutout'],
-    ['Adjust', 'adjust'],
-    ['Effect', 'effect'],
-    ['Filter', 'filter'],
-    ['Liquify', 'liquify'],
-    ['Retouch', 'retouch'],
-    ['Text', 'text'],
+    ['Crop', 'crop', 'crop-apply'],
+    ['Cutout', 'cutout', 'cutout-apply-selection'],
+    ['Adjust', 'adjust', 'adjust-apply'],
+    ['Effect', 'effect', 'effect-browser'],
+    ['Filter', 'filter', 'filter-hdr'],
+    ['Liquify', 'liquify', 'liquify-status'],
+    ['Retouch', 'retouch', 'retouch-repair'],
+    ['Text', 'text', 'text-create'],
   ];
 
-  for (const [label, key] of sidebarVisualBaselines) {
+  for (const [label, key, readyTestId] of sidebarVisualBaselines) {
     test(`${label} 侧栏视觉基准`, async ({ page }) => {
       await page.goto('/');
       await page.getByTestId('image-picker').setInputFiles(desktopFixture);
@@ -44,6 +44,10 @@ test.describe('1920 × 878 已加载图片工作台', () => {
       await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
       await page.getByTestId(`tool-${key}`).click();
       await expect(page.getByTestId('editor-tool-panel')).toBeVisible();
+      // The panel shell is animated before its tool-specific controls are
+      // inserted. Capture only after the concrete tool is ready; otherwise a
+      // green snapshot could hide an empty sidebar.
+      await expect(page.getByTestId(readyTestId)).toBeVisible();
       // A side panel changes the available workspace. Freeze the reference
       // state only after that layout transition, matching the user's desktop
       // screenshots at the same document scale.
