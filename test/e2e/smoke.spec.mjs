@@ -407,6 +407,7 @@ test('状态栏在文档尺寸旁同步显示当前缩放比例', async ({ page 
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'status-size.png', mimeType: 'image/png', buffer: samplePng });
   await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.app?.GUI?.GUI_preview))).toBe(true);
   await page.evaluate(() => window.app.GUI.GUI_preview.zoom(26));
   await expect(page.getByTestId('editor-zoom')).toHaveText('26%');
   await expect(page.getByTestId('editor-document-size')).toContainText('@ 26%');
