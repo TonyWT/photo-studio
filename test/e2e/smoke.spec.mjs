@@ -571,7 +571,7 @@ test('编辑器提供 Pixlr 风格的非 AI 工作台骨架', async ({ page }) =
     ['tool-adjust', 'sliders.svg'],
     ['tool-effect', 'desaturate.svg'],
     ['tool-filter', 'braille.svg'],
-    ['tool-liquify', 'yin-yang.svg'],
+    ['tool-liquify', 'hurricane.svg'],
     ['tool-retouch', 'bandage.svg'],
   ]) {
     await expect(page.getByTestId(testId).locator('img')).toHaveAttribute('src', new RegExp(`\\.\\./images/icons/${icon.replace('.', '\\.')}$`));

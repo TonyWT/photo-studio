@@ -15,7 +15,7 @@
 
 ## 仍需收敛的视觉差异
 
-- [P2] 左侧工具轨及其工作区起点已统一为 56px；Home、Cutout、Adjust、Effect、Filter、Liquify、Retouch 已换成本地开源功能图标。Liquify 的螺旋笔画、其余图标精确笔画、按钮分隔与工具间距仍需逐项收敛。
+- [P2] 左侧工具轨及其工作区起点已统一为 56px；Home、Cutout、Adjust、Effect、Filter、Liquify、Retouch 已换成本地开源功能图标，Liquify 采用旋涡形图标而非阴阳符号。其余图标精确笔画、按钮分隔与工具间距仍需逐项收敛。
 - [P2] 图层锁定已使用本地圆形锁定/解锁图标，并按同状态参考收敛为 32px 外圈、14px 图标；图层轨留白和外圈精细描边仍需继续对照。
 - [P2] 各工具参数面板的深度和控件密度尚未完全对齐，优先继续补齐 Cutout、Adjust、Effect、Filter、Liquify、Retouch、Drawing、Text 的真实能力。
 
@@ -97,5 +97,7 @@
 41. 2026-07-15：继续使用同状态工作台合图 `/tmp/main-reference-vs-current-zoom-icons.png`。参考的缩放区为放大镜减号、百分比、放大镜加号；项目原先只显示减号和加号文本。现替换为仓库内 Font Awesome Free 的本地 SVG，缩放动作、无障碍标签和状态值不变；定向 E2E、Darwin 工作台快照、单元测试和生产构建已通过。其余工具轨笔画、图层轨留白仍是 P2，完整视觉验收继续保持 blocked。
 
 42. 2026-07-15：图层锁定圆标与缩放图标作为同一工作台视觉批次提交。Linux CI `29422688570`、Pages `29422688662` 与最终 Ubuntu Nightly `29422747371` 均成功，Nightly 156/156；因此确认新图标的本地资源、锁定语义、工作台布局及跨平台截图没有回退。工具轨细笔画、图层轨留白仍是 P2，完整视觉验收继续保持 blocked。
+
+43. 2026-07-15：以用户编辑器参考图剥离浏览器框架后的同视口状态，与本地工作台合并为 `/tmp/main-reference-vs-current-liquify-hurricane.png`。此前 Liquify 在工具轨中使用阴阳符号，和参考的旋涡变形语义不对应；现改为仓库内 Font Awesome Free 6.7.2 的 Hurricane 图标，保持既有本地 Liquify 路由、无障碍标签和无 AI 边界。先见证工具轨资产断言失败，再通过专项 Chromium E2E、Darwin 工作台视觉快照、`npm test` 13/13 和生产构建。仍须由 Ubuntu Nightly 完成跨平台截图复验；图标精细笔画、按钮分隔和图层轨留白继续是 P2，完整视觉验收保持 blocked。
 
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
