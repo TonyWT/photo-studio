@@ -82,6 +82,6 @@
 
 34. 2026-07-15：工具轨图标变更后，Darwin 基准在本地按视觉分组通过；Linux Nightly 首轮 144 条功能用例通过、9 条视觉用例仅因旧工具轨基准失败。已从 GitHub Ubuntu runner 的实际截图回写 9 张 Linux 基准，并移除 Nightly 诊断中的 trace zip，避免基准问题下载数百 MB 的无关产物。最终 CI `29400335816`、Pages `29400336162` 与 Nightly `29400356619` 全部成功；完整视觉验收仍因矩阵其他 P2 项保持 blocked。
 
-35. 2026-07-15：以用户的编辑器参考图与本地同状态截图合并为 `/tmp/tool-rail-reference-vs-local-v3.png`。工具轨、未打开工具时的工作区起点，以及 Crop/Adjust/Effect 固定底栏均已共用精确 56px 基准；Effect 改用参考同层级的半明暗图标，Filter 改用点阵图标，Liquify 改用本地阴阳旋涡图标。浏览器实测工具轨及工作区左边界均为 56px，单元、专项 E2E、Darwin 13 张视觉快照和生产构建通过。Linux Nightly `29403257122` 的 145 项功能回归通过，8 项失败仅为改动后的侧栏视觉基准；已由该 Ubuntu runner 实际截图刷新 Linux 基准，等待复跑确认。Liquify 的精确螺旋、按钮分隔线和图标笔画仍为 P2，完整视觉验收继续保持 blocked。
+35. 2026-07-15：以用户的编辑器参考图与本地同状态截图合并为 `/tmp/tool-rail-reference-vs-local-v3.png`。工具轨、未打开工具时的工作区起点，以及 Crop/Adjust/Effect 固定底栏均已共用精确 56px 基准；Effect 改用参考同层级的半明暗图标，Filter 改用点阵图标，Liquify 改用本地阴阳旋涡图标。浏览器实测工具轨及工作区左边界均为 56px，单元、专项 E2E、Darwin 13 张视觉快照和生产构建通过。Linux Nightly `29403257122` 的 145 项功能回归通过，8 项失败仅为改动后的侧栏视觉基准；已由该 Ubuntu runner 实际截图刷新 Linux 基准，最终 CI `29404410709`、Pages `29404410756`、Nightly `29404430758` 均成功，Nightly 为 153/153。Liquify 的精确螺旋、按钮分隔线和图标笔画仍为 P2，完整视觉验收继续保持 blocked。
 
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
