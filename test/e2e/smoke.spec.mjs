@@ -2190,6 +2190,7 @@ test('Filter 六张本地图像卡都有对应的分类图标与可见标题', a
     await expect(card.locator('.studio-filter-card-media')).toHaveCSS('height', '132px');
     await expect(card.locator('.studio-filter-card-copy')).toHaveCSS('min-height', '80px');
   }
+  await expect(page.getByTestId('filter-hdr').locator('.studio-filter-card-copy small')).toHaveText('Lift shadow detail while protecting highlights.');
 });
 
 test('工具面板标题栏使用参考中的居中标题与固定高度', async ({ page }) => {

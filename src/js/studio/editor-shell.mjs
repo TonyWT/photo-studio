@@ -2268,22 +2268,22 @@ function renderEditorToolControls(key) {
     const activeCategory = EFFECT_CATEGORIES.find((category) => category.id === activeEffectCategoryId) ?? null;
     const categoryCards = EFFECT_CATEGORIES.map((category) => `<button type="button" class="studio-effect-category studio-effect-category--${category.previewClass}${activeCategory?.id === category.id ? ' is-selected' : ''}" data-testid="effect-category-${category.id}"${effectDisabled}>
       <span class="studio-effect-category-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
-      <span class="studio-effect-category-copy"><strong>${category.label}</strong><small>${category.effects.length} 个本地效果</small></span>
+      <span class="studio-effect-category-copy"><strong>${category.label}</strong><small>${category.effects.length} Effects</small></span>
     </button>`).join('');
     const effectCards = activeCategory?.effects.map((effect) => `<button type="button" class="studio-effect-preset studio-effect-preset--${activeCategory.previewClass}${activeEffectRecipeId === effect.id ? ' is-selected' : ''}" aria-pressed="${activeEffectRecipeId === effect.id}" data-testid="effect-preset-${activeCategory.id}-${effect.id}" data-effect-category="${activeCategory.id}" data-effect-recipe="${effect.id}"${effectDisabled}>
-      <span>${effect.label}</span><small>本地预览与应用</small>
+      <span>${effect.label}</span><small>Local preview &amp; apply</small>
     </button>`).join('') ?? '';
     target.innerHTML = `
-      ${activeCategory ? `<div class="studio-effect-category-heading"><button type="button" data-testid="effect-category-back">‹ 返回分类</button><strong>${activeCategory.label}</strong></div>
+      ${activeCategory ? `<div class="studio-effect-category-heading"><button type="button" data-testid="effect-category-back">‹ Back</button><strong>${activeCategory.label}</strong></div>
         <div class="studio-effect-preset-grid" aria-label="${activeCategory.label}本地效果">${effectCards}</div>` : `<div class="studio-effect-category-grid" aria-label="本地效果分类">${categoryCards}</div>`}
       <div class="studio-control-group studio-control-group-two" aria-label="全部本地效果与常用参数">
-        <button type="button" data-testid="effect-browser"${effectDisabled}>全部本地效果</button>
-        <button type="button" data-testid="effect-contrast"${effectDisabled}>对比度</button>
-        <button type="button" data-testid="effect-blur"${effectDisabled}>模糊</button>
+        <button type="button" data-testid="effect-browser"${effectDisabled}>All effects</button>
+        <button type="button" data-testid="effect-contrast"${effectDisabled}>Contrast</button>
+        <button type="button" data-testid="effect-blur"${effectDisabled}>Blur</button>
       </div>
       <footer class="studio-effect-panel-footer" data-testid="effect-panel-footer" aria-label="效果操作">
-        <button type="button" data-testid="effect-cancel">取消</button>
-        <button type="button" data-testid="effect-apply"${activeEffectRecipeId && !effectDisabled ? '' : ' disabled'}>应用</button>
+        <button type="button" data-testid="effect-cancel">Cancel</button>
+        <button type="button" data-testid="effect-apply"${activeEffectRecipeId && !effectDisabled ? '' : ' disabled'}>Apply</button>
       </footer>
     `;
     target.querySelectorAll('.studio-effect-category[data-testid]')?.forEach((button) => {
@@ -2337,12 +2337,12 @@ function renderEditorToolControls(key) {
       ? layer.link.src
       : '';
     const filterCards = [
-      ['filter-hdr', 'HDR', '提升局部明暗与照片层次。', 'filter-hdr.svg'],
-      ['filter-focus-bokeh', 'Focus / Bokeh', '创建局部焦点和背景虚化。', 'filter-focus-bokeh.svg'],
-      ['filter-reflect', 'Reflect', '在本地图片上构建反射效果。', 'filter-reflect.svg'],
-      ['filter-dispersion', 'Dispersion', '生成本地像素分散效果。', 'filter-dispersion.svg'],
-      ['filter-glitch', 'Glitch', '生成本地故障艺术效果。', 'filter-glitch.svg'],
-      ['filter-colorize', 'Colorize', '以可配置色彩重新着色。', 'filter-colorize.svg'],
+      ['filter-hdr', 'HDR', 'Lift shadow detail while protecting highlights.', 'filter-hdr.svg'],
+      ['filter-focus-bokeh', 'Focus / Bokeh', 'Create a focal area with a soft background blur.', 'filter-focus-bokeh.svg'],
+      ['filter-reflect', 'Reflect', 'Build a mirrored reflection from the current photo.', 'filter-reflect.svg'],
+      ['filter-dispersion', 'Dispersion', 'Scatter pixels into a local graphic treatment.', 'filter-dispersion.svg'],
+      ['filter-glitch', 'Glitch', 'Create a local digital glitch effect.', 'filter-glitch.svg'],
+      ['filter-colorize', 'Colorize', 'Recolour the image with configurable tones.', 'filter-colorize.svg'],
     ].map(([testId, title, description, icon]) => `<button type="button" class="studio-filter-card studio-filter-card--${testId.replace('filter-', '')}" data-testid="${testId}"${filterDisabled}>
       <span class="studio-filter-card-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
       <span class="studio-filter-card-copy"><strong>${title}</strong><small>${description}</small><span class="studio-filter-card-icon"><img src="../images/icons/${icon}" alt="" aria-hidden="true"></span></span>
