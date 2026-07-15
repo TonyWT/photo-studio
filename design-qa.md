@@ -98,6 +98,6 @@
 
 42. 2026-07-15：图层锁定圆标与缩放图标作为同一工作台视觉批次提交。Linux CI `29422688570`、Pages `29422688662` 与最终 Ubuntu Nightly `29422747371` 均成功，Nightly 156/156；因此确认新图标的本地资源、锁定语义、工作台布局及跨平台截图没有回退。工具轨细笔画、图层轨留白仍是 P2，完整视觉验收继续保持 blocked。
 
-43. 2026-07-15：以用户编辑器参考图剥离浏览器框架后的同视口状态，与本地工作台合并为 `/tmp/main-reference-vs-current-liquify-hurricane.png`。此前 Liquify 在工具轨中使用阴阳符号，和参考的旋涡变形语义不对应；现改为仓库内 Font Awesome Free 6.7.2 的 Hurricane 图标，保持既有本地 Liquify 路由、无障碍标签和无 AI 边界。先见证工具轨资产断言失败，再通过专项 Chromium E2E、Darwin 工作台视觉快照、`npm test` 13/13 和生产构建。仍须由 Ubuntu Nightly 完成跨平台截图复验；图标精细笔画、按钮分隔和图层轨留白继续是 P2，完整视觉验收保持 blocked。
+43. 2026-07-15：以用户编辑器参考图剥离浏览器框架后的同视口状态，与本地工作台合并为 `/tmp/main-reference-vs-current-liquify-hurricane.png`。此前 Liquify 在工具轨中使用阴阳符号，和参考的旋涡变形语义不对应；现改为仓库内 Font Awesome Free 6.7.2 的 Hurricane 图标，保持既有本地 Liquify 路由、无障碍标签和无 AI 边界。先见证工具轨资产断言失败，再通过专项 Chromium E2E、Darwin 工作台视觉快照、`npm test` 13/13 和生产构建。Linux CI `29424078297`、Pages `29424078122` 与 Ubuntu Nightly `29424662244` 已通过，Nightly 为 156/156；图标精细笔画、按钮分隔和图层轨留白继续是 P2，完整视觉验收保持 blocked。
 
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
