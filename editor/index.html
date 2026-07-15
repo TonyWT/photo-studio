@@ -49,15 +49,21 @@
         <button type="button" data-editor-history="redo">重做</button>
         <span class="studio-status-separator" aria-hidden="true"></span>
         <a class="studio-close-button" href="../" data-testid="editor-close">关闭</a>
-        <button class="studio-local-save-button" type="button" data-testid="save-local-project">保存项目</button>
-        <label class="sr_only" for="export-format">导出格式</label>
-        <select class="studio-export-format" id="export-format" data-testid="export-format" aria-label="导出格式">
-          <option value="png">PNG</option>
-          <option value="jpeg">JPEG</option>
-          <option value="webp">WebP</option>
-        </select>
-        <button class="studio-export-button" type="button" data-testid="export-image">导出图片</button>
-        <button class="studio-export-button" type="button" data-testid="export-project">导出项目</button>
+        <div class="studio-save-menu-shell">
+          <button class="studio-export-button studio-save-menu-toggle" type="button" data-testid="save-menu-toggle" aria-haspopup="menu" aria-expanded="false">保存</button>
+          <div class="studio-save-menu" data-testid="save-menu" role="menu" hidden>
+            <button class="studio-local-save-button" type="button" data-testid="save-local-project" role="menuitem">保存项目</button>
+            <label class="studio-save-format" for="export-format">导出格式
+              <select class="studio-export-format" id="export-format" data-testid="export-format" aria-label="导出格式">
+                <option value="png">PNG</option>
+                <option value="jpeg">JPEG</option>
+                <option value="webp">WebP</option>
+              </select>
+            </label>
+            <button class="studio-export-button" type="button" data-testid="export-image" role="menuitem">导出图片</button>
+            <button class="studio-export-project-button" type="button" data-testid="export-project" role="menuitem">导出项目</button>
+          </div>
+        </div>
       </div>
     </footer>
   </div>

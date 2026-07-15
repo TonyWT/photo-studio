@@ -315,16 +315,23 @@ body.photo-studio-editor .studio-status-actions { display: flex; height: 100%; a
 body.photo-studio-editor .studio-status-actions button,
 body.photo-studio-editor .studio-status-actions output,
 body.photo-studio-editor .studio-close-button { border: 0; color: #bcbcbc; background: transparent; font: 700 12px/1 inherit; letter-spacing: .02em; text-decoration: none; }
-body.photo-studio-editor .studio-export-format { min-height: 34px; padding: 0 9px; border: 1px solid #727272; border-radius: 6px; color: #f2f2f2; background: #303030; font: 700 12px/1 inherit; }
 body.photo-studio-editor .studio-status-actions button { min-width: 26px; cursor: pointer; }
 body.photo-studio-editor .studio-status-actions button:hover,
 body.photo-studio-editor .studio-close-button:hover { color: #fff; }
 body.photo-studio-editor .studio-status-actions output { min-width: 38px; text-align: center; }
 body.photo-studio-editor .studio-status-separator { width: 1px; height: 26px; margin: 0 8px; background: #343434; }
 body.photo-studio-editor .studio-close-button,
-body.photo-studio-editor .studio-local-save-button,
-body.photo-studio-editor .studio-export-button { min-width: 88px !important; padding: 10px 18px; border: 1px solid #727272 !important; border-radius: 20px !important; text-align: center; }
-body.photo-studio-editor .studio-local-save-button { border-color: #4b4b4b !important; }
-body.photo-studio-editor .studio-export-button { border-color: #00a9df !important; color: #fff !important; background: #00a9df !important; }
-body.photo-studio-editor .studio-export-button:hover { background: #12bbeF !important; }
-@media (max-width: 1120px) { body.photo-studio-editor.studio-tool-panel-open .wrapper { left: 354px; } body.photo-studio-editor .studio-tool-panel { width: 296px; } body.photo-studio-editor .studio-adjust-panel-footer, body.photo-studio-editor .studio-crop-panel-footer { width: 296px; } body.photo-studio-editor .studio-local-save-button { display: none; } }
+body.photo-studio-editor .studio-save-menu-toggle { min-width: 128px !important; padding: 10px 18px; border: 1px solid #00a9df !important; border-radius: 20px !important; color: #fff !important; background: #00a9df !important; text-align: center; }
+body.photo-studio-editor .studio-save-menu-toggle:hover { background: #12bbeF !important; }
+body.photo-studio-editor .studio-close-button { min-width: 128px; padding: 10px 18px; border: 1px solid #727272; border-radius: 20px; text-align: center; }
+body.photo-studio-editor .studio-save-menu-shell { position: relative; display: flex; height: 100%; align-items: center; }
+body.photo-studio-editor .studio-save-menu { position: absolute; right: 0; bottom: calc(100% + 9px); display: grid; width: 226px; gap: 8px; padding: 10px; border: 1px solid #4a4a4a; border-radius: 8px; background: #2a2a2a; box-shadow: 0 10px 22px rgba(0, 0, 0, .38); }
+body.photo-studio-editor .studio-save-menu[hidden] { display: none; }
+body.photo-studio-editor .studio-save-menu button { width: 100%; min-height: 36px; padding: 0 12px; border: 1px solid #595959; border-radius: 6px; color: #efefef; background: #343434; font: 700 12px/1 inherit; text-align: left; }
+body.photo-studio-editor .studio-save-menu button:hover { border-color: #7b7b7b; background: #404040; }
+body.photo-studio-editor .studio-save-menu .studio-export-button { border-color: #00a9df !important; color: #fff !important; background: #00a9df !important; }
+body.photo-studio-editor .studio-save-menu .studio-export-button:hover { background: #12bbeF !important; }
+body.photo-studio-editor .studio-save-menu .studio-export-project-button { border-color: #4d7581; color: #d8f4fc; }
+body.photo-studio-editor .studio-save-format { display: grid; gap: 5px; color: #cfcfcf; font-size: 12px; font-weight: 700; }
+body.photo-studio-editor .studio-export-format { min-height: 34px; padding: 0 9px; border: 1px solid #727272; border-radius: 6px; color: #f2f2f2; background: #303030; font: 700 12px/1 inherit; }
+@media (max-width: 1120px) { body.photo-studio-editor.studio-tool-panel-open .wrapper { left: 354px; } body.photo-studio-editor .studio-tool-panel { width: 296px; } body.photo-studio-editor .studio-adjust-panel-footer, body.photo-studio-editor .studio-crop-panel-footer { width: 296px; } body.photo-studio-editor .studio-close-button, body.photo-studio-editor .studio-save-menu-toggle { min-width: 88px !important; } }

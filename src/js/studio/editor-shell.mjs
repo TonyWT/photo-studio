@@ -269,6 +269,14 @@ function updateSaveLabel(label) {
   if (button) button.textContent = label;
 }
 
+function setSaveMenuOpen(open) {
+  const menu = document.querySelector('[data-testid="save-menu"]');
+  const toggle = document.querySelector('[data-testid="save-menu-toggle"]');
+  if (!menu || !toggle) return;
+  menu.hidden = !open;
+  toggle.setAttribute('aria-expanded', String(open));
+}
+
 function updateCanvasStatus() {
   const dimensions = document.getElementById('studio-document-dimensions');
   const zoom = document.querySelector('[data-testid="editor-zoom"]');
@@ -1543,7 +1551,7 @@ function renderEditorToolControls(key) {
   const target = document.querySelector('[data-editor-tool-controls]');
   if (!target) return;
   const nativeAttributes = document.getElementById('action_attributes');
-  const customAttributePanel = key === 'liquify' || key === 'retouch';
+  const customAttributePanel = key === 'crop' || key === 'cutout' || key === 'liquify' || key === 'retouch';
   if (!customAttributePanel) nativeAttributes?.removeAttribute('hidden');
   if (key === 'liquify') {
     nativeAttributes?.setAttribute('hidden', '');
@@ -2821,6 +2829,9 @@ async function activateEditorTool(key) {
   } else {
     await activateCoreTool(tool.coreTool);
   }
+  if (key === 'crop' || key === 'cutout' || key === 'liquify' || key === 'retouch') {
+    document.getElementById('action_attributes')?.setAttribute('hidden', '');
+  }
   updateCanvasStatus();
 }
 
@@ -2901,8 +2912,24 @@ function bindWorkbenchControls() {
   document.querySelector('[data-editor-zoom="out"]')?.addEventListener('click', () => document.getElementById('zoom_less')?.click());
   document.querySelector('[data-editor-zoom="in"]')?.addEventListener('click', () => document.getElementById('zoom_more')?.click());
   window.addEventListener('resize', renderCutoutHintOverlay);
-  document.querySelector('[data-testid="export-image"]')?.addEventListener('click', exportImage);
-  document.querySelector('[data-testid="export-project"]')?.addEventListener('click', exportNativeProject);
+  document.querySelector('[data-testid="save-menu-toggle"]')?.addEventListener('click', () => {
+    const menu = document.querySelector('[data-testid="save-menu"]');
+    setSaveMenuOpen(Boolean(menu?.hidden));
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.studio-save-menu-shell')) setSaveMenuOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setSaveMenuOpen(false);
+  });
+  document.querySelector('[data-testid="export-image"]')?.addEventListener('click', () => {
+    exportImage();
+    setSaveMenuOpen(false);
+  });
+  document.querySelector('[data-testid="export-project"]')?.addEventListener('click', () => {
+    exportNativeProject();
+    setSaveMenuOpen(false);
+  });
   document.querySelector('[data-testid="layers-rail-close"]')?.addEventListener('click', (event) => {
     const collapsed = document.body.classList.toggle('layers-collapsed');
     event.currentTarget.setAttribute('aria-pressed', String(collapsed));
