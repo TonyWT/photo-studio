@@ -1971,31 +1971,31 @@ function renderEditorToolControls(key) {
     target.innerHTML = `
       <section class="studio-crop-primary-section" aria-label="裁剪主参数">
         <div class="studio-crop-dimensions" aria-label="裁剪输出尺寸">
-          <label class="studio-control-number">宽度
+          <label class="studio-control-number" aria-label="宽度">Width
             <input type="number" min="1" max="32768" value="${cropWidth}" data-testid="crop-output-width" ${disabled}>
           </label>
-          <label class="studio-control-number">高度
+          <label class="studio-control-number" aria-label="高度">Height
             <input type="number" min="1" max="32768" value="${cropHeight}" data-testid="crop-output-height" ${disabled}>
           </label>
         </div>
         <div class="studio-control-group studio-crop-straighten" aria-label="裁剪拉直">
-          <label class="studio-control-range">拉直 <output data-testid="crop-straighten-value">${straighten.toFixed(1).replace(/\.0$/, '')}°</output>
+          <label class="studio-control-range" aria-label="拉直">Straighten <output data-testid="crop-straighten-value">${straighten.toFixed(1).replace(/\.0$/, '')}°</output>
             <input type="range" min="-45" max="45" step="0.1" value="${straighten}" data-testid="crop-straighten" ${disabled}>
           </label>
         </div>
         <section class="studio-crop-aspect" aria-label="裁剪比例">
-          <label class="studio-control-check studio-crop-aspect-toggle">选择比例
+          <label class="studio-control-check studio-crop-aspect-toggle" aria-label="选择比例">Select aspect
             <input type="checkbox" role="switch" ${cropAspectEnabled ? 'checked' : ''} data-testid="crop-aspect-enabled" ${disabled}>
           </label>
           <div class="studio-crop-aspect-options" ${cropAspectEnabled ? '' : 'hidden'} data-testid="crop-aspect-options">
-            <label class="studio-control-select">比例
+            <label class="studio-control-select" aria-label="比例">Aspect ratio
               <select data-testid="crop-aspect-ratio" ${disabled}>
                 ${CROP_ASPECT_OPTIONS.map(([value, label]) => `<option value="${value}" ${selectedAspectValue === value ? 'selected' : ''}>${label}</option>`).join('')}
               </select>
             </label>
-            <label class="studio-control-select">输出尺寸
+            <label class="studio-control-select" aria-label="输出尺寸">Output size
               <select data-testid="crop-output-preset" ${disabled}>
-                <option value="" ${cropOutputSize ? '' : 'selected'}>自定义</option>
+                <option value="" ${cropOutputSize ? '' : 'selected'}>Custom</option>
                 ${CROP_OUTPUT_PRESETS.map(([value, label]) => `<option value="${value}" ${value === `${cropOutputSize?.width}x${cropOutputSize?.height}` ? 'selected' : ''}>${label}</option>`).join('')}
               </select>
             </label>
@@ -2003,7 +2003,7 @@ function renderEditorToolControls(key) {
         </section>
       </section>
       <section class="studio-crop-operation-section" aria-label="旋转与翻转">
-        <strong>旋转与翻转</strong>
+        <strong>Rotate &amp; flip</strong>
         <div class="studio-control-group studio-control-group-four studio-crop-transform-grid">
           <button type="button" aria-label="向左旋转 90°" title="向左旋转 90°" data-testid="crop-rotate-left" ${disabled}><img src="../images/icons/crop-rotate-left.svg" alt=""><span class="sr_only">向左旋转 90°</span></button>
           <button type="button" aria-label="向右旋转 90°" title="向右旋转 90°" data-testid="crop-rotate-right" ${disabled}><img src="../images/icons/crop-rotate-right.svg" alt=""><span class="sr_only">向右旋转 90°</span></button>
@@ -2012,15 +2012,15 @@ function renderEditorToolControls(key) {
         </div>
       </section>
       <section class="studio-crop-operation-section" aria-label="调整尺寸">
-        <strong>调整尺寸</strong>
+        <strong>Resize</strong>
         <div class="studio-control-group studio-crop-resize-actions">
-          <button type="button" data-testid="crop-image-size" ${disabled}>图片尺寸</button>
-          <button type="button" data-testid="crop-canvas-size" ${disabled}>画布尺寸</button>
+          <button type="button" aria-label="图片尺寸" data-testid="crop-image-size" ${disabled}>Image size</button>
+          <button type="button" aria-label="画布尺寸" data-testid="crop-canvas-size" ${disabled}>Canvas size</button>
         </div>
       </section>
       <footer class="studio-crop-panel-footer" data-testid="crop-panel-footer" aria-label="裁剪操作">
-        <button type="button" data-testid="crop-cancel">取消</button>
-        <button type="button" data-testid="crop-apply" ${disabled}>应用</button>
+        <button type="button" aria-label="取消" data-testid="crop-cancel">Cancel</button>
+        <button type="button" aria-label="应用" data-testid="crop-apply" ${disabled}>Apply</button>
       </footer>
     `;
     target.querySelector('[data-testid="crop-apply"]')?.addEventListener('click', async () => {

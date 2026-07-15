@@ -2462,9 +2462,17 @@ test('Crop 首屏将尺寸、旋转和调整尺寸保持为参考对应的纵向
   await expect(controls.locator('.studio-crop-dimensions')).toHaveCount(1);
   await expect(controls.locator('.studio-crop-dimensions .studio-control-number')).toHaveCount(2);
   await expect(controls.locator('.studio-crop-operation-section')).toHaveCount(2);
-  await expect(controls.locator('.studio-crop-operation-section').nth(0).locator('strong')).toHaveText('旋转与翻转');
-  await expect(controls.locator('.studio-crop-operation-section').nth(1).locator('strong')).toHaveText('调整尺寸');
+  await expect(controls.locator('.studio-crop-operation-section').nth(0).locator('strong')).toHaveText('Rotate & flip');
+  await expect(controls.locator('.studio-crop-operation-section').nth(1).locator('strong')).toHaveText('Resize');
   await expect(controls.locator('.studio-crop-resize-actions button')).toHaveCount(2);
+  await expect(controls.getByTestId('crop-output-width').locator('..')).toContainText('Width');
+  await expect(controls.getByTestId('crop-output-height').locator('..')).toContainText('Height');
+  await expect(controls.getByTestId('crop-straighten').locator('..')).toContainText('Straighten');
+  await expect(controls.getByTestId('crop-aspect-enabled').locator('..')).toContainText('Select aspect');
+  await expect(controls.getByTestId('crop-image-size')).toHaveText('Image size');
+  await expect(controls.getByTestId('crop-canvas-size')).toHaveText('Canvas size');
+  await expect(page.getByTestId('crop-cancel')).toHaveText('Cancel');
+  await expect(page.getByTestId('crop-apply')).toHaveText('Apply');
 
   const order = await controls.evaluate((root) => [
     root.querySelector('.studio-crop-primary-section'),

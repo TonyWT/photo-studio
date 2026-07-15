@@ -122,4 +122,6 @@
 
 54. 2026-07-16：以用户的主工作台参考图剥离浏览器 Chrome 后，与 browser-harness 的同视口本地工作台合并为 `/tmp/main-reference-vs-local-app-latest.png`。采样对照确认左工具轨均为约 `rgb(40,40,40)`、中心工作台为约 `rgb(24,24,24)`，但本地右图层轨和底栏分别为 `rgb(34,34,34)`、`rgb(36,36,36)`，比参考的 `rgb(40,40,40)` 明显偏暗。现将右图层轨与底栏统一为 `#282828`；浏览器实测两处均为 `rgb(40, 40, 40)`，并增加静态视觉契约。`npm test` 18/18、`npm run build` 通过。图层轨的精细留白、图标笔画与各参数面板的 P2 仍未全部消除。
 
+55. 2026-07-16：以用户 Crop 参考图和 browser-harness 的同视口、同文件打开状态合并为 `/tmp/crop-reference-vs-local-latest.png`。对照发现本地 Crop 仍混入中文 Width/Height/Straighten/比例、旋转和尺寸文案，且拉直轨道为青色；参考首屏使用英文工作流与中性灰拉直滑杆。现仅替换可见的通用工作流文字为 Width、Height、Straighten、Select aspect、Rotate & flip、Resize、Image size、Canvas size、Cancel、Apply，保持中文 aria 标签；拉直轨道改为 `#777`。browser-harness 实测可见文案和 `accent-color=rgb(119,119,119)`，更新后合图为 `/tmp/crop-reference-vs-local-english-current.png`。`npm test` 18/18、`npm run build` 通过。Smart Resize 仍按明确无 AI 范围排除；精细字体、图标笔画和间距仍为 P2。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。

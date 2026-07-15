@@ -163,6 +163,7 @@ body.photo-studio-editor .studio-crop-primary-section { display: grid; gap: 13px
 body.photo-studio-editor .studio-crop-primary-section .studio-crop-dimensions,
 body.photo-studio-editor .studio-crop-primary-section .studio-crop-aspect { padding: 0; border: 0; border-radius: 0; background: transparent; }
 body.photo-studio-editor .studio-crop-primary-section .studio-crop-straighten { display: block; }
+body.photo-studio-editor .studio-crop-straighten input { accent-color: #777; }
 body.photo-studio-editor .studio-crop-aspect-toggle { justify-content: space-between; min-height: 28px; }
 body.photo-studio-editor .studio-crop-aspect-toggle input { appearance: none; width: 30px; height: 18px; border: 1px solid #676767; border-radius: 999px; background: #505050; transition: background .15s ease; }
 body.photo-studio-editor .studio-crop-aspect-toggle input::after { display: block; width: 12px; height: 12px; margin: 2px; border-radius: 50%; background: #d7d7d7; content: ''; transition: transform .15s ease; }
