@@ -31,5 +31,4 @@ jobs:
             test-results/**/editor-*-diff.png
             test-results/**/test-failed-*.png
             test-results/**/error-context.md
-            test-results/**/trace.zip
           if-no-files-found: ignore
