@@ -72,4 +72,6 @@
 
 29. 2026-07-15：九张用户参考图均体现工具轨悬停时会出现跨入参数面板的蓝色工具标签，而此前本地工具轨只提供浏览器原生 title，无法形成同样的可见反馈。本轮为十个保留非 AI 工具加入本地伪元素标签，保留中文 title/无障碍语义，同时以 ARRANGE、CROP、CUTOUT、ADJUST、EFFECT、FILTER、LIQUIFY、RETOUCH、DRAW、TEXT 对齐参考的视觉层级。Chromium E2E 同时验证十个标签及 hover 的内容、显示状态、色值；该状态默认不显示，不改变已建立的初始截图基准。图标具体形制和逐工具细部间距仍属 P2，完整视觉验收继续保持 blocked。
 
+30. 2026-07-15：Draw 的功能清单不再只停留在入口可点。固定 270px 本地底图上，Plain、Parallel、Sketchy、Shaded、Furry、Trail、Crayon、Ink 八种笔刷模式均已逐项确认图层参数、实际像素变化及单步 Undo；Ellipse、Triangle、Star、Heart、Line 也与原有 Rectangle 一起具有像素/Undo 证据。该批没有修改首屏视觉，因此未重新跑夜间截图任务；调色板弧形布局、图标线条、中文文案和纵向间距继续作为 P2，完整视觉验收继续保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。

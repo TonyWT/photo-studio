@@ -4335,6 +4335,63 @@ test('Drawing 的 Sketchy 笔刷模式会保存在本地图层并可撤销', asy
   expect(plainHash).not.toBe(sketchyHash);
 });
 
+test('Drawing 的八种本地笔刷模式都写入对应图层参数、改变像素且可撤销', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const fixtureCanvas = document.createElement('canvas');
+    fixtureCanvas.width = 270;
+    fixtureCanvas.height = 270;
+    const fixtureContext = fixtureCanvas.getContext('2d');
+    fixtureContext.fillStyle = 'rgb(20, 30, 40)';
+    fixtureContext.fillRect(0, 0, 270, 270);
+    return fixtureCanvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'brush-modes-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-size').fill('20');
+  await page.getByTestId('drawing-softness').fill('0');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-brush').click();
+  const canvas = page.locator('#canvas_minipaint');
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  const pixelHash = () => page.evaluate(() => {
+    const canvasElement = document.getElementById('canvas_minipaint');
+    const pixels = canvasElement.getContext('2d', { willReadFrequently: true })
+      .getImageData(92, 92, 86, 56).data;
+    return Array.from(pixels).reduce((hash, value) => Math.imul(hash ^ value, 16777619), 2166136261) >>> 0;
+  });
+
+  for (const mode of ['plain', 'parallel', 'sketchy', 'shaded', 'furry', 'trail', 'crayon', 'ink']) {
+    await page.getByTestId(`drawing-brush-mode-${mode}`).click();
+    await expect.poll(() => page.evaluate(() => {
+      const value = window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.mode;
+      return value?.value ?? value;
+    })).toBe(mode);
+    const before = await pixelHash();
+    const historyIndex = await page.evaluate(() => window.State.action_history_index);
+    await canvas.hover({ position: { x: 94, y: 116 } });
+    await page.mouse.down();
+    await page.mouse.move(canvasBox.x + 168, canvasBox.y + 116, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(historyIndex + 1);
+    await expect.poll(pixelHash).not.toBe(before);
+    await expect.poll(() => page.evaluate(() => {
+      const value = window.AppConfig.layer.params.mode;
+      return value?.value ?? value;
+    })).toBe(mode);
+    await page.locator('[data-editor-history="undo"]').click();
+    await expect.poll(pixelHash).toBe(before);
+  }
+});
+
 test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', async ({ page }) => {
   await openHome(page);
   const drawingFixture = await page.evaluate(() => {
@@ -4623,6 +4680,60 @@ test('Drawing 形状会写入本地像素，并可通过撤销精确恢复', asy
 
   await page.locator('[data-editor-history="undo"]').click();
   await expect.poll(regionHash).toBe(before);
+});
+
+test('Drawing 的椭圆、三角、星形、心形与直线快捷形状均会写入像素并可撤销', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'all-shapes-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  const canvas = page.locator('#canvas_minipaint');
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  const pixelHash = () => page.evaluate(() => {
+    const canvasElement = document.getElementById('canvas_minipaint');
+    const pixels = canvasElement.getContext('2d', { willReadFrequently: true })
+      .getImageData(40, 40, 190, 190).data;
+    let hash = 2166136261;
+    for (const pixel of pixels) hash = Math.imul(hash ^ pixel, 16777619);
+    return hash >>> 0;
+  });
+
+  for (const [testId, tool] of [
+    ['drawing-shape-ellipse', 'ellipse'],
+    ['drawing-shape-triangle', 'triangle'],
+    ['drawing-shape-star', 'star'],
+    ['drawing-shape-heart', 'heart'],
+    ['drawing-shape-line', 'line'],
+  ]) {
+    await page.getByTestId(testId).click();
+    await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe(tool);
+    const before = await pixelHash();
+    const history = await page.evaluate(() => window.State.action_history.length);
+    await canvas.hover({ position: { x: 74, y: 74 } });
+    await page.mouse.down();
+    await page.mouse.move(canvasBox.x + 194, canvasBox.y + 172, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
+    await expect.poll(pixelHash).not.toBe(before);
+    await page.locator('[data-editor-history="undo"]').click();
+    await expect.poll(pixelHash).toBe(before);
+  }
 });
 
 test('Drawing 橡皮会将活动图片图层局部变透明，并可通过撤销精确恢复', async ({ page }) => {
