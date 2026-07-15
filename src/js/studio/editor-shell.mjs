@@ -2290,7 +2290,6 @@ function renderEditorToolControls(key) {
       <span class="studio-filter-card-copy"><strong>${title}</strong><small>${description}</small><span class="studio-filter-card-icon"><img src="../images/icons/${icon}" alt="" aria-hidden="true"></span></span>
     </button>`).join('');
     target.innerHTML = `
-      <p class="studio-control-hint">所有滤镜均在当前浏览器中本地处理，应用后可通过底部撤销恢复。</p>
       <div class="studio-filter-card-list" aria-label="本地滤镜工作台">${filterCards}</div>
     `;
     const localFilters = {
