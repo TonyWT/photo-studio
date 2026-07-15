@@ -120,4 +120,6 @@
 
 53. 2026-07-16：以用户 Draw 与 Text 参考图分别和本地实图同状态画面合并为 `/tmp/draw-reference-vs-local-english.png`、`/tmp/text-reference-vs-local-english.png`。Draw 原本已具备参考的 3+2 图标格、颜色输入、棋盘格笔刷预览及三条滑杆，Text 原本已具备新增文字入口、双列 76 个原创本地预设；但可见辅助文案仍以中文混入参考的英文工作流。现将 Draw 的 Tool/Color/Brush/Size/Softness/Transparency 和扩展项、Text 的 Add new text/New default text/Editable 及样式表单收敛为英文，Adjust 固定底栏同步为 Cancel/Apply。中文无障碍名称、所有本地绘制/文字行为、原创模板和撤销均不变。浏览器实测 Draw 三条标签和 Text 入口/预设；新增 E2E 标签断言，`npm test` 17/17、生产构建通过。模板字形、图标笔画和精细间距继续为 P2。
 
+54. 2026-07-16：以用户的主工作台参考图剥离浏览器 Chrome 后，与 browser-harness 的同视口本地工作台合并为 `/tmp/main-reference-vs-local-app-latest.png`。采样对照确认左工具轨均为约 `rgb(40,40,40)`、中心工作台为约 `rgb(24,24,24)`，但本地右图层轨和底栏分别为 `rgb(34,34,34)`、`rgb(36,36,36)`，比参考的 `rgb(40,40,40)` 明显偏暗。现将右图层轨与底栏统一为 `#282828`；浏览器实测两处均为 `rgb(40, 40, 40)`，并增加静态视觉契约。`npm test` 18/18、`npm run build` 通过。图层轨的精细留白、图标笔画与各参数面板的 P2 仍未全部消除。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。

@@ -315,7 +315,7 @@ body.photo-studio-editor .studio-control-status.is-available { border-color: #22
 body.photo-studio-editor .studio-control-status.is-unavailable { color: #b2a795; }
 body.photo-studio-editor .studio-tool-panel .attributes { display: flex; width: auto; min-height: 0; margin: 0; padding: 12px; border: 1px solid #3d3d3d; border-radius: 8px; background: #1e1e1e; }
 body.photo-studio-editor .studio-tool-panel .attributes[hidden] { display: none; }
-body.photo-studio-editor .sidebar_right { position: relative; width: auto; margin: 0; padding: 9px 8px; overflow: visible; border-left: 1px solid #333; background: #222; transition: width .16s ease, padding .16s ease, border-color .16s ease; }
+body.photo-studio-editor .sidebar_right { position: relative; width: auto; margin: 0; padding: 9px 8px; overflow: visible; border-left: 1px solid #333; background: #282828; transition: width .16s ease, padding .16s ease, border-color .16s ease; }
 body.photo-studio-editor .layers-collapsed .wrapper { grid-template-columns: minmax(0, 1fr) 0; }
 body.photo-studio-editor .layers-collapsed .sidebar_right { width: 0; padding-right: 0; padding-left: 0; border-left-color: transparent; }
 body.photo-studio-editor .layers-collapsed .sidebar_right > :not(.studio-layers-close) { opacity: 0; pointer-events: none; }
@@ -352,7 +352,7 @@ body.photo-studio-editor .layers_list .lock img { width: 14px; height: 14px; fil
 body.photo-studio-editor .layers_list .lock:hover,
 body.photo-studio-editor .layers_list .lock:focus-visible { border-color: #00b7ee; opacity: 1; outline: 0; }
 body.photo-studio-editor .layers_list .item.is-locked .lock { border-color: rgba(255,255,255,.32); background: rgba(20,20,20,.94); opacity: 1; }
-body.photo-studio-editor .studio-editor-statusbar { position: fixed; z-index: 35; right: 0; bottom: 0; left: 0; display: flex; height: 56px; align-items: center; justify-content: space-between; padding: 0 18px 0 80px; border-top: 1px solid #252525; background: #242424; box-sizing: border-box; }
+body.photo-studio-editor .studio-editor-statusbar { position: fixed; z-index: 35; right: 0; bottom: 0; left: 0; display: flex; height: 56px; align-items: center; justify-content: space-between; padding: 0 18px 0 80px; border-top: 1px solid #252525; background: #282828; box-sizing: border-box; }
 body.photo-studio-editor .studio-document-size { color: #a9a9a9; font-size: 12px; }
 body.photo-studio-editor .studio-status-actions { display: flex; height: 100%; align-items: center; gap: 9px; }
 body.photo-studio-editor .studio-status-actions button,
