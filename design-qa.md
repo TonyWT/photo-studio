@@ -128,4 +128,6 @@
 
 57. 2026-07-16：重新捕获当前 Pixlr Express 首页与本地首页同视口画面，并合并为 `/tmp/pixlr-home-reference-vs-local.png`。本地首页此前仍是通用的居中落地页，与参考的左侧工作区导航、顶部产品横幅、主图片区与最近项目区结构不一致；现收敛为相同的信息层级和桌面布局，同时仅使用 Photo Studio 自有文字及仓库本地图标，不复制品牌、文案、插画或 AI/素材入口。browser-harness 实测 Open image、Create new、Create collage 与本地 2×2 拼图路由，且可见导航中无 AI/Element 入口；`npm test` 18/18、`npm run build` 通过。编辑器各面板的精细字体、图标笔画、留白仍为 P2，完整视觉验收继续保持 blocked。
 
+58. 2026-07-16：以用户 Crop 参考图与已加载本地 3840×2880 项目的同视口画面合并为 `/tmp/crop-reference-vs-local-css-pixels.png`。对照确认工具轨、344px 参数面板、裁剪主卡、旋转/翻转四格、尺寸入口、右图层轨和底栏仍在正确层级；下方尺寸标签是参考中的独立视觉信息，本地此前只显示画布尺寸。现把当前缩放比例同步写入左下角文档状态，形成 `3840 × 2880 px @ 26%`，且中央缩放读数继续保留。browser-harness 实测尺寸状态与中央缩放均为 26%；`npm test` 18/18、`npm run build` 通过。跨平台 Nightly 视觉回归已启动；其结果与余下逐屏 P2 继续决定最终验收状态。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。

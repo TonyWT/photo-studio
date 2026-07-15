@@ -280,11 +280,12 @@ function setSaveMenuOpen(open) {
 function updateCanvasStatus() {
   const dimensions = document.getElementById('studio-document-dimensions');
   const zoom = document.querySelector('[data-testid="editor-zoom"]');
+  const zoomPercent = window.AppConfig?.ZOOM ? Math.round(window.AppConfig.ZOOM * 100) : null;
   if (dimensions && window.AppConfig?.WIDTH && window.AppConfig?.HEIGHT) {
-    dimensions.textContent = `${window.AppConfig.WIDTH} × ${window.AppConfig.HEIGHT} px`;
+    dimensions.textContent = `${window.AppConfig.WIDTH} × ${window.AppConfig.HEIGHT} px${zoomPercent ? ` @ ${zoomPercent}%` : ''}`;
   }
-  if (zoom && window.AppConfig?.ZOOM) {
-    zoom.textContent = `${Math.round(window.AppConfig.ZOOM * 100)}%`;
+  if (zoom && zoomPercent) {
+    zoom.textContent = `${zoomPercent}%`;
   }
 }
 

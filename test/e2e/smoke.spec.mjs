@@ -403,6 +403,15 @@ test('状态栏以单一保存入口收束本地保存与导出操作', async ({
   await expect(page.getByTestId('export-project')).toBeVisible();
 });
 
+test('状态栏在文档尺寸旁同步显示当前缩放比例', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'status-size.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await page.evaluate(() => window.app.GUI.GUI_preview.zoom(26));
+  await expect(page.getByTestId('editor-zoom')).toHaveText('26%');
+  await expect(page.getByTestId('editor-document-size')).toContainText('@ 26%');
+});
+
 test('导出原生项目会下载包含 info、layers 与 data 的 JSON', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'project-source.png', mimeType: 'image/png', buffer: samplePng });

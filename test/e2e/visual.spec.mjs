@@ -31,7 +31,7 @@ test.describe('1920 × 878 已加载图片工作台', () => {
     ['Adjust', 'adjust', 'adjust-apply'],
     ['Effect', 'effect', 'effect-browser'],
     ['Filter', 'filter', 'filter-hdr'],
-    ['Liquify', 'liquify', 'liquify-status'],
+    ['Liquify', 'liquify', 'liquify-mode-push'],
     ['Retouch', 'retouch', 'retouch-repair'],
     ['Text', 'text', 'text-create'],
   ];
