@@ -99,7 +99,7 @@
 | K-17 | Hint removed 开关 | 保留 | 可用 | 不提交历史的本地临时预览：显示即将移除区域的深色遮罩与 33% 原图残影；切换 Keep/Remove、羽化、反选、重置、应用、离开 Cutout 时同步或清理。Chromium E2E 已验证开关、像素覆盖与零历史写入 |
 | K-18 | Invert cutout | 保留 | 可用 | alpha 反选与撤销 |
 | K-19 | Reset cutout | 保留 | 可用 | 清除临时选区且无多余历史 |
-| K-20 | Apply cutout / Close | 保留 | 部分可用 | Keep / Remove 先只选择模式，不写历史；“应用抠图”才提交单次本地历史，Undo/Redo 已由 Chromium E2E 覆盖。顶部面板关闭仍复用编辑器通用 Close 生命周期，视觉细节待与参考逐图比对 |
+| K-20 | Apply cutout / Close | 保留 | 可用 | Keep / Remove 先只选择模式，不写历史；“应用抠图”才提交单次本地历史，Undo/Redo 已由 Chromium E2E 覆盖。顶部面板关闭会丢弃 Keep/Remove、反选、提示等未提交会话状态，清理遮罩且不写入 Undo；重新打开恢复默认 Keep 状态。 |
 
 ## S-03 Adjust
 
