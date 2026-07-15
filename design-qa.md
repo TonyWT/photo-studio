@@ -90,6 +90,6 @@
 
 38. 2026-07-15：以用户 Adjust 参考图与当前同状态截图合并为 `/tmp/adjust-reference-vs-current-after-shortcuts.png`。此前本地将 Auto、B&W、Pop 画成三个独立描边卡，参考则是在同一个连续快捷调整容器中排列三项，且 Color 区的起点更低。现已使用共享容器、80px 快捷项高度和无独立边框的真实按钮，使 Color 区首行与参考的垂直节奏对齐；原有三项本地效果映射、历史和撤销不变。快捷容器几何专项、Adjust Darwin 视觉基准、`npm test`、生产构建与 CI `29415965785` 均通过。首轮 Ubuntu Nightly `29416024093` 的 155 项功能/其余视觉用例通过，仅 Adjust 因旧 Linux 基准差异失败；已从同一 runner 的实际图刷新该平台基准，最终 CI `29416791232`、Pages `29416791306` 与 Ubuntu Nightly `29416791332` 均通过（156/156）。完整视觉验收继续保持 blocked。
 
-39. 2026-07-15：以用户 Filter 参考图与当前同状态截图合并为 `/tmp/filter-reference-vs-current-padded-cards.png`。此前本地六个可点击滤镜卡是全宽、紧凑的通用按钮，图片贴边、说明区高度不足；参考以边距明确的浏览卡呈现图片、标题、说明和分类图标。现已给每张真实本地滤镜卡增加 16px/18px 内边距、132px 预览、80px 说明区和 18px 卡间距，仍使用用户当前本地图片而不复制参考摄影素材。六卡几何专项、Filter Darwin 视觉基准、`npm test` 与生产构建已通过；Linux 基准将在本次视觉发布后由 Ubuntu runner 复验。完整视觉验收继续保持 blocked。
+39. 2026-07-15：以用户 Filter 参考图与当前同状态截图合并为 `/tmp/filter-reference-vs-current-padded-cards.png`。此前本地六个可点击滤镜卡是全宽、紧凑的通用按钮，图片贴边、说明区高度不足；参考以边距明确的浏览卡呈现图片、标题、说明和分类图标。现已给每张真实本地滤镜卡增加 16px/18px 内边距、132px 预览、80px 说明区和 18px 卡间距，仍使用用户当前本地图片而不复制参考摄影素材。六卡几何专项、Filter Darwin 视觉基准、`npm test` 与生产构建已通过；首轮 Ubuntu Nightly `29418557819` 为 155/156，仅 Filter 因旧 Linux 快照失败。已从该 runner 产物刷新 Linux 基准，CI `29419228637`、Pages `29419228168` 与最终 Ubuntu Nightly `29419238796` 均成功（156/156）。完整视觉验收继续保持 blocked。
 
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
