@@ -84,4 +84,6 @@
 
 35. 2026-07-15：以用户的编辑器参考图与本地同状态截图合并为 `/tmp/tool-rail-reference-vs-local-v3.png`。工具轨、未打开工具时的工作区起点，以及 Crop/Adjust/Effect 固定底栏均已共用精确 56px 基准；Effect 改用参考同层级的半明暗图标，Filter 改用点阵图标，Liquify 改用本地阴阳旋涡图标。浏览器实测工具轨及工作区左边界均为 56px，单元、专项 E2E、Darwin 13 张视觉快照和生产构建通过。Linux Nightly `29403257122` 的 145 项功能回归通过，8 项失败仅为改动后的侧栏视觉基准；已由该 Ubuntu runner 实际截图刷新 Linux 基准，最终 CI `29404410709`、Pages `29404410756`、Nightly `29404430758` 均成功，Nightly 为 153/153。Liquify 的精确螺旋、按钮分隔线和图标笔画仍为 P2，完整视觉验收继续保持 blocked。
 
+36. 2026-07-15：以用户编辑器参考图与同视口本地工作台再次合并复核，底栏 Close 由蓝色主操作收敛为参考的透明描边次操作；Save 仍是唯一青色主入口。专项 Chromium 状态栏断言、全量 `npm test` 及构建均已通过。首次 Linux Nightly `29410350702` 的 147 条功能用例通过，8 条侧栏截图仅因该全局底栏样式变化而与旧 Linux 基准不一致；已从同一 Ubuntu runner 下载其实际截图并刷新基准，最终 Nightly 复验待本轮提交后执行。此项不改变完整视觉验收的 blocked 状态。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
