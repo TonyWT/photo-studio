@@ -102,4 +102,6 @@
 
 44. 2026-07-15：以用户 Adjust 参考图和本地非悬停打开态合并为 `/tmp/adjust-reference-vs-current-open-panel.png`。十个工具的可见面板标题从本地化描述收敛为参考同层级的 Arrange、Crop、Cutout、Adjust、Effect、Filter、Liquify、Retouch、Draw、Text；工具按钮仍保留中文 `title` 和无障碍语义。截图测试在点击后将指针移回画布，避免把蓝色悬停标签误冻结为面板常态，同时保留专门的 hover 交互断言。先见证 Adjust 旧基准失败，再更新 Darwin 9 张侧栏快照；Ubuntu Nightly `29427267592` 的 148 项非基准检查通过，9 项旧 Linux 快照如预期失败。下载实际图并逐项与旧图对照后，仅回写这 9 张同 runner 基准；最终 CI `29428152228`、Pages `29428150216` 与 Ubuntu Nightly `29428195889` 均通过，Nightly 157/157。图标精细笔画、按钮分隔和图层轨留白继续是 P2，完整视觉验收保持 blocked。
 
+45. 2026-07-15：以用户编辑器参考图与本地工作台合并为 `/tmp/main-reference-vs-current-footer-copy.png`。参考底栏使用放大镜缩放、百分比、UNDO、REDO、Close 与 Save；项目已使用本地放大镜 SVG，本轮将剩余可见文案从中文收敛为 UNDO、REDO、Close、Save，并同步保存菜单的可见英文工作流名称。按钮保留中文无障碍标签，实际本地保存、PNG/JPEG/WebP 导出、原生项目导出和最近项目恢复不变。先见证 Close/Save 文案断言失败，再通过保存/恢复定向 Chromium E2E；Darwin 快照以强制更新方式写入当前稳定状态。`npm test` 13/13、生产构建、CI `29429658191`、Pages `29429658418` 与 Ubuntu Nightly `29429753536` 均成功，Nightly 157/157。工具图标精细笔画、按钮分隔和图层轨留白仍为 P2，完整视觉验收保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
