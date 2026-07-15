@@ -106,4 +106,6 @@
 
 46. 2026-07-15：对九张用户侧栏参考图的逐项清单进行了状态审计。Crop、Cutout、Adjust、Effect、Filter、Liquify、Retouch、Draw、Text 的控件级范围保持 C/K/J/E/F/L/R/D/T 编号；保留项均有真实本地行为和测试证据，AI Cutout、Smart Resize、Object Healing、AI Tools 与 Element 均保持明确排除。新增 `test/requirements-audit.test.mjs`，会校验高层需求/矩阵使用“功能可用；视觉 P2”双维状态、覆盖九个侧栏范围，并保护 AI/Element 排除约束；`npm test` 为 16/16。此批仅修正验收语义，不刷新视觉截图。图标笔画、轨道留白、面板密度等 P2 仍阻止完整视觉还原结论。
 
+47. 2026-07-16：以用户提供的主工作台参考图与本地同视口工作台合并复核为 `/tmp/reference-vs-local-rail-before.png`。本地非激活工具此前继承 miniPaint 按钮的圆角和双层阴影，视觉上被切成十个独立卡片；参考为连续深色工具轨，仅以激活态和悬停标签区分工具。现将工具轨入口强制为无圆角、无阴影，保留 56px 几何、激活态、悬停标签、无障碍名称和真实工具路由。新增 `test/workbench-visual-contract.test.mjs` 保护这一视觉契约；浏览器实测 `borderRadius=0px`、`boxShadow=none`，`npm test` 17/17、生产构建通过。图层轨留白、图标精确笔画和各参数面板密度仍为 P2。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。

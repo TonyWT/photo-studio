@@ -50,7 +50,7 @@ body.photo-studio-editor[data-collage-canvas-gestures="true"] #canvas_minipaint 
 body.photo-studio-editor[data-collage-canvas-dragging="true"] #canvas_minipaint { cursor: grabbing; }
 body.photo-studio-editor .studio-tool-rail { position: fixed; z-index: 30; inset: 0 auto 56px 0; display: flex; width: var(--studio-rail-width); flex-direction: column; align-items: center; background: #292929; border-right: 1px solid #333; }
 body.photo-studio-editor .studio-rail-home,
-body.photo-studio-editor .studio-tool-button { position: relative; display: grid; place-items: center; width: var(--studio-rail-width); height: 58px; padding: 0; border: 0; color: #c8c8c8; background: transparent; text-decoration: none; cursor: pointer; }
+body.photo-studio-editor .studio-tool-button { position: relative; display: grid; place-items: center; width: var(--studio-rail-width); height: 58px; padding: 0; border: 0; border-radius: 0 !important; box-shadow: none !important; color: #c8c8c8; background: transparent; text-decoration: none; cursor: pointer; }
 body.photo-studio-editor .studio-rail-home { height: 56px; }
 body.photo-studio-editor .studio-rail-home img { width: 21px; height: 21px; filter: invert(1) grayscale(1) brightness(1.8); }
 body.photo-studio-editor .studio-tool-button img { width: 21px; height: 21px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .82; }
