@@ -53,7 +53,10 @@ test.describe('1920 × 878 已加载图片工作台', () => {
       // screenshots at the same document scale.
       await page.evaluate(() => window.app.GUI.GUI_preview.zoom(26));
       await expect(page.getByTestId('editor-zoom')).toHaveText('26%');
-      await expect(page).toHaveScreenshot(`editor-${key}.png`, { animations: 'disabled', maxDiffPixelRatio: 0.01 });
+      // Sidebar structure is the product's primary parity surface. Keep the
+      // tolerance below 0.2% so a whole control group cannot regress while
+      // still allowing deterministic OS-specific anti-aliasing baselines.
+      await expect(page).toHaveScreenshot(`editor-${key}.png`, { animations: 'disabled', maxDiffPixelRatio: 0.002 });
     });
   }
 
