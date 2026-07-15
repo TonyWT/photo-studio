@@ -489,6 +489,15 @@ test('编辑器提供 Pixlr 风格的非 AI 工作台骨架', async ({ page }) =
   await expect(page.getByTestId('tool-element')).toHaveCount(0);
   await expect(page.getByTestId('tool-cutout')).toBeVisible();
   await expect(page.getByTestId('tool-text')).toBeVisible();
+  for (const [testId, icon] of [
+    ['editor-home', 'home.svg'],
+    ['tool-cutout', 'scissors.svg'],
+    ['tool-adjust', 'sliders.svg'],
+    ['tool-effect', 'magic-wand.svg'],
+    ['tool-retouch', 'bandage.svg'],
+  ]) {
+    await expect(page.getByTestId(testId).locator('img')).toHaveAttribute('src', new RegExp(`\\.\\./images/icons/${icon.replace('.', '\\.')}$`));
+  }
 });
 
 test('工作台工具轨在悬停时显示 Pixlr 风格的工具标签', async ({ page }) => {

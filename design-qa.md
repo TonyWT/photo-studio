@@ -15,8 +15,8 @@
 
 ## 仍需收敛的视觉差异
 
-- [P2] 激活工具使用了较醒目的 3px 青色内嵌高亮；参考的激活态更克制。后续降低该高亮对比度。
-- [P2] 图层锁定目前使用“锁定/解锁”文字按钮，以保证可访问性和真实交互；后续可替换为仓库内开源图标并保留无障碍标签。
+- [P2] 左侧工具轨的 Home、Cutout、Adjust、Effect、Retouch 已换成本地开源功能图标；其余图标的精确笔画、轨道宽度与工具间距仍需逐项收敛。
+- [P2] 图层锁定已使用本地圆形锁定/解锁图标；图标精确大小、外圈和图层轨留白仍需继续对照。
 - [P2] 各工具参数面板的深度和控件密度尚未完全对齐，优先继续补齐 Cutout、Adjust、Effect、Filter、Liquify、Retouch、Drawing、Text 的真实能力。
 
 - 2026-07-15：Adjust 面板的 Cancel / Apply 已改为固定在编辑器底栏上方的双按钮区；Cancel 会关闭面板、丢弃尚未应用的滑杆值且不写历史，Apply 进入既有的本地 Compare / Reset / Confirm 预览流程。Chromium E2E 固定断言该操作区底边与状态栏相邻。截图级的图标密度仍属于上述 P2 项，未据此宣称完整视觉验收。
@@ -77,5 +77,7 @@
 31. 2026-07-15：以用户的 Draw 参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-70d08cad-e759-49dd-8719-64ef55994f06.png` 和本地浏览器同状态截图 `/Users/messy/.config/browser-harness/tmp/shot.png` 合并为 `/tmp/draw-palette-reference-vs-local.png`。此前本地 11 个色样常驻在侧栏内，和参考的颜色输入右端下拉入口、画布边缘浮层不一致；现改为本地下拉按钮与浮层，打开/关闭和色样选择均为实际交互，选择后会同步画笔、形状、渐变并自动收起。对照确认首屏工具、输入、笔刷预览、滑杆和色样浮层的层级已对应；色样的精确弧形轨迹、图标线条、中文文案和纵向间距仍属 P2，完整视觉验收继续保持 blocked。
 
 32. 2026-07-15：以用户的编辑器参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-4c219a47-27ec-4d7e-b429-edfc99354ca4.png` 与本地锁定图层状态截图合并为 `/tmp/layer-lock-reference-vs-local.png`。此前右侧图层卡只显示中文“锁定/解锁”胶囊，和参考的缩略图中央圆形锁定状态明显不一致；现使用仓库本地的 Font Awesome Free 锁定/解锁 SVG，锁定时以中置深色圆形白锁呈现，缩略图青色选中边仍独立保留。点击图标或按钮本身均保持同一可撤销锁定动作，并有 aria 标签和 E2E 验收。图片内容不同只来自本地空白画布，不作为视觉差异结论；图标精确大小和轨道边距仍属 P2，完整视觉验收继续保持 blocked。
+
+33. 2026-07-15：以用户的编辑器参考图 `/var/folders/20/2p51l8s151x5vk1dyttm0_gc0000gn/T/codex-clipboard-4c219a47-27ec-4d7e-b429-edfc99354ca4.png` 与本地截图合并为 `/tmp/tool-rail-reference-vs-local.png`。本轮将 Home、Cutout、Adjust、Effect、Retouch 从底层编辑内核的无关图标收敛到本地开源的房屋、剪刀、滑杆、魔法棒和创可贴图标，保持原有工具路由与无 AI 范围。对照确认功能图标层级与参考一致；参考和本地的截图画布内容不同不作为判定，轨道的精确宽度、剩余五个图标笔画和按钮间距仍为 P2，完整视觉验收继续保持 blocked。
 
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。
