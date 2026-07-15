@@ -134,4 +134,6 @@
 
 60. 2026-07-16：新的 Ubuntu Nightly `29448118427` 在功能流程完成后，仅因首页及 Crop、Cutout、Effect、Liquify、Retouch、Text 的旧 Linux 快照失败。已将该 runner 的实际图逐项与本轮编辑器状态及用户参考图复核：连续 56px 工具轨、344px 面板、中心画布、右图层轨、`尺寸 @ 缩放` 底栏、手动 Cutout、无 AI 的 Liquify 和自有 Effect 文案均为预期状态。只回写这 7 张同 runner Linux 基准，不触碰 Darwin 基准；随后以一次新的 Nightly 作为验收门禁。完整视觉验收仍只受未逐像素消除的 P2 字体/图标笔画/留白差异约束。
 
+61. 2026-07-16：基准提交后，GitHub CI `29448781896`、Pages `29448781997` 与 Ubuntu Nightly `29448799141` 全部成功。CI 覆盖 145 条 Chromium 本地工作流，Nightly 覆盖 156 条功能与视觉检查；静态站点已部署到 `https://tonywt.github.io/photo-studio/`。这确认当前已审阅 Linux 视觉状态、非 AI 功能矩阵、无远程模型约束和发布链路均未回退；精确字体、图标笔画和留白的 P2 像素级差异仍不应表述为完全逐像素复刻。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
