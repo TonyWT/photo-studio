@@ -1992,7 +1992,7 @@ function renderEditorToolControls(key) {
       </section>
       <section class="studio-crop-operation-section" aria-label="旋转与翻转">
         <strong>旋转与翻转</strong>
-        <div class="studio-control-group studio-control-group-two studio-crop-transform-grid">
+        <div class="studio-control-group studio-control-group-four studio-crop-transform-grid">
           <button type="button" aria-label="向左旋转 90°" title="向左旋转 90°" data-testid="crop-rotate-left" ${disabled}><img src="../images/icons/crop-rotate-left.svg" alt=""><span class="sr_only">向左旋转 90°</span></button>
           <button type="button" aria-label="向右旋转 90°" title="向右旋转 90°" data-testid="crop-rotate-right" ${disabled}><img src="../images/icons/crop-rotate-right.svg" alt=""><span class="sr_only">向右旋转 90°</span></button>
           <button type="button" class="${transform.flip_horizontal ? 'is-selected' : ''}" aria-pressed="${transform.flip_horizontal}" aria-label="水平翻转" title="水平翻转" data-testid="crop-flip-horizontal" ${disabled}><img src="../images/icons/crop-flip-horizontal.svg" alt=""><span class="sr_only">水平翻转</span></button>

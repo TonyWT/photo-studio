@@ -2474,6 +2474,10 @@ test('Crop 的旋转与翻转首屏使用四个有名称的图标工具格', asy
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-crop').click();
 
+  await expect.poll(() => page.locator('.studio-crop-transform-grid').evaluate((grid) =>
+    getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length,
+  )).toBe(4);
+
   for (const [testId, label] of [
     ['crop-rotate-left', '向左旋转 90°'],
     ['crop-rotate-right', '向右旋转 90°'],

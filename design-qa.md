@@ -108,4 +108,6 @@
 
 47. 2026-07-16：以用户提供的主工作台参考图与本地同视口工作台合并复核为 `/tmp/reference-vs-local-rail-before.png`。本地非激活工具此前继承 miniPaint 按钮的圆角和双层阴影，视觉上被切成十个独立卡片；参考为连续深色工具轨，仅以激活态和悬停标签区分工具。现将工具轨入口强制为无圆角、无阴影，保留 56px 几何、激活态、悬停标签、无障碍名称和真实工具路由。新增 `test/workbench-visual-contract.test.mjs` 保护这一视觉契约；浏览器实测 `borderRadius=0px`、`boxShadow=none`，`npm test` 17/17、生产构建通过。图层轨留白、图标精确笔画和各参数面板密度仍为 P2。
 
+48. 2026-07-16：以用户的 Crop 参考图与本地同状态面板合并为 `/tmp/crop-reference-vs-local-four-grid.png`。参考在 Rotate & flip 区域将四个变换动作横向排成一行，本地此前仍是 2×2 格，造成显著的首屏结构差异。现将真实旋转/翻转按钮改为四列单行网格，动作、悬停说明和撤销行为不变；Chromium 断言网格实际计算为四列。`npm test` 17/17 与生产构建通过。面板的字体、图标笔画、细节间距仍为 P2，完整视觉验收继续保持 blocked。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
