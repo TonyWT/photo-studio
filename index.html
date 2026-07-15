@@ -10,27 +10,39 @@
 <body class="studio-home">
   <main class="studio-app" data-page="home">
     <aside class="studio-sidebar">
-      <div class="studio-brand">PHOTO STUDIO</div>
+      <a class="studio-brand" href="./" aria-label="Photo Studio 首页">
+        <span class="studio-brand-mark"><img src="./images/icons/media.svg" alt=""></span>
+        <strong>Photo Studio</strong>
+      </a>
+      <p class="studio-sidebar-heading">WORKSPACE</p>
       <nav class="studio-nav" aria-label="工作区导航">
-        <a href="./" aria-current="page">图片编辑</a>
-        <a href="#recent">最近项目</a>
+        <a href="./" aria-current="page"><img src="./images/icons/media.svg" alt="">Photo Studio</a>
+        <a href="#recent"><img src="./images/icons/braille.svg" alt="">Temporary projects</a>
       </nav>
+      <p class="studio-sidebar-heading">LOCAL TOOLS</p>
+      <div class="studio-nav studio-local-nav">
+        <button type="button" data-testid="import-project"><img src="./images/icons/external.png" alt="">Import project</button>
+        <button type="button" data-testid="create-collage"><img src="./images/icons/braille.svg" alt="">Create collage</button>
+      </div>
+      <p class="studio-sidebar-note">Files stay in this browser. No account, cloud sync, remote processing, or asset marketplace.</p>
     </aside>
     <section class="studio-content">
-      <section class="studio-hero">
-        <div>
-          <p>本地图片工作台</p>
-          <h1>快速开始，精细编辑。</h1>
-          <p>图片只在此浏览器中处理。支持图层、裁剪、调整、滤镜、手动 Cutout、绘制、文字、拼贴和本地导出。</p>
+      <header class="studio-home-banner">
+        <div class="studio-home-banner-product"><span><img src="./images/icons/media.svg" alt=""></span><strong>Photo Studio</strong></div>
+        <span>Local-first editor</span>
+      </header>
+      <section class="studio-home-grid">
+        <div class="studio-dropzone" data-testid="dropzone">
+          <img class="studio-open-illustration" src="./images/icons/media.svg" alt="" aria-hidden="true">
+          <button class="studio-button" data-testid="open-image"><img src="./images/icons/media.svg" alt="">Open image</button>
+          <p>Drag, drop, or paste an image. PNG, JPG, WebP, GIF, BMP, and TIFF are processed locally.</p>
           <div class="studio-actions">
-            <button class="studio-button" data-testid="open-image">打开图片</button>
-            <button class="studio-button secondary" type="button" data-testid="import-project">导入项目</button>
-            <a class="studio-button secondary" href="./editor/" data-testid="create-new">新建画布</a>
-            <button class="studio-button secondary" type="button" data-testid="create-collage">新建拼贴</button>
+            <a class="studio-button secondary" href="./editor/" data-testid="create-new">Create new</a>
+            <button class="studio-button secondary" type="button" data-testid="create-collage-main">Create collage</button>
           </div>
           <p role="alert" data-testid="project-import-error" hidden></p>
           <div class="studio-collage-picker" data-testid="collage-templates" hidden>
-            <p>选择本地拼贴模板</p>
+            <p>Choose a local collage layout</p>
             <div>
               <button type="button" data-collage-template="1x2" data-testid="collage-template-1x2">1 × 2</button>
               <button type="button" data-collage-template="2x1" data-testid="collage-template-2x1">2 × 1</button>
@@ -43,14 +55,14 @@
             </div>
           </div>
         </div>
-        <div class="studio-dropzone" data-testid="dropzone">
-          <div class="studio-icon">✦</div>
-          <strong>拖放或粘贴图片到这里</strong>
-          <span>也可点击“打开图片”；支持 PNG、JPG、WebP、GIF、BMP、TIFF。</span>
+        <div class="studio-home-intro">
+          <h1>Professional photo editing, kept on your device.</h1>
+          <p>Open an image to use layers, crop, manual cutout, adjustments, effects, filters, retouching, drawing, text, and local export.</p>
+          <p>No account, cloud storage, remote processing, or asset marketplace is required.</p>
         </div>
       </section>
       <section class="studio-recent" id="recent">
-        <h2>最近项目</h2>
+        <div class="studio-recent-heading"><h2>Temporary projects</h2><span>Stored only in this browser</span></div>
         <div class="project-grid" data-testid="recent-projects"></div>
       </section>
     </section>

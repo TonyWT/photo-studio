@@ -1,36 +1,54 @@
 :root { color-scheme: dark; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-body.studio-home { margin: 0; min-width: 980px; background: #191a1d; color: #f7f7f8; }
-.studio-app { min-height: 100vh; display: grid; grid-template-columns: 238px 1fr; }
-.studio-sidebar { padding: 28px 18px; background: #212226; border-right: 1px solid #33353b; }
-.studio-brand { font-size: 22px; font-weight: 800; letter-spacing: .08em; }
-.studio-nav { display: grid; gap: 8px; margin-top: 56px; }
-.studio-nav a { color: #aeb1bb; text-decoration: none; padding: 11px 12px; border-radius: 8px; }
-.studio-nav a[aria-current="page"] { color: #fff; background: #34363c; }
-.studio-content { max-width: 1180px; width: calc(100% - 88px); margin: 0 auto; padding: 54px 0 80px; }
-.studio-hero { display: grid; grid-template-columns: minmax(360px, 1fr) 1.05fr; gap: 46px; align-items: center; min-height: 420px; padding: 46px; border: 1px solid #363840; border-radius: 24px; background: radial-gradient(circle at 100% 0, #3c2855 0, transparent 34%), #24262b; }
-.studio-hero h1 { font-size: clamp(34px, 4vw, 56px); line-height: 1.06; margin: 0 0 20px; letter-spacing: -.045em; }
-.studio-hero p { color: #b9bcc5; font-size: 17px; line-height: 1.65; }
-.studio-dropzone { display: grid; justify-items: center; gap: 18px; padding: 54px 24px; min-height: 270px; border: 2px dashed #5a5d66; border-radius: 18px; background: #1d1f23; text-align: center; }
-.studio-icon { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 20px; background: #30333a; font-size: 27px; }
-.studio-button { border: 0; border-radius: 999px; padding: 13px 24px; color: #fff; background: #2e9cd3; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; }
-.studio-button.secondary { background: #353840; color: #e8e9ec; }
-.studio-actions { display: flex; gap: 10px; }
-.studio-collage-picker { width: fit-content; margin-top: 18px; padding: 12px; border: 1px solid #3d4047; border-radius: 10px; background: #1d1f23; }
-.studio-collage-picker p { margin: 0 0 9px; color: #b9bcc5; font-size: 13px; }
-.studio-collage-picker div { display: flex; gap: 8px; }
-.studio-collage-picker button { min-width: 72px; padding: 8px 12px; border: 1px solid #555a63; border-radius: 7px; color: #f5f6f8; background: #30343b; font: inherit; cursor: pointer; }
-.studio-collage-picker button:hover { border-color: #2e9cd3; background: #1d526d; }
-.studio-recent { margin-top: 58px; }
-.studio-recent h2 { font-size: 23px; }
-.project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-.project-card { overflow: hidden; border: 1px solid #363840; border-radius: 13px; background: #26282d; }
-.project-open { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; background: #303238; cursor: pointer; }
+body.studio-home { margin: 0; min-width: 1120px; background: #292929; color: #f2f2f2; }
+.studio-app { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0, 1fr); }
+.studio-sidebar { display: flex; min-height: 100vh; box-sizing: border-box; flex-direction: column; padding: 20px 14px; border-right: 1px solid #3a3a3a; background: #252525; }
+.studio-brand { display: flex; min-height: 42px; align-items: center; gap: 11px; padding: 0 8px; color: #f3f3f3; font-size: 21px; letter-spacing: .02em; text-decoration: none; }
+.studio-brand-mark, .studio-home-banner-product > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #30343c; }
+.studio-brand img, .studio-home-banner-product img { width: 21px; height: 21px; filter: invert(1) grayscale(1) brightness(1.6); }
+.studio-sidebar-heading { margin: 29px 10px 8px; color: #bdbdbd; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.studio-nav { display: grid; gap: 4px; }
+.studio-nav a, .studio-nav button { display: flex; width: 100%; min-height: 44px; box-sizing: border-box; align-items: center; gap: 12px; padding: 10px 12px; border: 0; border-radius: 6px; color: #c5c5c5; background: transparent; font: 600 15px/1.2 inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.studio-nav a img, .studio-nav button img { width: 21px; height: 21px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .84; }
+.studio-nav a:hover, .studio-nav button:hover { color: #fff; background: #333; }
+.studio-nav a[aria-current="page"] { color: #fff; background: #393939; }
+.studio-nav a[aria-current="page"] img { opacity: 1; }
+.studio-sidebar-note { margin: auto 10px 4px; color: #909090; font-size: 12px; line-height: 1.45; }
+.studio-content { min-width: 0; padding: 22px 42px 62px; }
+.studio-home-banner { display: flex; height: 158px; box-sizing: border-box; align-items: flex-start; justify-content: space-between; padding: 22px 28px; overflow: hidden; border: 1px solid #363636; border-radius: 26px; background: #0d0d10; }
+.studio-home-banner-product { display: flex; align-items: center; gap: 13px; color: #f3f3f3; font-size: 21px; }
+.studio-home-banner > span { color: #c8c8c8; font-size: 14px; font-weight: 700; }
+.studio-home-grid { display: grid; grid-template-columns: minmax(500px, 760px) minmax(320px, 1fr); gap: clamp(42px, 6vw, 112px); align-items: center; margin-top: 31px; }
+.studio-dropzone { display: grid; min-height: 480px; box-sizing: border-box; align-content: center; justify-items: center; gap: 19px; padding: 40px; border: 2px dotted #535353; border-radius: 28px; background: #282828; text-align: center; }
+.studio-open-illustration { width: 112px; height: 112px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.55); opacity: .84; }
+.studio-dropzone > p { max-width: 430px; margin: 0; color: #b9b9b9; font-size: 14px; line-height: 1.55; }
+.studio-button { display: inline-flex; min-height: 44px; box-sizing: border-box; align-items: center; justify-content: center; gap: 10px; padding: 11px 31px; border: 1px solid #00a9df; border-radius: 24px; color: #fff; background: #00a9df; font: 700 15px/1 inherit; cursor: pointer; text-decoration: none; }
+.studio-button img { width: 19px; height: 19px; filter: invert(1) grayscale(1) brightness(2); }
+.studio-button:hover { border-color: #15b9ed; background: #15b9ed; }
+.studio-button.secondary { border-color: #4f4f4f; color: #e6e6e6; background: #303030; }
+.studio-button.secondary:hover { border-color: #727272; background: #393939; }
+.studio-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
+.studio-collage-picker { width: min(100%, 570px); padding: 13px; border: 1px solid #4d4d4d; border-radius: 12px; background: #202020; }
+.studio-collage-picker p { margin: 0 0 10px; color: #d4d4d4; font-size: 13px; }
+.studio-collage-picker div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.studio-collage-picker button { min-width: 58px; padding: 8px 10px; border: 1px solid #555; border-radius: 6px; color: #ececec; background: #303030; font: 700 12px/1 inherit; cursor: pointer; }
+.studio-collage-picker button:hover { border-color: #00a9df; background: #17465a; }
+.studio-home-intro { max-width: 720px; color: #efefef; text-align: center; }
+.studio-home-intro h1 { margin: 0 0 27px; font-size: clamp(31px, 3.25vw, 49px); line-height: 1.14; letter-spacing: -.035em; }
+.studio-home-intro p { margin: 12px auto; color: #c8c8c8; font-size: 16px; line-height: 1.48; }
+.studio-home-intro p:last-child { color: #999; font-size: 13px; }
+.studio-recent { margin-top: 62px; }
+.studio-recent-heading { display: flex; align-items: baseline; gap: 13px; margin-bottom: 18px; }
+.studio-recent h2 { margin: 0; color: #f1f1f1; font-size: 24px; }
+.studio-recent-heading span { color: #9b9b9b; font-size: 13px; }
+.project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+.project-card { overflow: hidden; border: 1px solid #3d3d3d; border-radius: 10px; background: #303030; }
+.project-open { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; background: #242424; cursor: pointer; }
 .project-open img { width: 100%; height: 100%; object-fit: cover; }
-.project-placeholder { color: #8f93a0; font-size: 24px; }
+.project-placeholder { color: #969696; font-size: 24px; }
 .project-card > div { display: grid; gap: 5px; padding: 12px 14px 5px; }
-.project-card span { color: #a6a9b2; font-size: 12px; }
-.project-delete { margin: 0 8px 10px; border: 0; color: #b8bac3; background: transparent; cursor: pointer; }
-.studio-empty { color: #aeb1bb; }
+.project-card span { color: #aaa; font-size: 12px; }
+.project-delete { margin: 0 8px 10px; border: 0; color: #c3c3c3; background: transparent; cursor: pointer; }
+.studio-empty { grid-column: 1 / -1; margin: 0; color: #a5a5a5; font-size: 14px; }
 /* Pixlr-inspired editor workbench. The visual treatment is original; miniPaint remains the editing core. */
 body.photo-studio-editor { --studio-rail-width: 56px; margin: 0; overflow: hidden; background: #151515; color: #d8d8d8; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 body.photo-studio-editor .studio-editor-shell { min-width: 980px; min-height: 620px; }

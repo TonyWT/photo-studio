@@ -60,7 +60,7 @@ async function renderProjects() {
   const target = document.querySelector('[data-testid="recent-projects"]');
   const projects = await projectStore.listProjects();
   if (!projects.length) {
-    target.innerHTML = '<p class="studio-empty">尚无本地项目。打开一张图片后会自动保存在此浏览器中。</p>';
+    target.innerHTML = '<p class="studio-empty">No saved local projects yet. Open an image to start an editable browser-only project.</p>';
     return;
   }
   target.innerHTML = projects.map((project) => `
@@ -94,8 +94,8 @@ if (home) {
   document.querySelector('[data-testid="open-image"]').addEventListener('click', () => picker.click());
   document.querySelector('[data-testid="import-project"]').addEventListener('click', () => projectPicker.click());
   const collagePicker = document.querySelector('[data-testid="collage-templates"]');
-  document.querySelector('[data-testid="create-collage"]').addEventListener('click', () => {
-    collagePicker.hidden = !collagePicker.hidden;
+  document.querySelectorAll('[data-testid="create-collage"], [data-testid="create-collage-main"]').forEach((button) => {
+    button.addEventListener('click', () => { collagePicker.hidden = !collagePicker.hidden; });
   });
   collagePicker.addEventListener('click', (event) => {
     const template = event.target.closest('[data-collage-template]')?.dataset.collageTemplate;
@@ -117,7 +117,7 @@ if (home) {
   document.querySelector('[data-testid="recent-projects"]').addEventListener('click', onProjectAction);
   renderProjects()
     .catch(() => {
-      document.querySelector('[data-testid="recent-projects"]').innerHTML = '<p class="studio-empty">浏览器本地存储不可用，仍可直接编辑和导出图片。</p>';
+      document.querySelector('[data-testid="recent-projects"]').innerHTML = '<p class="studio-empty">Browser storage is unavailable. You can still edit and export a local image.</p>';
     })
     .finally(() => { home.dataset.ready = 'true'; });
 }

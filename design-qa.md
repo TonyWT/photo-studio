@@ -126,4 +126,6 @@
 
 56. 2026-07-16：以用户 Cutout 参考图和 browser-harness 的同视口实图打开状态合并为 `/tmp/cutout-reference-vs-local-english-current.png`。AI Cutout 按范围继续不渲染，但手动工作流的 Tool、Mode、Shape 标题仍显示中文，与参考的英文层级不一致。现将这三个可见标题改为 Tool、Mode、Shape；图标的中文 aria/title、Shape/Magic/Draw/Lasso、Keep/Remove、羽化、Hint、反选、重置、应用和本地撤销均不变。browser-harness 实测 Tool/Mode/Shape/Softness、Keep、Apply cutout 均正确可见；`npm test` 18/18、`npm run build` 通过。AI Cutout 的缺位为既定范围，不计为待复制项；细微图标笔画、字体与卡片间距仍为 P2。
 
+57. 2026-07-16：重新捕获当前 Pixlr Express 首页与本地首页同视口画面，并合并为 `/tmp/pixlr-home-reference-vs-local.png`。本地首页此前仍是通用的居中落地页，与参考的左侧工作区导航、顶部产品横幅、主图片区与最近项目区结构不一致；现收敛为相同的信息层级和桌面布局，同时仅使用 Photo Studio 自有文字及仓库本地图标，不复制品牌、文案、插画或 AI/素材入口。browser-harness 实测 Open image、Create new、Create collage 与本地 2×2 拼图路由，且可见导航中无 AI/Element 入口；`npm test` 18/18、`npm run build` 通过。编辑器各面板的精细字体、图标笔画、留白仍为 P2，完整视觉验收继续保持 blocked。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
