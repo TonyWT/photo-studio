@@ -230,10 +230,10 @@ const TEXT_STYLE_PRESETS = Object.freeze([
 ]);
 let activeTextPresetId = null;
 const EFFECT_CATEGORY_DEFINITIONS = Object.freeze([
-  { id: 'mono', label: '单色', description: '黑白、铅笔与高对比画面。', previewClass: 'mono', count: 11 },
-  { id: 'friends', label: '人像氛围', description: '柔和肤色、明暗和色彩氛围。', previewClass: 'color', count: 20 },
-  { id: 'instage', label: '即时胶片', description: '日常影像的低饱和和综合色调。', previewClass: 'retro', count: 12 },
-  { id: 'retro', label: '复古', description: '颗粒、暗角与胶片色调。', previewClass: 'retro', count: 10 },
+  { id: 'mono', label: 'Monochrome', description: 'Black and white, pencil, and high-contrast looks.', previewClass: 'mono', count: 11 },
+  { id: 'friends', label: 'Portrait', description: 'Gentle skin tones, light, and color moods.', previewClass: 'color', count: 20 },
+  { id: 'instage', label: 'Instant', description: 'Low-saturation everyday film tones.', previewClass: 'retro', count: 12 },
+  { id: 'retro', label: 'Vintage', description: 'Grain, vignette, and film-inspired color.', previewClass: 'retro', count: 10 },
   { id: 'tuning', label: '调优', description: '清晰度、明度、对比和鲜艳度。', previewClass: 'focus', count: 5 },
   { id: 'portrait', label: '肖像', description: '适用于人像的层次和柔和肤色。', previewClass: 'color', count: 5 },
   { id: 'food', label: '食物', description: '提升食物照片的明亮和色彩。', previewClass: 'retro', count: 5 },
@@ -1770,7 +1770,7 @@ function renderEditorToolControls(key) {
       </div>
     </section>
     <details class="studio-cutout-advanced" data-testid="cutout-selection-advanced"${cutoutSelection.advancedOpen ? ' open' : ''}>
-      <summary>更多选区操作</summary>
+      <summary>More selection controls</summary>
       <div class="studio-control-group studio-control-group-three" aria-label="高级选区操作">
         <button type="button"${operationClass('replace')} data-cutout-operation="replace" data-testid="cutout-operation-replace">新选区</button>
         <button type="button"${operationClass('add')} data-cutout-operation="add" data-testid="cutout-operation-add">加选</button>
@@ -2405,7 +2405,7 @@ function renderEditorToolControls(key) {
         </label>
       </section>
       <details class="studio-retouch-advanced"${retouchAdvancedOpen ? ' open' : ''}>
-        <summary>更多本地修饰设置</summary>
+        <summary>More retouch controls</summary>
         <div class="studio-control-group studio-control-group-three" aria-label="Spot 修复质量">
           <button type="button" class="${repairQuality === 'speed' ? 'is-selected' : ''}" data-testid="retouch-quality-speed"${disabled}>快速</button>
           <button type="button" class="${repairQuality === 'balanced' ? 'is-selected' : ''}" data-testid="retouch-quality-balanced"${disabled}>平衡</button>

@@ -130,4 +130,6 @@
 
 58. 2026-07-16：以用户 Crop 参考图与已加载本地 3840×2880 项目的同视口画面合并为 `/tmp/crop-reference-vs-local-css-pixels.png`。对照确认工具轨、344px 参数面板、裁剪主卡、旋转/翻转四格、尺寸入口、右图层轨和底栏仍在正确层级；下方尺寸标签是参考中的独立视觉信息，本地此前只显示画布尺寸。现把当前缩放比例同步写入左下角文档状态，形成 `3840 × 2880 px @ 26%`，且中央缩放读数继续保留。browser-harness 实测尺寸状态与中央缩放均为 26%；`npm test` 18/18、`npm run build` 通过。跨平台 Nightly 视觉回归已启动；其结果与余下逐屏 P2 继续决定最终验收状态。
 
+59. 2026-07-16：Nightly `29446952918` 的实际截图显示 Crop、Cutout、Effect、Liquify、Retouch、Text 的工作台结构和本地操作状态均完整；失败来自旧 Linux 基准，不是功能退化。同期 CI 首次失败只因新加缩放断言在编辑器内核挂载前读取 `window.app`；现显式等待 `GUI_preview` 就绪，CI `29447551224` 与 Pages `29447551066` 已成功。复核实际图后，继续清除了 Effect 分类卡及 Cutout/Retouch 展开项的中英文混杂，使用 `Monochrome`、`Portrait`、`Instant`、`Vintage` 等自有英文文案，不复制 Pixlr 名称或素材。该轮待新的 Linux Nightly 生成并人工验收后再刷新基准；完整视觉验收继续保持 blocked。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
