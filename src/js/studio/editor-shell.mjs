@@ -1896,8 +1896,8 @@ function renderEditorToolControls(key) {
         ${renderAdjustRange({ key: 'dehaze', label: 'Dehaze', min: 0, max: 100 })}
       </section>
       <footer class="studio-adjust-panel-footer" data-testid="adjust-panel-footer" aria-label="调整操作">
-        <button type="button" data-testid="adjust-cancel">取消</button>
-        <button type="button" data-testid="adjust-apply">应用</button>
+        <button type="button" data-testid="adjust-cancel">Cancel</button>
+        <button type="button" data-testid="adjust-apply">Apply</button>
       </footer>
     `;
     const adjustments = {
@@ -2386,7 +2386,7 @@ function renderEditorToolControls(key) {
 	const cloneAligned = Boolean(cloneAttributes.aligned);
     target.innerHTML = `
       <section class="studio-retouch-section" aria-label="本地修饰工具">
-        <strong>工具</strong>
+        <strong>Tool</strong>
         <div class="studio-control-group studio-control-group-four studio-retouch-primary">
           <button type="button" class="${activeRetouchTool === 'repair' ? 'is-selected' : ''}" aria-label="修复" title="修复" data-testid="retouch-repair" data-core-tool="repair"${disabled}><img src="../images/icons/retouch-repair.svg" alt=""><span class="sr_only">修复</span></button>
           <button type="button" class="${activeRetouchTool === 'clone' ? 'is-selected' : ''}" aria-label="克隆" title="克隆" data-testid="retouch-clone" data-core-tool="clone"${disabled}><img src="../images/icons/retouch-clone.svg" alt=""><span class="sr_only">克隆</span></button>
@@ -2502,7 +2502,7 @@ function renderEditorToolControls(key) {
     const color = window.AppConfig?.COLOR ?? '#ffffff';
     target.innerHTML = `
       <section class="studio-drawing-tools" aria-label="本地绘制工具">
-        <strong>工具</strong>
+        <strong>Tool</strong>
         <div class="studio-control-group studio-drawing-primary-grid" data-testid="drawing-primary-tools">
           <button type="button" data-testid="drawing-brush" data-core-tool="brush" aria-label="画笔" title="画笔"><img src="../images/icons/brush.svg" alt=""><span class="sr_only">画笔</span></button>
           <button type="button" data-testid="drawing-eraser" data-core-tool="erase" aria-label="橡皮" title="橡皮"><img src="../images/icons/erase.svg" alt=""><span class="sr_only">橡皮</span></button>
@@ -2512,61 +2512,61 @@ function renderEditorToolControls(key) {
         </div>
       </section>
       <section class="studio-control-color studio-drawing-color" aria-label="绘制颜色">
-        <span>颜色</span>
+        <span>Color</span>
         <span class="studio-drawing-color-field">
           <input type="color" value="${color}" data-testid="drawing-color">
           <button type="button" class="studio-drawing-palette-toggle" data-testid="drawing-palette-toggle" aria-label="展开本地调色板" aria-expanded="false" aria-controls="drawing-palette" title="展开调色板"><img src="../images/icons/arrow-down.svg" alt=""></button>
         </span>
       </section>
       <section class="studio-drawing-brush-preview-section" aria-label="笔刷预览">
-        <strong>笔刷</strong>
+        <strong>Brush</strong>
         <canvas class="studio-drawing-brush-preview" width="600" height="220" role="img" aria-label="当前画笔预览" data-testid="drawing-brush-preview"></canvas>
       </section>
-      <label class="studio-control-range">笔触尺寸 <output data-drawing-size-output>${brushSize}px</output>
+      <label class="studio-control-range">Size <output data-drawing-size-output>${brushSize}px</output>
         <input type="range" min="1" max="100" value="${brushSize}" data-testid="drawing-size">
       </label>
-      <label class="studio-control-range">柔化 <output data-drawing-softness-output>${brushSoftness}%</output>
+      <label class="studio-control-range">Softness <output data-drawing-softness-output>${brushSoftness}%</output>
         <input type="range" min="0" max="100" value="${brushSoftness}" data-testid="drawing-softness">
       </label>
-      <label class="studio-control-range">不透明度 <output data-drawing-opacity-output>${opacity}%</output>
+      <label class="studio-control-range">Transparency <output data-drawing-opacity-output>${opacity}%</output>
         <input type="range" min="1" max="100" value="${opacity}" data-testid="drawing-opacity">
       </label>
       <section class="studio-drawing-palette" id="drawing-palette" data-testid="drawing-palette" aria-label="本地调色板" hidden>
-        <strong>色样</strong>
+        <strong>Swatches</strong>
         <div class="studio-drawing-palette-swatches">
           ${DRAWING_PALETTE.map(([id, value, label]) => `<button type="button" class="${color.toLowerCase() === value ? 'is-selected' : ''}" style="--drawing-swatch:${value}" data-testid="drawing-palette-${id}" aria-label="${label}" title="${label}"></button>`).join('')}
         </div>
       </section>
       <div class="studio-control-group studio-control-group-two" aria-label="本地笔刷预设">
-        <button type="button" class="${brushSoftness >= 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-soft">柔边</button>
-        <button type="button" class="${brushSoftness < 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-hard">硬圆</button>
+        <button type="button" class="${brushSoftness >= 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-soft">Soft edge</button>
+        <button type="button" class="${brushSoftness < 50 ? 'is-selected' : ''}" data-testid="drawing-brush-preset-hard">Hard round</button>
       </div>
       <section class="studio-drawing-brush-modes" aria-label="笔刷模式">
-        <strong>笔刷模式</strong>
+        <strong>Brush modes</strong>
         <div class="studio-control-group studio-control-group-two">
           ${DRAWING_BRUSH_MODES.map(([id, label]) => `<button type="button" class="${brushMode === id ? 'is-selected' : ''}" aria-pressed="${brushMode === id}" data-testid="drawing-brush-mode-${id}">${label}</button>`).join('')}
         </div>
       </section>
       <section class="studio-drawing-advanced-tools" aria-label="其他本地绘制工具">
-        <strong>其他本地工具</strong>
+        <strong>Other tools</strong>
         <div class="studio-control-group studio-control-group-two">
-          <button type="button" data-testid="drawing-eyedropper" data-core-tool="pick_color">取色</button>
-          <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">渐变</button>
+          <button type="button" data-testid="drawing-eyedropper" data-core-tool="pick_color">Eyedropper</button>
+          <button type="button" data-testid="drawing-gradient" data-core-tool="gradient">Gradient</button>
         </div>
       </section>
       <section class="studio-drawing-shapes" aria-label="本地形状快捷项">
-        <strong>形状</strong>
+        <strong>Shapes</strong>
         <div class="studio-control-group studio-control-group-three">
-          <button type="button" data-testid="drawing-shape-rectangle" data-core-tool="rectangle">方形</button>
-          <button type="button" data-testid="drawing-shape-ellipse" data-core-tool="ellipse">圆形</button>
-          <button type="button" data-testid="drawing-shape-triangle" data-core-tool="triangle">三角</button>
-          <button type="button" data-testid="drawing-shape-star" data-core-tool="star">星形</button>
-          <button type="button" data-testid="drawing-shape-heart" data-core-tool="heart">心形</button>
-          <button type="button" data-testid="drawing-shape-line" data-core-tool="line">直线</button>
+          <button type="button" data-testid="drawing-shape-rectangle" data-core-tool="rectangle">Rectangle</button>
+          <button type="button" data-testid="drawing-shape-ellipse" data-core-tool="ellipse">Circle</button>
+          <button type="button" data-testid="drawing-shape-triangle" data-core-tool="triangle">Triangle</button>
+          <button type="button" data-testid="drawing-shape-star" data-core-tool="star">Star</button>
+          <button type="button" data-testid="drawing-shape-heart" data-core-tool="heart">Heart</button>
+          <button type="button" data-testid="drawing-shape-line" data-core-tool="line">Line</button>
         </div>
       </section>
       <button type="button" class="studio-drawing-layer-create" data-testid="drawing-new-layer">
-        <span><strong>添加新图层</strong><small>新建空白绘制图层</small></span>
+        <span><strong>Add new layer</strong><small>New blank drawing layer</small></span>
       </button>
     `;
     const colorInput = target.querySelector('[data-testid="drawing-color"]');
@@ -2686,49 +2686,49 @@ function renderEditorToolControls(key) {
 	const warp = attributes.warp?.value ?? attributes.warp ?? 'arc';
     const textPresetCards = TEXT_STYLE_PRESETS.map((preset) => `<button type="button" class="studio-text-preset studio-text-preset--${preset.id}${activeTextPresetId === preset.id ? ' is-selected' : ''}" data-text-preset="${preset.id}" data-testid="text-preset-${preset.id}">
       <span style="font-family:${preset.font};font-size:${Math.min(26, Math.round(preset.size / 2.5))}px;color:${preset.fill};font-weight:${preset.bold ? 800 : 400};font-style:${preset.italic ? 'italic' : 'normal'};text-decoration:${preset.underline ? 'underline' : 'none'};text-shadow:${preset.shadow_enabled ? `1px 2px ${preset.shadow_blur}px ${preset.shadow_color}` : 'none'}">${preset.label}</span>
-      <small>本地可编辑</small>
+      <small>Editable</small>
     </button>`).join('');
     target.innerHTML = `
       <button type="button" class="studio-text-create" data-testid="text-create" data-core-tool="text">
-        <span><strong>添加新文字</strong><small>默认文字</small></span>
+        <span><strong>Add new text</strong><small>New default text</small></span>
       </button>
       <div class="studio-text-preset-grid" aria-label="原创本地文字预设">${textPresetCards}</div>
-      <label class="studio-control-select">字体
+      <label class="studio-control-select">Font
         <select data-testid="text-font">${fonts.map((name) => `<option value="${name}" ${name === font ? 'selected' : ''}>${name}</option>`).join('')}</select>
       </label>
-      <label class="studio-control-number">字号
+      <label class="studio-control-number">Size
         <input type="number" min="1" max="999" value="${size}" data-testid="text-size">
       </label>
-      <label class="studio-control-color">填充色
+      <label class="studio-control-color">Fill
         <input type="color" value="${fill}" data-testid="text-fill">
       </label>
       <div class="studio-control-group studio-control-group-three" aria-label="文字样式">
-        <button type="button" aria-pressed="${bold}" class="${bold ? 'is-selected' : ''}" data-testid="text-bold">加粗</button>
-        <button type="button" aria-pressed="${italic}" class="${italic ? 'is-selected' : ''}" data-testid="text-italic">斜体</button>
-        <button type="button" aria-pressed="${underline}" class="${underline ? 'is-selected' : ''}" data-testid="text-underline">下划线</button>
+        <button type="button" aria-pressed="${bold}" class="${bold ? 'is-selected' : ''}" data-testid="text-bold">Bold</button>
+        <button type="button" aria-pressed="${italic}" class="${italic ? 'is-selected' : ''}" data-testid="text-italic">Italic</button>
+        <button type="button" aria-pressed="${underline}" class="${underline ? 'is-selected' : ''}" data-testid="text-underline">Underline</button>
       </div>
       <div class="studio-control-group studio-control-group-three" aria-label="文本对齐">
-        <button type="button" aria-pressed="${alignment === 'left'}" class="${alignment === 'left' ? 'is-selected' : ''}" data-testid="text-align-left">左对齐</button>
-        <button type="button" aria-pressed="${alignment === 'center'}" class="${alignment === 'center' ? 'is-selected' : ''}" data-testid="text-align-center">居中</button>
-        <button type="button" aria-pressed="${alignment === 'right'}" class="${alignment === 'right' ? 'is-selected' : ''}" data-testid="text-align-right">右对齐</button>
+        <button type="button" aria-pressed="${alignment === 'left'}" class="${alignment === 'left' ? 'is-selected' : ''}" data-testid="text-align-left">Left</button>
+        <button type="button" aria-pressed="${alignment === 'center'}" class="${alignment === 'center' ? 'is-selected' : ''}" data-testid="text-align-center">Center</button>
+        <button type="button" aria-pressed="${alignment === 'right'}" class="${alignment === 'right' ? 'is-selected' : ''}" data-testid="text-align-right">Right</button>
       </div>
-      <label class="studio-control-color">描边色
+      <label class="studio-control-color">Stroke
         <input type="color" value="${stroke}" data-testid="text-stroke">
       </label>
-      <label class="studio-control-number">描边宽度
+      <label class="studio-control-number">Stroke width
         <input type="number" min="0" max="999" step="0.1" value="${strokeSize}" data-testid="text-stroke-size">
       </label>
-      <label class="studio-control-check"><input type="checkbox" data-testid="text-shadow-enabled" ${shadowEnabled ? 'checked' : ''}>文字阴影</label>
-      <label class="studio-control-color">阴影色<input type="color" value="${attributes.shadow_color ?? '#000000'}" data-testid="text-shadow-color"></label>
-      <label class="studio-control-range">阴影模糊 <output data-text-shadow-blur-output>${attributes.shadow_blur ?? 4}px</output><input type="range" min="0" max="50" value="${attributes.shadow_blur ?? 4}" data-testid="text-shadow-blur"></label>
-      <label class="studio-control-check"><input type="checkbox" data-testid="text-background-enabled" ${backgroundEnabled ? 'checked' : ''}>文字背景</label>
-      <label class="studio-control-color">背景色<input type="color" value="${attributes.background_color ?? '#000000'}" data-testid="text-background-color"></label>
-      <label class="studio-control-range">背景不透明度 <output data-text-background-opacity-output>${attributes.background_opacity ?? 35}%</output><input type="range" min="0" max="100" value="${attributes.background_opacity ?? 35}" data-testid="text-background-opacity"></label>
-      <label class="studio-control-range">曲线 <output data-text-curve-output>${curve}</output><input type="range" min="-100" max="100" value="${curve}" data-testid="text-curve"></label>
+      <label class="studio-control-check"><input type="checkbox" data-testid="text-shadow-enabled" ${shadowEnabled ? 'checked' : ''}>Text shadow</label>
+      <label class="studio-control-color">Shadow color<input type="color" value="${attributes.shadow_color ?? '#000000'}" data-testid="text-shadow-color"></label>
+      <label class="studio-control-range">Shadow blur <output data-text-shadow-blur-output>${attributes.shadow_blur ?? 4}px</output><input type="range" min="0" max="50" value="${attributes.shadow_blur ?? 4}" data-testid="text-shadow-blur"></label>
+      <label class="studio-control-check"><input type="checkbox" data-testid="text-background-enabled" ${backgroundEnabled ? 'checked' : ''}>Text background</label>
+      <label class="studio-control-color">Background color<input type="color" value="${attributes.background_color ?? '#000000'}" data-testid="text-background-color"></label>
+      <label class="studio-control-range">Background opacity <output data-text-background-opacity-output>${attributes.background_opacity ?? 35}%</output><input type="range" min="0" max="100" value="${attributes.background_opacity ?? 35}" data-testid="text-background-opacity"></label>
+      <label class="studio-control-range">Curve <output data-text-curve-output>${curve}</output><input type="range" min="-100" max="100" value="${curve}" data-testid="text-curve"></label>
 	  <label class="studio-control-select">Warp
-		<select data-testid="text-warp"><option value="arc" ${warp === 'arc' ? 'selected' : ''}>弧线</option><option value="wave" ${warp === 'wave' ? 'selected' : ''}>波浪</option><option value="flag" ${warp === 'flag' ? 'selected' : ''}>旗帜</option></select>
+		<select data-testid="text-warp"><option value="arc" ${warp === 'arc' ? 'selected' : ''}>Arc</option><option value="wave" ${warp === 'wave' ? 'selected' : ''}>Wave</option><option value="flag" ${warp === 'flag' ? 'selected' : ''}>Flag</option></select>
 	  </label>
-      <p class="studio-control-hint">使用系统字体；点击“添加文字”后在画布中单击或拖拽以创建文本层。</p>
+      <p class="studio-control-hint">Uses system fonts. Click Add new text, then click or drag on the canvas to create a text layer.</p>
     `;
     const fontInput = target.querySelector('[data-testid="text-font"]');
     const sizeInput = target.querySelector('[data-testid="text-size"]');

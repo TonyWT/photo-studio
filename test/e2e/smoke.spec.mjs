@@ -4291,6 +4291,9 @@ test('Drawing 同状态首屏按参考先呈现 3 加 2 图标工具格与颜色
   await expect(page.getByTestId('drawing-size')).toBeVisible();
   await expect(page.getByTestId('drawing-softness')).toBeVisible();
   await expect(page.getByTestId('drawing-opacity')).toBeVisible();
+  await expect(page.getByTestId('drawing-size').locator('xpath=..')).toContainText('Size');
+  await expect(page.getByTestId('drawing-softness').locator('xpath=..')).toContainText('Softness');
+  await expect(page.getByTestId('drawing-opacity').locator('xpath=..')).toContainText('Transparency');
 });
 
 test('Drawing 首屏提供随颜色、尺寸与柔化变化的真实笔刷预览', async ({ page }) => {
@@ -5066,8 +5069,8 @@ test('Text 的新增文字入口明确展示默认文字说明', async ({ page }
   await page.goto('/editor/');
   await page.getByTestId('tool-text').click();
   const create = page.getByTestId('text-create');
-  await expect(create).toContainText('添加新文字');
-  await expect(create).toContainText('默认文字');
+  await expect(create).toContainText('Add new text');
+  await expect(create).toContainText('New default text');
 });
 
 test('Text 首屏预设卡保持参考面板的浏览密度', async ({ page }) => {

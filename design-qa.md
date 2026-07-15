@@ -118,4 +118,6 @@
 
 52. 2026-07-16：Effect 与 Filter 的参考首屏均为英文浏览流；本地卡片几何已对齐，但类别数量、预设说明、后退/操作和滤镜描述仍是中文，形成明显的跨语言视觉差异。现将这些可见、通用的工作流文案收敛为独立英文描述：Effect 卡显示效果数、Local preview & apply、Back、All effects/Contrast/Blur/Cancel/Apply；Filter 六卡使用自主英文描述而非复制 Pixlr 文案。所有效果和滤镜仍是本地图片像素操作，无远程素材或模型请求。Filter 首卡描述新增 E2E 断言；`npm test` 17/17、生产构建通过。卡片图片、图标精度和纵向密度仍为 P2。
 
+53. 2026-07-16：以用户 Draw 与 Text 参考图分别和本地实图同状态画面合并为 `/tmp/draw-reference-vs-local-english.png`、`/tmp/text-reference-vs-local-english.png`。Draw 原本已具备参考的 3+2 图标格、颜色输入、棋盘格笔刷预览及三条滑杆，Text 原本已具备新增文字入口、双列 76 个原创本地预设；但可见辅助文案仍以中文混入参考的英文工作流。现将 Draw 的 Tool/Color/Brush/Size/Softness/Transparency 和扩展项、Text 的 Add new text/New default text/Editable 及样式表单收敛为英文，Adjust 固定底栏同步为 Cancel/Apply。中文无障碍名称、所有本地绘制/文字行为、原创模板和撤销均不变。浏览器实测 Draw 三条标签和 Text 入口/预设；新增 E2E 标签断言，`npm test` 17/17、生产构建通过。模板字形、图标笔画和精细间距继续为 P2。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
