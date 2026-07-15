@@ -1801,7 +1801,6 @@ function renderEditorToolControls(key) {
 
   if (key === 'adjust') {
     target.innerHTML = `
-      <p class="studio-control-hint">所有调整都在当前浏览器本地预览；预览/应用后可从底部撤销。仅未锁定的图片图层可编辑。</p>
       <div class="studio-control-group studio-control-group-three studio-adjust-presets" aria-label="快捷调整">
         <button type="button" aria-label="Auto" title="Auto" data-testid="adjust-auto"><img src="../images/icons/adjust-auto.svg" alt=""><span class="studio-adjust-shortcut-label">Auto</span></button>
         <button type="button" aria-label="B&amp;W" title="B&amp;W" data-testid="adjust-bw"><img src="../images/icons/adjust-bw.svg" alt=""><span class="studio-adjust-shortcut-label">B&amp;W</span></button>

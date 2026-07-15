@@ -1335,6 +1335,21 @@ test('Adjust 首屏以三个有名称的图标快捷调整呈现 Auto、B&W、Po
   }
 });
 
+test('Adjust 首屏从快捷调整开始，不以说明文字挤占参考的顶部操作区', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'adjust-top-level.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-adjust').click();
+  await expect(page.getByTestId('adjust-auto')).toBeVisible();
+
+  const topLevel = await page.locator('[data-editor-tool-controls]').evaluate((root) => ({
+    firstClass: root.firstElementChild?.className ?? '',
+    hasHint: Boolean(root.querySelector('.studio-control-hint')),
+  }));
+  expect(topLevel).toEqual({ firstClass: expect.stringContaining('studio-adjust-presets'), hasHint: false });
+});
+
 test('Adjust 的 Color 与 Light 分组以有名称的图标操作呈现', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'adjust-section-icons.png', mimeType: 'image/png', buffer: samplePng });
