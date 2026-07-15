@@ -132,4 +132,6 @@
 
 59. 2026-07-16：Nightly `29446952918` 的实际截图显示 Crop、Cutout、Effect、Liquify、Retouch、Text 的工作台结构和本地操作状态均完整；失败来自旧 Linux 基准，不是功能退化。同期 CI 首次失败只因新加缩放断言在编辑器内核挂载前读取 `window.app`；现显式等待 `GUI_preview` 就绪，CI `29447551224` 与 Pages `29447551066` 已成功。复核实际图后，继续清除了 Effect 分类卡及 Cutout/Retouch 展开项的中英文混杂，使用 `Monochrome`、`Portrait`、`Instant`、`Vintage` 等自有英文文案，不复制 Pixlr 名称或素材。该轮待新的 Linux Nightly 生成并人工验收后再刷新基准；完整视觉验收继续保持 blocked。
 
+60. 2026-07-16：新的 Ubuntu Nightly `29448118427` 在功能流程完成后，仅因首页及 Crop、Cutout、Effect、Liquify、Retouch、Text 的旧 Linux 快照失败。已将该 runner 的实际图逐项与本轮编辑器状态及用户参考图复核：连续 56px 工具轨、344px 面板、中心画布、右图层轨、`尺寸 @ 缩放` 底栏、手动 Cutout、无 AI 的 Liquify 和自有 Effect 文案均为预期状态。只回写这 7 张同 runner Linux 基准，不触碰 Darwin 基准；随后以一次新的 Nightly 作为验收门禁。完整视觉验收仍只受未逐像素消除的 P2 字体/图标笔画/留白差异约束。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
