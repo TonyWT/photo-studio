@@ -587,7 +587,13 @@ test('编辑器提供 Pixlr 风格的非 AI 工作台骨架', async ({ page }) =
     const rail = document.querySelector('[data-testid="editor-tool-rail"]');
     const workspace = document.querySelector('[data-testid="editor-workspace"]');
     return [Math.round(rail.getBoundingClientRect().width), Math.round(workspace.getBoundingClientRect().left)];
-  })).toEqual([56, 56]);
+  })).toEqual([60, 60]);
+  await page.getByTestId('tool-crop').click();
+  await expect.poll(() => page.evaluate(() => {
+    const workspace = document.querySelector('[data-testid="editor-workspace"]');
+    const panel = document.querySelector('[data-testid="editor-tool-panel"]');
+    return [Math.round(panel.getBoundingClientRect().width), Math.round(workspace.getBoundingClientRect().left)];
+  })).toEqual([324, 384]);
   for (const [testId, icon] of [
     ['editor-home', 'home.svg'],
     ['tool-cutout', 'scissors.svg'],
