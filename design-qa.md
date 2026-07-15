@@ -124,4 +124,6 @@
 
 55. 2026-07-16：以用户 Crop 参考图和 browser-harness 的同视口、同文件打开状态合并为 `/tmp/crop-reference-vs-local-latest.png`。对照发现本地 Crop 仍混入中文 Width/Height/Straighten/比例、旋转和尺寸文案，且拉直轨道为青色；参考首屏使用英文工作流与中性灰拉直滑杆。现仅替换可见的通用工作流文字为 Width、Height、Straighten、Select aspect、Rotate & flip、Resize、Image size、Canvas size、Cancel、Apply，保持中文 aria 标签；拉直轨道改为 `#777`。browser-harness 实测可见文案和 `accent-color=rgb(119,119,119)`，更新后合图为 `/tmp/crop-reference-vs-local-english-current.png`。`npm test` 18/18、`npm run build` 通过。Smart Resize 仍按明确无 AI 范围排除；精细字体、图标笔画和间距仍为 P2。
 
+56. 2026-07-16：以用户 Cutout 参考图和 browser-harness 的同视口实图打开状态合并为 `/tmp/cutout-reference-vs-local-english-current.png`。AI Cutout 按范围继续不渲染，但手动工作流的 Tool、Mode、Shape 标题仍显示中文，与参考的英文层级不一致。现将这三个可见标题改为 Tool、Mode、Shape；图标的中文 aria/title、Shape/Magic/Draw/Lasso、Keep/Remove、羽化、Hint、反选、重置、应用和本地撤销均不变。browser-harness 实测 Tool/Mode/Shape/Softness、Keep、Apply cutout 均正确可见；`npm test` 18/18、`npm run build` 通过。AI Cutout 的缺位为既定范围，不计为待复制项；细微图标笔画、字体与卡片间距仍为 P2。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。

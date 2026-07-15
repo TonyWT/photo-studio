@@ -542,6 +542,11 @@ test('手动 Cutout 首屏以四个有名称的图标工具格呈现', async ({ 
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-cutout').click();
 
+  const controls = page.locator('[data-editor-tool-controls]');
+  await expect(controls.getByTestId('cutout-tool-card')).toContainText('Tool');
+  await expect(controls.getByTestId('cutout-tool-card')).toContainText('Mode');
+  await expect(controls.getByTestId('cutout-shape-card')).toContainText('Shape');
+
   for (const [testId, label] of [
     ['cutout-tool-shape', '形状选区'],
     ['cutout-mode-magic', '魔术选区'],

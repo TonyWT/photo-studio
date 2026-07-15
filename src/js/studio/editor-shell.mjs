@@ -1697,14 +1697,14 @@ function renderEditorToolControls(key) {
     target.innerHTML = `
     ${customMaskDisabled ? '<p class="studio-control-hint studio-control-warning" data-testid="cutout-rotation-warning">当前图片图层已旋转。为避免错误的遮罩几何，形状选区和 Keep/Remove 已禁用；请先将图层旋转归零。</p>' : ''}
     <section class="studio-cutout-card studio-cutout-tool-card" aria-label="手动抠图工具" data-testid="cutout-tool-card">
-      <strong>工具</strong>
+      <strong>Tool</strong>
       <div class="studio-control-group studio-control-group-four studio-cutout-tool-grid" aria-label="手动抠图工具">
         <button type="button"${familyClass('shape')}${disabledAttribute} aria-label="形状选区" title="形状选区" data-cutout-mode="selection" data-testid="cutout-tool-shape"><img src="../images/icons/shape.svg" alt=""><span class="sr_only">形状选区</span></button>
         <button type="button"${familyClass('magic')} aria-label="魔术选区" title="魔术选区" data-cutout-mode="magic_erase" data-testid="cutout-mode-magic"><img src="../images/icons/magic_erase.svg" alt=""><span class="sr_only">魔术选区</span></button>
         <button type="button"${familyClass('draw')} aria-label="画笔抠图" title="画笔抠图" data-cutout-mode="erase" data-testid="cutout-mode-erase"><img src="../images/icons/brush.svg" alt=""><span class="sr_only">画笔抠图</span></button>
         <button type="button"${familyClass('lasso')}${disabledAttribute} aria-label="自由套索" title="自由套索" data-cutout-mode="lasso" data-testid="cutout-mode-lasso"><img src="../images/icons/selection.svg" alt=""><span class="sr_only">自由套索</span></button>
       </div>
-      <strong>模式</strong>
+      <strong>Mode</strong>
       <div class="studio-control-group studio-control-group-two" aria-label="抠图模式">
         <button type="button" aria-pressed="${cutoutSelection.intent === 'keep'}"${cutoutSelection.intent === 'keep' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="keep" data-testid="cutout-keep-selection">Keep</button>
         <button type="button" aria-pressed="${cutoutSelection.intent === 'remove'}"${cutoutSelection.intent === 'remove' ? ' class="is-selected"' : ''}${disabledAttribute} data-cutout-intent="remove" data-testid="cutout-remove-selection">Remove</button>
@@ -1712,7 +1712,7 @@ function renderEditorToolControls(key) {
     </section>
     ${cutoutFamily === 'shape' ? `
       <section class="studio-cutout-card studio-cutout-shape-card" aria-label="形状选区" data-testid="cutout-shape-card">
-        <strong>形状</strong>
+        <strong>Shape</strong>
         <div class="studio-control-group studio-control-group-three">
           <button type="button"${modeClass('selection')}${disabledAttribute} data-cutout-mode="selection" data-testid="cutout-mode-selection">Rectangle</button>
           <button type="button"${modeClass('ellipse')}${disabledAttribute} data-cutout-mode="ellipse" data-testid="cutout-mode-ellipse">Circle</button>
