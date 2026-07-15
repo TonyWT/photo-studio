@@ -67,6 +67,7 @@ body.photo-studio-editor .studio-tool-button:hover::after,
 body.photo-studio-editor .studio-tool-button:focus-visible::after { display: flex; }
 body.photo-studio-editor .studio-rail-divider { width: 100%; height: 6px; background: repeating-linear-gradient(45deg, #292929 0 3px, #222 3px 5px); }
 body.photo-studio-editor .studio-tool-panel { position: fixed; z-index: 25; top: 0; bottom: 56px; left: 58px; box-sizing: border-box; width: 344px; padding: 0 14px 16px; overflow-y: auto; border-right: 1px solid #414141; background: #252525; box-shadow: 9px 0 18px rgba(0,0,0,.25); }
+body.photo-studio-editor.studio-drawing-palette-open .studio-tool-panel { z-index: 55; overflow: visible; }
 body.photo-studio-editor .studio-tool-panel[hidden] { display: none; }
 body.photo-studio-editor .studio-tool-panel-heading { position: relative; display: grid; height: 56px; margin: 0 -14px 16px; padding: 0 14px; border-bottom: 1px solid #3a3a3a; color: #fff; font-size: 16px; font-weight: 700; place-items: center; }
 body.photo-studio-editor .studio-tool-panel-heading button { position: absolute; right: 14px; border: 0; color: #bfbfbf; background: transparent; font: 22px/1 sans-serif; cursor: pointer; }
@@ -113,9 +114,10 @@ body.photo-studio-editor .studio-cutout-advanced { border-top: 1px solid #3a3a3a
 body.photo-studio-editor .studio-cutout-advanced summary { padding: 9px 2px; cursor: pointer; }
 body.photo-studio-editor .studio-cutout-advanced[open] summary { color: #fff; }
 body.photo-studio-editor .studio-cutout-advanced .studio-control-group { padding: 0 0 8px; }
-body.photo-studio-editor .studio-drawing-palette { display: grid; gap: 7px; padding: 9px 0; border-bottom: 1px solid #3a3a3a; }
+body.photo-studio-editor .studio-drawing-palette { position: absolute; z-index: 36; top: 478px; left: calc(100% + 48px); display: grid; width: 144px; gap: 7px; padding: 12px; border: 1px solid #454545; border-radius: 12px; background: rgba(36,36,36,.96); box-shadow: 0 10px 24px rgba(0,0,0,.42); }
+body.photo-studio-editor .studio-drawing-palette[hidden] { display: none; }
 body.photo-studio-editor .studio-drawing-palette > strong { color: #e8e8e8; font-size: 12px; font-weight: 700; }
-body.photo-studio-editor .studio-drawing-palette-swatches { display: flex; flex-wrap: wrap; gap: 7px; }
+body.photo-studio-editor .studio-drawing-palette-swatches { display: grid; grid-template-columns: repeat(4, 22px); gap: 9px; }
 body.photo-studio-editor .studio-drawing-palette-swatches button { width: 22px; height: 22px; padding: 0; border: 2px solid #777; border-radius: 50%; background: var(--drawing-swatch); cursor: pointer; }
 body.photo-studio-editor .studio-drawing-palette-swatches button:hover,
 body.photo-studio-editor .studio-drawing-palette-swatches button.is-selected { border-color: #fff; box-shadow: 0 0 0 2px #00a9df; }
@@ -138,7 +140,13 @@ body.photo-studio-editor .studio-control-check input { width: 14px; height: 14px
 body.photo-studio-editor .studio-control-color { display: flex; min-height: 30px; align-items: center; justify-content: space-between; color: #bcbcbc; font-size: 12px; }
 body.photo-studio-editor .studio-control-color input { width: 42px; height: 28px; padding: 0; border: 1px solid #474747; border-radius: 4px; background: #303030; cursor: pointer; }
 body.photo-studio-editor .studio-drawing-color { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; align-items: initial; }
-body.photo-studio-editor label.studio-control-color.studio-drawing-color input[type="color"] { width: 100%; height: 36px; box-sizing: border-box; }
+body.photo-studio-editor .studio-drawing-color-field { display: grid; grid-template-columns: minmax(0, 1fr) 39px; overflow: hidden; border: 1px solid #474747; border-radius: 4px; background: #303030; }
+body.photo-studio-editor .studio-control-color.studio-drawing-color input[type="color"] { width: 100%; height: 36px; box-sizing: border-box; border: 0; border-radius: 0; }
+body.photo-studio-editor .studio-drawing-palette-toggle { display: grid; place-items: center; padding: 0; border: 0; border-left: 1px solid #474747; color: #c8c8c8; background: #353535; cursor: pointer; }
+body.photo-studio-editor .studio-drawing-palette-toggle img { width: 12px; height: 12px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .8; }
+body.photo-studio-editor .studio-drawing-palette-toggle:hover,
+body.photo-studio-editor .studio-drawing-palette-toggle.is-selected { background: #414141; }
+body.photo-studio-editor .studio-drawing-palette-toggle.is-selected img { transform: rotate(180deg); opacity: 1; }
 body.photo-studio-editor .studio-control-select,
 body.photo-studio-editor .studio-control-number { display: grid; gap: 6px; color: #bcbcbc; font-size: 12px; }
 body.photo-studio-editor .studio-control-select select,

@@ -4129,6 +4129,8 @@ test('Drawing 同状态首屏按参考先呈现 3 加 2 图标工具格与颜色
     const controls = panel.querySelector('.studio-tool-controls');
     const primaryTools = document.querySelector('[data-testid="drawing-primary-tools"]');
     const colorInput = document.querySelector('[data-testid="drawing-color"]');
+    const colorField = colorInput.closest('.studio-drawing-color-field');
+    const paletteToggle = document.querySelector('[data-testid="drawing-palette-toggle"]');
     const children = [...controls.children];
     const styles = getComputedStyle(primaryTools);
     return {
@@ -4138,6 +4140,8 @@ test('Drawing 同状态首屏按参考先呈现 3 加 2 图标工具格与颜色
       height: Math.round(primaryTools.getBoundingClientRect().height),
       color: colorInput.value,
       colorWidth: Math.round(colorInput.getBoundingClientRect().width),
+      colorFieldWidth: Math.round(colorField.getBoundingClientRect().width),
+      paletteToggleWidth: Math.round(paletteToggle.getBoundingClientRect().width),
     };
   })).toEqual({
     firstChildClass: 'studio-drawing-tools',
@@ -4145,9 +4149,12 @@ test('Drawing 同状态首屏按参考先呈现 3 加 2 图标工具格与颜色
     columns: 3,
     height: 85,
     color: '#ffffff',
-    colorWidth: 315,
+    colorWidth: 274,
+    colorFieldWidth: 315,
+    paletteToggleWidth: 39,
   });
   await expect(page.getByTestId('drawing-color')).toBeVisible();
+  await expect(page.getByTestId('drawing-palette-toggle')).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByTestId('drawing-size')).toBeVisible();
   await expect(page.getByTestId('drawing-softness')).toBeVisible();
   await expect(page.getByTestId('drawing-opacity')).toBeVisible();
@@ -4209,8 +4216,15 @@ test('Drawing 会激活画笔并将颜色、尺寸、不透明度和柔化写入
 test('Drawing 调色板色样会写入本地颜色状态并同步形状与渐变前景色', async ({ page }) => {
   await page.goto('/editor/');
   await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-palette')).toBeHidden();
+  await page.getByTestId('drawing-palette-toggle').click();
+  await expect(page.getByTestId('drawing-palette-toggle')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId('drawing-palette')).toBeVisible();
   await page.getByTestId('drawing-palette-red').click();
   await expect(page.getByTestId('drawing-color')).toHaveValue('#ef4444');
+  await expect(page.getByTestId('drawing-palette-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByTestId('drawing-palette')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => document.body.classList.contains('studio-drawing-palette-open'))).toBe(false);
   await expect.poll(() => page.evaluate(() => ({
     color: window.AppConfig.COLOR,
     shape: window.AppConfig.TOOLS.find((tool) => tool.name === 'shape').attributes.stroke,

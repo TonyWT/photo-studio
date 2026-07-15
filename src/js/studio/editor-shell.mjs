@@ -1579,6 +1579,7 @@ function syncCropOutputInputs(target) {
 function renderEditorToolControls(key) {
   const target = document.querySelector('[data-editor-tool-controls]');
   if (!target) return;
+  if (key !== 'drawing') document.body.classList.remove('studio-drawing-palette-open');
   const nativeAttributes = document.getElementById('action_attributes');
   const customAttributePanel = key === 'crop' || key === 'cutout' || key === 'liquify' || key === 'retouch';
   if (!customAttributePanel) nativeAttributes?.removeAttribute('hidden');
@@ -2490,9 +2491,13 @@ function renderEditorToolControls(key) {
           <button type="button" data-testid="drawing-shape" data-core-tool="shape" aria-label="形状" title="形状"><img src="../images/icons/shape.svg" alt=""><span class="sr_only">形状</span></button>
         </div>
       </section>
-      <label class="studio-control-color studio-drawing-color">颜色
-        <input type="color" value="${color}" data-testid="drawing-color">
-      </label>
+      <section class="studio-control-color studio-drawing-color" aria-label="绘制颜色">
+        <span>颜色</span>
+        <span class="studio-drawing-color-field">
+          <input type="color" value="${color}" data-testid="drawing-color">
+          <button type="button" class="studio-drawing-palette-toggle" data-testid="drawing-palette-toggle" aria-label="展开本地调色板" aria-expanded="false" aria-controls="drawing-palette" title="展开调色板"><img src="../images/icons/arrow-down.svg" alt=""></button>
+        </span>
+      </section>
       <section class="studio-drawing-brush-preview-section" aria-label="笔刷预览">
         <strong>笔刷</strong>
         <canvas class="studio-drawing-brush-preview" width="600" height="220" role="img" aria-label="当前画笔预览" data-testid="drawing-brush-preview"></canvas>
@@ -2506,7 +2511,7 @@ function renderEditorToolControls(key) {
       <label class="studio-control-range">不透明度 <output data-drawing-opacity-output>${opacity}%</output>
         <input type="range" min="1" max="100" value="${opacity}" data-testid="drawing-opacity">
       </label>
-      <section class="studio-drawing-palette" aria-label="本地调色板">
+      <section class="studio-drawing-palette" id="drawing-palette" data-testid="drawing-palette" aria-label="本地调色板" hidden>
         <strong>色样</strong>
         <div class="studio-drawing-palette-swatches">
           ${DRAWING_PALETTE.map(([id, value, label]) => `<button type="button" class="${color.toLowerCase() === value ? 'is-selected' : ''}" style="--drawing-swatch:${value}" data-testid="drawing-palette-${id}" aria-label="${label}" title="${label}"></button>`).join('')}
@@ -2551,6 +2556,8 @@ function renderEditorToolControls(key) {
     const sizeOutput = target.querySelector('[data-drawing-size-output]');
     const opacityOutput = target.querySelector('[data-drawing-opacity-output]');
     const brushPreview = target.querySelector('[data-testid="drawing-brush-preview"]');
+    const palette = target.querySelector('[data-testid="drawing-palette"]');
+    const paletteToggle = target.querySelector('[data-testid="drawing-palette-toggle"]');
     const refreshBrushPreview = () => renderDrawingBrushPreview(brushPreview, {
       color: colorInput.value,
       size: Number(sizeInput.value),
@@ -2562,7 +2569,7 @@ function renderEditorToolControls(key) {
       window.AppConfig.COLOR = nextColor;
       setToolAttribute('shape', 'stroke', nextColor);
       setToolAttribute('gradient', 'color_1', nextColor);
-      target.querySelectorAll('[data-testid^="drawing-palette-"]').forEach((button) => {
+      palette?.querySelectorAll('button').forEach((button) => {
         button.classList.toggle('is-selected', button.style.getPropertyValue('--drawing-swatch').toLowerCase() === nextColor.toLowerCase());
       });
       refreshBrushPreview();
@@ -2572,8 +2579,22 @@ function renderEditorToolControls(key) {
       await insertBlankDrawingLayer();
     });
     colorInput.addEventListener('input', () => applyDrawingColor(colorInput.value));
-    target.querySelectorAll('[data-testid^="drawing-palette-"]').forEach((button) => {
-      button.addEventListener('click', () => applyDrawingColor(button.style.getPropertyValue('--drawing-swatch')));
+    paletteToggle?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = palette?.hidden;
+      if (palette) palette.hidden = !isOpen;
+      paletteToggle.setAttribute('aria-expanded', String(Boolean(isOpen)));
+      paletteToggle.classList.toggle('is-selected', Boolean(isOpen));
+      document.body.classList.toggle('studio-drawing-palette-open', Boolean(isOpen));
+    });
+    palette?.querySelectorAll('button').forEach((button) => {
+      button.addEventListener('click', () => {
+        applyDrawingColor(button.style.getPropertyValue('--drawing-swatch'));
+        if (palette) palette.hidden = true;
+        paletteToggle?.setAttribute('aria-expanded', 'false');
+        paletteToggle?.classList.remove('is-selected');
+        document.body.classList.remove('studio-drawing-palette-open');
+      });
     });
     sizeInput.addEventListener('input', () => {
       const size = Number(sizeInput.value);
@@ -2919,6 +2940,7 @@ async function closeActiveEditorToolPanel() {
   const panel = document.querySelector('[data-testid="editor-tool-panel"]');
   if (panel) panel.hidden = true;
   document.body.classList.remove('studio-tool-panel-open');
+  document.body.classList.remove('studio-drawing-palette-open');
   document.body.dataset.collageCanvasGestures = 'false';
   removeCutoutHintOverlay();
   syncCanvasInteractionOffset();
