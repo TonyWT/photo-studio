@@ -24,6 +24,15 @@ async function openFile(file) {
   openEditor();
 }
 
+function imageFromClipboard(event) {
+  const files = event.clipboardData?.files;
+  if (files?.length) return [...files].find(isSupportedImage) ?? null;
+
+  const imageItem = [...(event.clipboardData?.items ?? [])]
+    .find((item) => item.kind === 'file' && item.type.startsWith('image/'));
+  return imageItem?.getAsFile?.() ?? null;
+}
+
 function showProjectImportError(message = '') {
   const target = document.querySelector('[data-testid="project-import-error"]');
   if (!target) return;
@@ -98,6 +107,12 @@ if (home) {
   dropzone.addEventListener('drop', (event) => {
     event.preventDefault();
     openFile(event.dataTransfer.files?.[0]);
+  });
+  document.addEventListener('paste', (event) => {
+    const file = imageFromClipboard(event);
+    if (!file) return;
+    event.preventDefault();
+    openFile(file);
   });
   document.querySelector('[data-testid="recent-projects"]').addEventListener('click', onProjectAction);
   renderProjects()

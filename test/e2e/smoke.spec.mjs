@@ -63,7 +63,19 @@ test('主页提供本地打开和新建入口', async ({ page }) => {
   await openHome(page);
   await expect(page.getByTestId('open-image')).toBeVisible();
   await expect(page.getByTestId('create-new')).toBeVisible();
+  await expect(page.getByTestId('dropzone')).toContainText('粘贴图片');
   await expect(page.getByTestId('recent-projects')).toContainText('尚无本地项目');
+});
+
+test('主页可从剪贴板粘贴本地图片进入编辑器', async ({ page }) => {
+  await openHome(page);
+  await page.evaluate(async (bytes) => {
+    const clipboardData = new DataTransfer();
+    clipboardData.items.add(new File([new Uint8Array(bytes)], 'clipboard.png', { type: 'image/png' }));
+    document.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData }));
+  }, [...samplePng]);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => window.AppConfig?.layer?.name)).toBe('clipboard.png');
 });
 
 test('主页可选择 2×2 本地拼贴模板并进入编辑器', async ({ page }) => {
