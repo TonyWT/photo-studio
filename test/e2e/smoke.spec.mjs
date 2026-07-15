@@ -362,6 +362,9 @@ test('导出格式选择器提供 JPEG、WebP 与原生项目入口', async ({ p
 test('状态栏以单一保存入口收束本地保存与导出操作', async ({ page }) => {
   await page.goto('/editor/');
   await expect(page.getByTestId('save-menu-toggle')).toBeVisible();
+  await expect(page.getByTestId('editor-close')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.getByTestId('editor-close')).toHaveCSS('border-top-color', 'rgb(114, 114, 114)');
+  await expect(page.getByTestId('save-menu-toggle')).toHaveCSS('background-color', 'rgb(0, 169, 223)');
   await expect(page.getByTestId('save-menu')).toBeHidden();
   await expect(page.getByTestId('export-format')).toBeHidden();
 

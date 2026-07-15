@@ -341,7 +341,6 @@ body.photo-studio-editor .studio-status-actions button:hover,
 body.photo-studio-editor .studio-close-button:hover { color: #fff; }
 body.photo-studio-editor .studio-status-actions output { min-width: 38px; text-align: center; }
 body.photo-studio-editor .studio-status-separator { width: 1px; height: 26px; margin: 0 8px; background: #343434; }
-body.photo-studio-editor .studio-close-button,
 body.photo-studio-editor .studio-save-menu-toggle { min-width: 128px !important; padding: 10px 18px; border: 1px solid #00a9df !important; border-radius: 20px !important; color: #fff !important; background: #00a9df !important; text-align: center; }
 body.photo-studio-editor .studio-save-menu-toggle:hover { background: #12bbeF !important; }
 body.photo-studio-editor .studio-close-button { min-width: 128px; padding: 10px 18px; border: 1px solid #727272; border-radius: 20px; text-align: center; }
