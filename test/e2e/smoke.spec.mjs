@@ -88,6 +88,23 @@ test('主页可选择 2×2 本地拼贴模板并进入编辑器', async ({ page 
   await expect.poll(() => page.evaluate(() => window.AppConfig.guides.length)).toBe(2);
 });
 
+test('主页提供横向、纵向和九宫格本地拼贴模板，并按所选格局建立可编辑分格', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('create-collage').click();
+  const picker = page.getByTestId('collage-templates');
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole('button')).toHaveCount(8);
+  await expect(page.getByTestId('collage-template-1x3')).toBeVisible();
+  await expect(page.getByTestId('collage-template-3x2')).toBeVisible();
+  await expect(page.getByTestId('collage-template-3x3')).toBeVisible();
+
+  await page.getByTestId('collage-template-3x2').click();
+  await expect(page).toHaveURL(/\/editor\/\?collage=3x2$/);
+  await expect(page.locator('body')).toHaveAttribute('data-collage-template', '3x2');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.guides.length)).toBe(3);
+  await expect(page.getByTestId('collage-slot-5')).toBeVisible();
+});
+
 test('2×2 拼贴可向选中分格放入本地图片，并覆盖式自动裁切为图层', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('create-collage').click();

@@ -1433,8 +1433,14 @@ function renderCollageWorkspace() {
 function setupCollageFromQuery() {
   const template = new URLSearchParams(window.location.search).get('collage');
   const templates = {
-    '2x2': { columns: 2, rows: 2 },
+    '1x2': { columns: 1, rows: 2 },
+    '2x1': { columns: 2, rows: 1 },
+    '1x3': { columns: 1, rows: 3 },
     '3x1': { columns: 3, rows: 1 },
+    '2x2': { columns: 2, rows: 2 },
+    '3x2': { columns: 3, rows: 2 },
+    '2x3': { columns: 2, rows: 3 },
+    '3x3': { columns: 3, rows: 3 },
   };
   const layout = templates[template];
   if (!layout || !window.AppConfig) return false;
