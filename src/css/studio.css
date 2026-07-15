@@ -238,11 +238,15 @@ body.photo-studio-editor .studio-adjust-range--hue input { background: linear-gr
 body.photo-studio-editor .studio-adjust-range--brightness input,
 body.photo-studio-editor .studio-adjust-range--exposure input,
 body.photo-studio-editor .studio-adjust-range--contrast input { background: linear-gradient(90deg, #4c4c4c, #acacac); }
-body.photo-studio-editor .studio-filter-card-list { display: grid; gap: 12px; }
-body.photo-studio-editor .studio-filter-card { display: grid; gap: 0; width: 100%; padding: 0; overflow: hidden; border: 1px solid #3d3d3d; border-radius: 8px; color: #e3e3e3; background: #292929; text-align: left; cursor: pointer; }
+/* Filter is a browse-first surface in the reference: each item is a full
+   preview card with enough room for its name, explanation and category cue.
+   Keep the preview and copy areas deliberate instead of collapsing them into
+   compact generic buttons. */
+body.photo-studio-editor .studio-filter-card-list { display: grid; gap: 18px; }
+body.photo-studio-editor .studio-filter-card { display: grid; gap: 10px; width: 100%; padding: 16px 18px 18px; overflow: hidden; border: 1px solid #3d3d3d; border-radius: 8px; color: #e3e3e3; background: #292929; text-align: left; cursor: pointer; }
 body.photo-studio-editor .studio-filter-card:hover { border-color: #00a9df; }
 body.photo-studio-editor .studio-filter-card:disabled { opacity: .46; cursor: not-allowed; }
-body.photo-studio-editor .studio-filter-card-media { display: block; height: 104px; overflow: hidden; background: #1d1d1d; }
+body.photo-studio-editor .studio-filter-card-media { display: block; height: 132px; overflow: hidden; border-radius: 3px; background: #1d1d1d; }
 body.photo-studio-editor .studio-filter-card-media img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.04); }
 body.photo-studio-editor .studio-filter-card--hdr img { filter: contrast(1.18) saturate(1.14) brightness(1.08); }
 body.photo-studio-editor .studio-filter-card--focus-bokeh img { filter: saturate(1.2) blur(1.1px); transform: scale(1.1); }
@@ -250,7 +254,7 @@ body.photo-studio-editor .studio-filter-card--reflect img { filter: saturate(1.1
 body.photo-studio-editor .studio-filter-card--dispersion img { filter: contrast(1.22) hue-rotate(34deg); transform: translateX(2px) scale(1.06); }
 body.photo-studio-editor .studio-filter-card--glitch img { filter: contrast(1.34) hue-rotate(135deg) saturate(1.45); transform: translateX(-2px) scale(1.06); }
 body.photo-studio-editor .studio-filter-card--colorize img { filter: sepia(.38) hue-rotate(175deg) saturate(1.7); }
-body.photo-studio-editor .studio-filter-card-copy { display: grid; grid-template-columns: minmax(0, 1fr) 22px; grid-template-areas: "title icon" "description icon"; column-gap: 8px; row-gap: 4px; padding: 10px 11px 11px; }
+body.photo-studio-editor .studio-filter-card-copy { display: grid; min-height: 80px; grid-template-columns: minmax(0, 1fr) 22px; grid-template-areas: "title icon" "description icon"; column-gap: 8px; row-gap: 4px; padding: 0; }
 body.photo-studio-editor .studio-filter-card-copy strong { grid-area: title; font-size: 14px; }
 body.photo-studio-editor .studio-filter-card-copy small { grid-area: description; color: #a7a7a7; font-size: 11px; line-height: 1.35; }
 body.photo-studio-editor .studio-filter-card-icon { display: grid; grid-area: icon; place-items: end center; }

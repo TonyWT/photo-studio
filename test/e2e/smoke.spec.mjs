@@ -2142,6 +2142,8 @@ test('Filter 六张本地图像卡都有对应的分类图标与可见标题', a
   await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
   await page.getByTestId('tool-filter').click();
 
+  await expect(page.locator('.studio-filter-card-list')).toHaveCSS('gap', '18px');
+
   for (const [testId, label] of [
     ['filter-hdr', 'HDR'],
     ['filter-focus-bokeh', 'Focus / Bokeh'],
@@ -2154,6 +2156,9 @@ test('Filter 六张本地图像卡都有对应的分类图标与可见标题', a
     await expect(card.locator('.studio-filter-card-icon img')).toHaveCount(1);
     await expect(card.locator('.studio-filter-card-icon img')).toHaveAttribute('alt', '');
     await expect(card.locator('.studio-filter-card-copy strong')).toHaveText(label);
+    await expect(card).toHaveCSS('padding-top', '16px');
+    await expect(card.locator('.studio-filter-card-media')).toHaveCSS('height', '132px');
+    await expect(card.locator('.studio-filter-card-copy')).toHaveCSS('min-height', '80px');
   }
 });
 
