@@ -179,8 +179,13 @@ body.photo-studio-editor .studio-crop-transform-grid button { display: grid; min
 body.photo-studio-editor .studio-crop-transform-grid button img { width: 19px; height: 19px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .86; }
 body.photo-studio-editor .studio-crop-transform-grid button:hover img,
 body.photo-studio-editor .studio-crop-transform-grid button.is-selected img { opacity: 1; }
-body.photo-studio-editor .studio-adjust-presets { margin-bottom: 2px; }
-body.photo-studio-editor .studio-adjust-presets button { display: grid; min-height: 76px; grid-template-rows: 28px auto; place-items: center; gap: 6px; padding: 8px 4px; }
+/* The reference groups Auto / B&W / Pop in one uninterrupted surface.  Keep
+   the three real buttons inside that shared card rather than making each one
+   look like an unrelated tile; this also keeps the Color section on the same
+   vertical rhythm as the source state. */
+body.photo-studio-editor .studio-adjust-presets { gap: 0; margin-bottom: 2px; padding: 8px 4px; border: 1px solid #383838; border-radius: 8px; background: #282828; }
+body.photo-studio-editor .studio-adjust-presets button { display: grid; min-height: 80px; grid-template-rows: 28px auto; place-items: center; gap: 6px; padding: 8px 4px; border: 0; border-radius: 5px; background: transparent; }
+body.photo-studio-editor .studio-adjust-presets button:hover { border-color: transparent; background: #343434; }
 body.photo-studio-editor .studio-adjust-presets button img { width: 24px; height: 24px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .86; }
 body.photo-studio-editor .studio-adjust-presets button:hover img { opacity: 1; }
 body.photo-studio-editor .studio-adjust-shortcut-label { color: #d6d6d6; font-size: 11px; font-weight: 600; line-height: 1; }

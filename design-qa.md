@@ -88,4 +88,6 @@
 
 37. 2026-07-15：以用户 Crop 参考图与当前 `1920 × 878` 本地 Crop 状态合并为 `/tmp/crop-reference-vs-local-primary-section.png`。此前本地把宽高、拉直和比例切成三个互不相连的卡片，拉直滑杆也未占满主卡宽度；参考将它们置于同一连续主卡。现已重组为单一主卡，并使拉直控件占完整可用宽度。所有侧栏标题同时补上参考可见的 6px 斜纹底缝，不改变 56px 标题节奏或实际控件坐标。Crop 结构专项、Darwin 视觉基准、`npm test` 与生产构建已通过；Linux 视觉基准需在本轮发布后的 Ubuntu runner 上刷新和复验。完整视觉验收继续保持 blocked。
 
+38. 2026-07-15：以用户 Adjust 参考图与当前同状态截图合并为 `/tmp/adjust-reference-vs-current-after-shortcuts.png`。此前本地将 Auto、B&W、Pop 画成三个独立描边卡，参考则是在同一个连续快捷调整容器中排列三项，且 Color 区的起点更低。现已使用共享容器、80px 快捷项高度和无独立边框的真实按钮，使 Color 区首行与参考的垂直节奏对齐；原有三项本地效果映射、历史和撤销不变。快捷容器几何专项、Adjust Darwin 视觉基准、`npm test` 与生产构建均已通过；Linux 视觉快照将在本次公开发布后由同一 Ubuntu runner 复验。完整视觉验收继续保持 blocked。
+
 final result: blocked — 视觉工作台已具备同状态验收基准，但非 AI 工具矩阵尚未全部完成。

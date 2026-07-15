@@ -1486,6 +1486,10 @@ test('Adjust 首屏以三个有名称的图标快捷调整呈现 Auto、B&W、Po
   await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-adjust').click();
 
+  await expect(page.locator('.studio-adjust-presets')).toHaveCSS('gap', '0px');
+  await expect(page.locator('.studio-adjust-presets')).toHaveCSS('border-top-style', 'solid');
+  await expect(page.locator('.studio-adjust-presets')).toHaveCSS('background-color', 'rgb(40, 40, 40)');
+
   for (const [testId, label] of [
     ['adjust-auto', 'Auto'],
     ['adjust-bw', 'B&W'],
@@ -1497,7 +1501,8 @@ test('Adjust 首屏以三个有名称的图标快捷调整呈现 Auto、B&W、Po
     await expect(shortcut.locator('img')).toHaveCount(1);
     await expect(shortcut.locator('img')).toHaveAttribute('alt', '');
     await expect(shortcut.locator('.studio-adjust-shortcut-label')).toHaveText(label);
-    await expect(shortcut).toHaveCSS('min-height', '76px');
+    await expect(shortcut).toHaveCSS('min-height', '80px');
+    await expect(shortcut).toHaveCSS('border-top-width', '0px');
   }
 });
 
