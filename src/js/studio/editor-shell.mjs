@@ -2819,7 +2819,7 @@ function makeThumbnail() {
 
 async function saveLocalProject() {
   if (!window.FileSave || !window.AppConfig?.layers?.length) return null;
-  updateSaveLabel('正在保存…');
+  updateSaveLabel('Saving…');
   const project = await projectStore.saveProject({
     id: currentProjectId,
     name: currentProjectName,
@@ -2828,8 +2828,8 @@ async function saveLocalProject() {
   });
   currentProjectId = project.id;
   currentProjectName = project.name;
-  updateSaveLabel('已保存本地项目');
-  window.setTimeout(() => updateSaveLabel('保存本地项目'), 1400);
+  updateSaveLabel('Project saved');
+  window.setTimeout(() => updateSaveLabel('Save project'), 1400);
   return project;
 }
 
