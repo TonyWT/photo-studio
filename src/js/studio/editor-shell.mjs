@@ -341,6 +341,35 @@ function setToolAttribute(name, attribute, value) {
   if (tool?.attributes) tool.attributes[attribute] = value;
 }
 
+function renderDrawingBrushPreview(preview, { color, size, softness, opacity }) {
+  const context = preview?.getContext?.('2d');
+  if (!context) return;
+  const { width, height } = preview;
+  const cell = 16;
+  context.clearRect(0, 0, width, height);
+  for (let y = 0; y < height; y += cell) {
+    for (let x = 0; x < width; x += cell) {
+      context.fillStyle = ((x / cell + y / cell) % 2 === 0) ? '#494949' : '#303030';
+      context.fillRect(x, y, cell, cell);
+    }
+  }
+  const radius = Math.max(14, Math.min(94, Number(size) * 1.8));
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const featherStop = Math.max(.08, 1 - Number(softness) / 100);
+  const gradient = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(featherStop, color);
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  context.save();
+  context.globalAlpha = Math.max(0, Math.min(1, Number(opacity) / 100));
+  context.fillStyle = gradient;
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
 function setToolAttributeValue(name, attribute, value) {
   const tool = findToolConfig(name);
   if (!tool?.attributes) return;
@@ -2464,6 +2493,10 @@ function renderEditorToolControls(key) {
       <label class="studio-control-color studio-drawing-color">颜色
         <input type="color" value="${color}" data-testid="drawing-color">
       </label>
+      <section class="studio-drawing-brush-preview-section" aria-label="笔刷预览">
+        <strong>笔刷</strong>
+        <canvas class="studio-drawing-brush-preview" width="600" height="220" role="img" aria-label="当前画笔预览" data-testid="drawing-brush-preview"></canvas>
+      </section>
       <label class="studio-control-range">笔触尺寸 <output data-drawing-size-output>${brushSize}px</output>
         <input type="range" min="1" max="100" value="${brushSize}" data-testid="drawing-size">
       </label>
@@ -2517,6 +2550,13 @@ function renderEditorToolControls(key) {
     const opacityInput = target.querySelector('[data-testid="drawing-opacity"]');
     const sizeOutput = target.querySelector('[data-drawing-size-output]');
     const opacityOutput = target.querySelector('[data-drawing-opacity-output]');
+    const brushPreview = target.querySelector('[data-testid="drawing-brush-preview"]');
+    const refreshBrushPreview = () => renderDrawingBrushPreview(brushPreview, {
+      color: colorInput.value,
+      size: Number(sizeInput.value),
+      softness: Number(softnessInput.value),
+      opacity: Number(opacityInput.value),
+    });
     const applyDrawingColor = (nextColor) => {
       colorInput.value = nextColor;
       window.AppConfig.COLOR = nextColor;
@@ -2525,7 +2565,9 @@ function renderEditorToolControls(key) {
       target.querySelectorAll('[data-testid^="drawing-palette-"]').forEach((button) => {
         button.classList.toggle('is-selected', button.style.getPropertyValue('--drawing-swatch').toLowerCase() === nextColor.toLowerCase());
       });
+      refreshBrushPreview();
     };
+    refreshBrushPreview();
     target.querySelector('[data-testid="drawing-new-layer"]')?.addEventListener('click', async () => {
       await insertBlankDrawingLayer();
     });
@@ -2538,17 +2580,20 @@ function renderEditorToolControls(key) {
       ['brush', 'pencil', 'erase', 'shape'].forEach((tool) => setToolAttribute(tool, 'size', size));
       sizeOutput.value = `${size}px`;
       sizeOutput.textContent = `${size}px`;
+      refreshBrushPreview();
     });
     softnessInput.addEventListener('input', () => {
       const softness = Number(softnessInput.value);
       setToolAttribute('brush', 'softness', softness);
       target.querySelector('[data-drawing-softness-output]').textContent = `${softness}%`;
+      refreshBrushPreview();
     });
     opacityInput.addEventListener('input', () => {
       const value = Number(opacityInput.value);
       window.AppConfig.ALPHA = Math.round(value / 100 * 255);
       opacityOutput.value = `${value}%`;
       opacityOutput.textContent = `${value}%`;
+      refreshBrushPreview();
     });
     const applyBrushPreset = ({ size, softness }) => {
       setToolAttribute('brush', 'size', size);
@@ -2560,6 +2605,7 @@ function renderEditorToolControls(key) {
       target.querySelectorAll('[data-testid^="drawing-brush-preset-"]').forEach((button) => {
         button.classList.toggle('is-selected', button.dataset.testid === `drawing-brush-preset-${softness >= 50 ? 'soft' : 'hard'}`);
       });
+      refreshBrushPreview();
     };
     target.querySelector('[data-testid="drawing-brush-preset-soft"]')?.addEventListener('click', () => applyBrushPreset({ size: 40, softness: 70 }));
     target.querySelector('[data-testid="drawing-brush-preset-hard"]')?.addEventListener('click', () => applyBrushPreset({ size: 18, softness: 0 }));

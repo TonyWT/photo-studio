@@ -4125,6 +4125,37 @@ test('Drawing 同状态首屏按参考先呈现 3 加 2 图标工具格与颜色
   await expect(page.getByTestId('drawing-opacity')).toBeVisible();
 });
 
+test('Drawing 首屏提供随颜色、尺寸与柔化变化的真实笔刷预览', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'drawing-preview.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+
+  const preview = page.getByTestId('drawing-brush-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveAttribute('role', 'img');
+  const before = await page.evaluate(() => {
+    const preview = document.querySelector('[data-testid="drawing-brush-preview"]');
+    const context = preview.getContext('2d', { willReadFrequently: true });
+    const center = context.getImageData(preview.width / 2, preview.height / 2, 1, 1).data;
+    return { width: preview.width, height: preview.height, center: Array.from(center) };
+  });
+  expect(before).toMatchObject({ width: 600, height: 220 });
+
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-size').fill('40');
+  await page.getByTestId('drawing-softness').fill('70');
+  await page.getByTestId('drawing-opacity').fill('42');
+  const after = await page.evaluate(() => {
+    const preview = document.querySelector('[data-testid="drawing-brush-preview"]');
+    const context = preview.getContext('2d', { willReadFrequently: true });
+    return Array.from(context.getImageData(preview.width / 2, preview.height / 2, 1, 1).data);
+  });
+  expect(after).not.toEqual(before.center);
+  expect(after[3]).toBe(255);
+});
+
 test('Drawing 会激活画笔并将颜色、尺寸、不透明度和柔化写入本地配置', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: samplePng });

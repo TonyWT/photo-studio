@@ -74,6 +74,8 @@ body.photo-studio-editor .studio-control-group.studio-drawing-primary-grid butto
 body.photo-studio-editor .studio-drawing-primary-grid button img { width: 21px; height: 21px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .86; }
 body.photo-studio-editor .studio-drawing-primary-grid button:hover img,
 body.photo-studio-editor .studio-drawing-primary-grid button.is-selected img { opacity: 1; }
+body.photo-studio-editor .studio-drawing-brush-preview-section { display: grid; gap: 7px; padding-top: 2px; color: #e8e8e8; font-size: 12px; font-weight: 700; }
+body.photo-studio-editor .studio-drawing-brush-preview { display: block; width: 100%; height: 112px; border: 1px solid #3b3b3b; border-radius: 3px; background: #303030; }
 body.photo-studio-editor .studio-control-group.studio-liquify-mode-grid button { display: grid; min-height: 40px; place-items: center; padding: 4px; }
 body.photo-studio-editor .studio-control-group.studio-liquify-mode-grid button img { width: 20px; height: 20px; object-fit: contain; filter: invert(1) grayscale(1) brightness(1.45); opacity: .86; }
 body.photo-studio-editor .studio-control-group.studio-liquify-mode-grid button:hover img,
