@@ -138,4 +138,6 @@
 
 62. 2026-07-16：以用户 Crop 参考图 `codex-clipboard-3241fff8-a541-45be-a1c1-fc1f40185d54.png` 归一化后的 `1914×878` 画面，与 Ubuntu Nightly `29450973738` 的同状态实际图合并为 `/tmp/crop-reference-vs-current-final-gap.png`。本轮先将工作台横向几何收敛为 60px 工具轨 + 324px 参数面板、打开态工作区起点 384px，并将 Crop 首卡相对标题的间距收敛为 32px；CI `29450955793` 和 Pages `29450955553` 成功。随后测得参考轨道在移除 AI/Element 后仍保留首项 20px 手off、后续 54px 的垂直节奏，已在本地加入固定几何 E2E 断言。Nightly 的 9 张失败图来自变更后的旧 Linux 基准；下一轮只以新 runner 实际图更新对应 Linux 基准并复验，不修改 Darwin 基准。完整视觉验收继续保持 blocked。
 
+63. 2026-07-16：从 Ubuntu Nightly `29451921267` 下载 9 张更新后的工具面板实际图，人工复核 Crop 与 Retouch 的同状态合图后，仅回写对应 Linux 基准；其后的 Nightly `29465931114` 仅发现未打开面板的 `editor.png` 也受同一工具轨节奏影响。该图经旧/新并排复核后补齐 Linux 基准，并以最终 CI `29466655108`、Pages `29466655140`、Ubuntu Nightly `29466655058` 全部成功作为验收。Nightly 覆盖完整功能流程和所有 Linux 视觉快照；Darwin 基准未改动。已验证当前实现的功能矩阵、无 AI/Element 边界、60px/324px/384px 横向几何、首项 y=82px/相邻 54px 轨道节奏与部署链路均无回退。精确字体、图标笔画和未量化留白 P2 仍继续阻止“逐像素复刻”的结论。
+
 final result: blocked — 所有保留的非 AI 功能已具备逐项清单和自动化证据；固定视口下的工作台与面板 P2 视觉差异仍未全部消除。
