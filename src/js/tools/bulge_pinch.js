@@ -146,7 +146,8 @@ class BulgePinch_class extends Base_tools_class {
 		const point = this.get_layer_canvas_point(mouse);
 		this.lastStrokePoint = point;
 		this.apply_dab(point, null, params);
-		this.queue_preview(params, true);
+		this.announce_session_change();
+		this.queue_preview(params);
 	}
 
 	is_webgl2_available() {
@@ -168,7 +169,7 @@ class BulgePinch_class extends Base_tools_class {
 		const point = this.get_layer_canvas_point(mouse);
 		if (this.lastStrokePoint) this.apply_stroke(this.lastStrokePoint, point, params);
 		this.lastStrokePoint = point;
-		this.queue_preview(params, false);
+		this.queue_preview(params);
 	}
 
 	has_session() {
@@ -184,20 +185,14 @@ class BulgePinch_class extends Base_tools_class {
 	/**
 	 * 合并同一帧内的多次笔触，只刷新一次预览，保证拖拽实时且不卡顿。
 	 * @param {object} params
-	 * @param {boolean} announceSession
 	 */
-	queue_preview(params, announceSession) {
+	queue_preview(params) {
 		this.pendingPreviewParams = params;
-		if (announceSession) this.pendingPreviewAnnounce = true;
 		if (this.previewRaf) return;
 		this.previewRaf = requestAnimationFrame(() => {
 			this.previewRaf = 0;
 			this.refresh_preview(this.pendingPreviewParams);
 			config.need_render = true;
-			if (this.pendingPreviewAnnounce) {
-				this.pendingPreviewAnnounce = false;
-				this.announce_session_change();
-			}
 		});
 	}
 

@@ -4172,6 +4172,7 @@ test('Liquify 膨胀与收缩拖拽时实时更新预览', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);
   await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-liquify').click();
   const bulge = page.getByTestId('liquify-mode-bulge');
   await expect(bulge).toBeVisible();
