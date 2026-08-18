@@ -19,6 +19,15 @@ test('Liquify 在没有 WebGL2 时给出本地不可用提示', async () => {
   assert.match(tool, /Liquify 需要 WebGL2/);
 });
 
+test('Liquify 复用 miniPaint glfx 并在拖拽时对所有模式连续落笔', async () => {
+  const tool = await readFile(new URL('../src/js/tools/bulge_pinch.js', import.meta.url), 'utf8');
+  assert.match(tool, /filter\.bulgePinch\(/);
+  assert.match(tool, /filter\.swirl\(/);
+  assert.match(tool, /apply_stroke\(/);
+  assert.match(tool, /sampleBilinear\(/);
+  assert.doesNotMatch(tool, /get_mode\(params\) !== 'push'/);
+});
+
 test('编辑器壳层提供稳定的保存与返回测试标识', async () => {
   const html = await readFile(new URL('../editor/index.html', import.meta.url), 'utf8');
   assert.match(html, /data-testid="save-local-project"/);
