@@ -927,6 +927,7 @@ test('手动 Cutout 会先选择 Keep/Remove 模式，再由 Apply cutout 单次
     const selection = window.app.GUI.GUI_tools.tools_modules.selection.object.selection;
     return Boolean(selection?.width && selection?.height);
   })).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link_canvas instanceof HTMLCanvasElement)).toBe(true);
 
   const history = await page.evaluate(() => window.State.action_history.length);
   await page.getByTestId('cutout-remove-selection').click();
@@ -935,6 +936,139 @@ test('手动 Cutout 会先选择 Keep/Remove 模式，再由 Apply cutout 单次
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history);
   await page.getByTestId('cutout-apply-selection').click();
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
+});
+
+test('手动 Cutout 的多次 Keep 框选会叠加并实时预览，应用前不写历史', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-cutout').click();
+  await page.getByTestId('cutout-mode-ellipse').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-ellipse');
+
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const dragEllipse = async (x0, y0, x1, y1) => {
+    await page.mouse.move(bounds.x + bounds.width * x0, bounds.y + bounds.height * y0);
+    await page.mouse.down();
+    await page.mouse.move(bounds.x + bounds.width * x1, bounds.y + bounds.height * y1);
+    await page.mouse.up();
+  };
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+  await dragEllipse(0.18, 0.16, 0.40, 0.42);
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions.length)).toBe(1);
+  await dragEllipse(0.58, 0.52, 0.82, 0.82);
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions.map((region) => region.shape))).toEqual(['ellipse', 'ellipse']);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+
+  const previewAlpha = () => page.evaluate(() => {
+    const layer = window.AppConfig.layer;
+    const preview = layer.link_canvas;
+    if (!(preview instanceof HTMLCanvasElement)) return null;
+    const regions = window.PhotoStudio.getCutoutSelection().regions;
+    const context = preview.getContext('2d');
+    const scaleX = preview.width / (layer.width || preview.width);
+    const scaleY = preview.height / (layer.height || preview.height);
+    const alphaAt = (point) => context.getImageData(
+      Math.round((point.x - layer.x) * scaleX),
+      Math.round((point.y - layer.y) * scaleY),
+      1,
+      1,
+    ).data[3];
+    return {
+      first: alphaAt({ x: regions[0].x + regions[0].width / 2, y: regions[0].y + regions[0].height / 2 }),
+      second: alphaAt({ x: regions[1].x + regions[1].width / 2, y: regions[1].y + regions[1].height / 2 }),
+      outside: context.getImageData(2, 2, 1, 1).data[3],
+    };
+  });
+  await expect.poll(previewAlpha).toEqual({ first: 255, second: 255, outside: 0 });
+  await expect.poll(() => page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const scratch = document.createElement('canvas');
+    scratch.width = image.naturalWidth;
+    scratch.height = image.naturalHeight;
+    scratch.getContext('2d').drawImage(image, 0, 0);
+    return scratch.getContext('2d').getImageData(2, 2, 1, 1).data[3];
+  })).toBe(255);
+
+  await page.getByTestId('cutout-keep-selection').click();
+  await page.getByTestId('cutout-apply-selection').click();
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore + 1);
+  await expect.poll(() => page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const scratch = document.createElement('canvas');
+    scratch.width = image.naturalWidth;
+    scratch.height = image.naturalHeight;
+    const context = scratch.getContext('2d');
+    context.drawImage(image, 0, 0);
+    const regions = window.PhotoStudio.getCutoutSelection().regions;
+    const layer = window.AppConfig.layer;
+    const scaleX = scratch.width / (layer.width || scratch.width);
+    const scaleY = scratch.height / (layer.height || scratch.height);
+    const alphaAt = (point) => context.getImageData(
+      Math.round((point.x - layer.x) * scaleX),
+      Math.round((point.y - layer.y) * scaleY),
+      1,
+      1,
+    ).data[3];
+    return {
+      first: alphaAt({ x: regions[0].x + regions[0].width / 2, y: regions[0].y + regions[0].height / 2 }),
+      second: alphaAt({ x: regions[1].x + regions[1].width / 2, y: regions[1].y + regions[1].height / 2 }),
+      outside: context.getImageData(2, 2, 1, 1).data[3],
+    };
+  })).toEqual({ first: 255, second: 255, outside: 0 });
+});
+
+test('手动 Cutout 的魔术选区与画笔选区框选后即时预览，且不立刻写入历史', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-cutout').click();
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const previewStats = () => page.evaluate(() => {
+    const preview = window.AppConfig.layer.link_canvas;
+    if (!(preview instanceof HTMLCanvasElement)) return null;
+    const data = preview.getContext('2d').getImageData(0, 0, preview.width, preview.height).data;
+    let opaque = 0;
+    let transparent = 0;
+    for (let index = 3; index < data.length; index += 4) {
+      if (data[index] === 0) transparent += 1;
+      else if (data[index] === 255) opaque += 1;
+    }
+    return { opaque, transparent, width: preview.width, height: preview.height };
+  });
+
+  await page.getByTestId('cutout-mode-magic').click();
+  await expect(page.locator('#tools_container .magic_erase')).toHaveClass(/active/);
+  const magicHistory = await page.evaluate(() => window.State.action_history.length);
+  await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5);
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('bitmap');
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(magicHistory);
+  await expect.poll(previewStats).toMatchObject({ width: 360, height: 270 });
+  const magicPreview = await previewStats();
+  expect(magicPreview.opaque).toBeGreaterThan(0);
+  expect(magicPreview.transparent).toBeGreaterThan(0);
+
+  await page.getByTestId('cutout-reset-selection').click();
+  await page.getByTestId('cutout-mode-erase').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('erase');
+  await page.getByTestId('cutout-erase-size').fill('48');
+  const drawHistory = await page.evaluate(() => window.State.action_history.length);
+  await page.mouse.move(bounds.x + bounds.width * 0.25, bounds.y + bounds.height * 0.4);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.7, bounds.y + bounds.height * 0.65);
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('bitmap');
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(drawHistory);
+  await expect.poll(previewStats).toMatchObject({ width: 360, height: 270 });
+  const drawPreview = await previewStats();
+  expect(drawPreview.opaque).toBeGreaterThan(0);
+  expect(drawPreview.transparent).toBeGreaterThan(0);
 });
 
 test('手动 Cutout 的 Hint removed 只在本地预览即将移除区域，不写入历史', async ({ page }) => {
