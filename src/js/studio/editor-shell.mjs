@@ -2,6 +2,7 @@ import { isNativeProjectDocument, isSupportedImage, normalizeProjectName, projec
 
 export const MANUAL_CUTOUT_TOOLS = ['selection', 'magic_erase', 'erase'];
 const CUTOUT_SHAPE_MODES = new Set(['lasso', 'ellipse', 'triangle', 'star', 'heart', 'line']);
+const CUTOUT_STAGED_MODES = new Set([...CUTOUT_SHAPE_MODES, 'magic_erase', 'erase']);
 const CROP_ASPECT_OPTIONS = Object.freeze([
   ['none', '无约束'], ['original', '原始比例'], ['1:1', '1:1（方形）'],
   ['4:3', '4:3（显示器）'], ['3:4', '3:4（个人资料）'], ['14:9', '14:9'], ['16:9', '16:9（宽屏）'],
@@ -38,7 +39,7 @@ const DRAWING_BRUSH_MODES = Object.freeze([
 
 let cutoutSelection = {
   mode: 'selection',
-  operation: 'replace',
+  operation: 'add',
   intent: 'keep',
   inverted: false,
   softness: 'none',
@@ -47,6 +48,9 @@ let cutoutSelection = {
   regions: [],
 };
 let cutoutPointer = null;
+let cutoutPreview = { layerId: null, source: null, canvas: null };
+let cutoutDraftRegion = null;
+let cutoutPreviewFrame = 0;
 let cutoutTouchSession = null;
 let cutoutCoreEventShieldActive = false;
 let retouchAdvancedOpen = false;
@@ -452,7 +456,14 @@ function cropDocumentIsEditable() {
 }
 
 function cloneCutoutSelection() {
-  return JSON.parse(JSON.stringify(cutoutSelection));
+  return {
+    ...cutoutSelection,
+    regions: cutoutSelection.regions.map((region) => (
+      region.shape === 'bitmap'
+        ? { shape: 'bitmap', operation: region.operation, width: region.canvas?.width, height: region.canvas?.height }
+        : JSON.parse(JSON.stringify(region))
+    )),
+  };
 }
 
 function getRectangleCutoutRegion() {
@@ -470,19 +481,38 @@ function getRectangleCutoutRegion() {
   };
 }
 
+function sameRectangleRegion(left, right) {
+  return left?.shape === 'rectangle' && right?.shape === 'rectangle'
+    && left.x === right.x && left.y === right.y
+    && left.width === right.width && left.height === right.height;
+}
+
 function currentCutoutRegions() {
-  return cutoutSelection.regions.length > 0
-    ? cutoutSelection.regions
+  const regions = cutoutSelection.regions.length > 0
+    ? [...cutoutSelection.regions]
     : cutoutSelection.mode === 'selection'
       ? [getRectangleCutoutRegion()].filter(Boolean)
       : [];
+  if (cutoutSelection.mode === 'selection' && cutoutSelection.regions.length > 0) {
+    const native = getRectangleCutoutRegion();
+    if (native && !sameRectangleRegion(regions.at(-1), native)) {
+      regions.push({
+        ...native,
+        operation: cutoutSelection.operation,
+      });
+    }
+  }
+  if (cutoutDraftRegion) regions.push(cutoutDraftRegion);
+  return regions;
 }
 
 function resetCutoutSelection({ clearNativeSelection = true } = {}) {
   const previousMode = cutoutSelection.mode;
   cutoutSelection = {
-    mode: 'selection', operation: 'replace', intent: 'keep', inverted: false, softness: 'none', hintRemoved: false, advancedOpen: false, regions: [],
+    mode: 'selection', operation: 'add', intent: 'keep', inverted: false, softness: 'none', hintRemoved: false, advancedOpen: false, regions: [],
   };
+  cutoutDraftRegion = null;
+  clearCutoutPreview();
   removeCutoutHintOverlay();
   const selection = getCoreToolModule('selection');
   // A custom mask must never mutate miniPaint's rectangle-selection state.
@@ -510,8 +540,315 @@ function addCutoutRegion(region) {
   } else {
     cutoutSelection.regions.push({ ...region, operation: cutoutSelection.operation });
   }
+  refreshCutoutPreview();
   renderCutoutHintOverlay();
   window.AppConfig.need_render = true;
+}
+
+function cancelScheduledCutoutPreview() {
+  if (!cutoutPreviewFrame) return;
+  window.cancelAnimationFrame(cutoutPreviewFrame);
+  cutoutPreviewFrame = 0;
+}
+
+/**
+ * 在下一帧刷新抠图预览，避免拖拽时每指针事件都重绘整张遮罩。
+ */
+function scheduleCutoutPreview() {
+  if (cutoutPreviewFrame) return;
+  cutoutPreviewFrame = window.requestAnimationFrame(() => {
+    cutoutPreviewFrame = 0;
+    refreshCutoutPreview();
+    renderCutoutHintOverlay();
+  });
+}
+
+function clearCutoutPreview() {
+  cancelScheduledCutoutPreview();
+  const layer = cutoutPreview.layerId == null ? null : window.app?.Layers?.get_layer?.(cutoutPreview.layerId);
+  if (layer && layer.link_canvas === cutoutPreview.canvas) delete layer.link_canvas;
+  if (cutoutPreview.source) {
+    cutoutPreview.source.width = 1;
+    cutoutPreview.source.height = 1;
+  }
+  if (cutoutPreview.canvas) {
+    cutoutPreview.canvas.width = 1;
+    cutoutPreview.canvas.height = 1;
+  }
+  cutoutPreview = { layerId: null, source: null, canvas: null };
+  if (window.AppConfig) window.AppConfig.need_render = true;
+}
+
+/**
+ * 把文档坐标映射到图层原始像素，供魔术填充和画笔遮罩使用。
+ * @param {{x:number,y:number}} point
+ * @param {object} layer
+ * @returns {{x:number,y:number}|null}
+ */
+function toLayerImagePoint(point, layer) {
+  const dimensions = layerImageDimensions(layer);
+  if (!dimensions || !layer) return null;
+  const width = Number(layer.width) || dimensions.width;
+  const height = Number(layer.height) || dimensions.height;
+  if (width <= 0 || height <= 0) return null;
+  return {
+    x: (point.x - (Number(layer.x) || 0)) * dimensions.width / width,
+    y: (point.y - (Number(layer.y) || 0)) * dimensions.height / height,
+  };
+}
+
+function ensureCutoutSource(layer) {
+  const dimensions = layerImageDimensions(layer);
+  if (!dimensions) return false;
+  if (cutoutPreview.layerId === layer.id && cutoutPreview.source
+    && cutoutPreview.source.width === dimensions.width
+    && cutoutPreview.source.height === dimensions.height) return true;
+  const source = document.createElement('canvas');
+  source.width = dimensions.width;
+  source.height = dimensions.height;
+  source.getContext('2d').drawImage(layer.link, 0, 0);
+  const canvas = document.createElement('canvas');
+  canvas.width = dimensions.width;
+  canvas.height = dimensions.height;
+  cutoutPreview = { layerId: layer.id, source, canvas };
+  return true;
+}
+
+/**
+ * 用当前叠加遮罩刷新临时预览，不写入历史。Keep 显示并集，Remove 打孔。
+ */
+function refreshCutoutPreview() {
+  const layer = window.AppConfig?.layer;
+  const regions = currentCutoutRegions();
+  if (!layer || !activeImageLayerIsEditable() || hasUnsupportedCutoutRotation() || regions.length === 0) {
+    if (cutoutPreview.canvas) clearCutoutPreview();
+    return false;
+  }
+  if (!ensureCutoutSource(layer)) return false;
+  const context = cutoutPreview.canvas.getContext('2d');
+  context.globalCompositeOperation = 'source-over';
+  context.clearRect(0, 0, cutoutPreview.canvas.width, cutoutPreview.canvas.height);
+  context.drawImage(cutoutPreview.source, 0, 0);
+  const mask = createCutoutMask(regions, layer, cutoutSelection.inverted);
+  if (!mask) return false;
+  context.globalCompositeOperation = cutoutSelection.intent === 'keep' ? 'destination-in' : 'destination-out';
+  context.drawImage(mask, 0, 0);
+  context.globalCompositeOperation = 'source-over';
+  layer.link_canvas = cutoutPreview.canvas;
+  window.AppConfig.need_render = true;
+  return true;
+}
+
+function commitNativeRectangleSelection() {
+  if (cutoutSelection.mode !== 'selection') return;
+  const region = getRectangleCutoutRegion();
+  if (!region) return;
+  if (sameRectangleRegion(cutoutSelection.regions.at(-1), region)) {
+    refreshCutoutPreview();
+    return;
+  }
+  addCutoutRegion(region);
+}
+
+/**
+ * 按容差把点击处的相近颜色填进白色遮罩，供魔术抠图叠加。
+ * @param {HTMLCanvasElement} imageCanvas
+ * @param {number} startX
+ * @param {number} startY
+ * @param {number} tolerance
+ * @param {boolean} globalSample
+ * @returns {HTMLCanvasElement|null}
+ */
+function floodFillMask(imageCanvas, startX, startY, tolerance, globalSample) {
+  const width = imageCanvas.width;
+  const height = imageCanvas.height;
+  const x = Math.round(startX);
+  const y = Math.round(startY);
+  if (x < 0 || y < 0 || x >= width || y >= height) return null;
+  const source = imageCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height).data;
+  const mask = new Uint8ClampedArray(width * height * 4);
+  const sensitivity = Math.max(0, Math.min(255, Number(tolerance) * 255 / 100));
+  const origin = (y * width + x) * 4;
+  const originR = source[origin];
+  const originG = source[origin + 1];
+  const originB = source[origin + 2];
+  const originA = source[origin + 3];
+  const matches = (index) => Math.abs(source[index] - originR) <= sensitivity
+    && Math.abs(source[index + 1] - originG) <= sensitivity
+    && Math.abs(source[index + 2] - originB) <= sensitivity
+    && Math.abs(source[index + 3] - originA) <= sensitivity;
+  const paint = (index) => {
+    mask[index] = 255;
+    mask[index + 1] = 255;
+    mask[index + 2] = 255;
+    mask[index + 3] = 255;
+  };
+  if (globalSample) {
+    for (let index = 0; index < source.length; index += 4) {
+      if (matches(index)) paint(index);
+    }
+  } else {
+    const seen = new Uint8Array(width * height);
+    const stack = [[x, y]];
+    seen[y * width + x] = 1;
+    while (stack.length > 0) {
+      const [cx, cy] = stack.pop();
+      const index = (cy * width + cx) * 4;
+      if (!matches(index)) continue;
+      paint(index);
+      const neighbors = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+      for (const [nx, ny] of neighbors) {
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+        const key = ny * width + nx;
+        if (seen[key]) continue;
+        seen[key] = 1;
+        stack.push([nx, ny]);
+      }
+    }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d').putImageData(new ImageData(mask, width, height), 0, 0);
+  return canvas;
+}
+
+function createCutoutDraftBitmap(layer) {
+  const dimensions = layerImageDimensions(layer);
+  if (!dimensions) return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = dimensions.width;
+  canvas.height = dimensions.height;
+  return canvas;
+}
+
+function paintCutoutBrush(context, from, to, size, circle) {
+  context.fillStyle = '#fff';
+  context.strokeStyle = '#fff';
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.lineWidth = Math.max(1, size);
+  if (from && (from.x !== to.x || from.y !== to.y)) {
+    context.beginPath();
+    context.moveTo(from.x, from.y);
+    context.lineTo(to.x, to.y);
+    context.stroke();
+  }
+  context.beginPath();
+  if (circle !== false) {
+    context.arc(to.x, to.y, Math.max(0.5, size / 2), 0, Math.PI * 2);
+    context.fill();
+  } else {
+    const half = size / 2;
+    context.fillRect(to.x - half, to.y - half, size, size);
+  }
+}
+
+function cutoutDraftOperation() {
+  return cutoutSelection.operation === 'subtract' || cutoutSelection.operation === 'replace'
+    ? cutoutSelection.operation
+    : 'add';
+}
+
+/**
+ * @param {string} mode
+ * @param {{x:number,y:number}} start
+ * @param {{x:number,y:number}} point
+ * @param {{x:number,y:number}[]} points
+ */
+function cutoutRegionFromGesture(mode, start, point, points) {
+  if (mode === 'lasso') return { shape: 'lasso', points: [...points, point], operation: cutoutDraftOperation() };
+  if (mode === 'line') return { shape: 'line', start, end: point, operation: cutoutDraftOperation() };
+  return {
+    shape: mode,
+    operation: cutoutDraftOperation(),
+    x: Math.min(start.x, point.x),
+    y: Math.min(start.y, point.y),
+    width: Math.abs(point.x - start.x),
+    height: Math.abs(point.y - start.y),
+  };
+}
+
+function isUsableCutoutRegion(region) {
+  if (!region) return false;
+  if (region.shape === 'bitmap') return Boolean(region.canvas);
+  if (region.shape === 'lasso') return (region.points?.length ?? 0) >= 4;
+  if (region.shape === 'line') return region.start.x !== region.end.x || region.start.y !== region.end.y;
+  return Boolean(region.width && region.height);
+}
+
+function cutoutEraseParams() {
+  const attributes = findToolConfig('erase')?.attributes ?? {};
+  return {
+    size: Math.max(1, Number(attributes.size) || 30),
+    circle: attributes.circle !== false,
+  };
+}
+
+function cutoutMagicParams() {
+  const attributes = findToolConfig('magic_erase')?.attributes ?? {};
+  return {
+    power: Number(attributes.power) || 15,
+    globalSample: attributes.contiguous === true,
+  };
+}
+
+/**
+ * 在点击处生成魔术选区并叠加到当前遮罩，只刷新预览。
+ * @param {{x:number,y:number}} point
+ * @returns {boolean}
+ */
+function commitMagicCutoutAt(point) {
+  const layer = window.AppConfig?.layer;
+  if (!layer || !ensureCutoutSource(layer)) return false;
+  const imagePoint = toLayerImagePoint(point, layer);
+  if (!imagePoint) return false;
+  const { power, globalSample } = cutoutMagicParams();
+  const mask = floodFillMask(cutoutPreview.source, imagePoint.x, imagePoint.y, power, globalSample);
+  if (!mask) return false;
+  addCutoutRegion({ shape: 'bitmap', canvas: mask });
+  return true;
+}
+
+/**
+ * @param {{x:number,y:number}} point
+ * @returns {{canvas:HTMLCanvasElement,lastImagePoint:{x:number,y:number}}|null}
+ */
+function beginDrawCutoutAt(point) {
+  const layer = window.AppConfig?.layer;
+  const canvas = createCutoutDraftBitmap(layer);
+  const imagePoint = toLayerImagePoint(point, layer);
+  if (!canvas || !imagePoint) return null;
+  const { size, circle } = cutoutEraseParams();
+  paintCutoutBrush(canvas.getContext('2d'), null, imagePoint, size, circle);
+  cutoutDraftRegion = { shape: 'bitmap', canvas, operation: cutoutDraftOperation() };
+  refreshCutoutPreview();
+  renderCutoutHintOverlay();
+  return { canvas, lastImagePoint: imagePoint };
+}
+
+function extendDrawCutoutTo(draft, point) {
+  const layer = window.AppConfig?.layer;
+  const imagePoint = toLayerImagePoint(point, layer);
+  if (!draft?.canvas || !imagePoint) return;
+  const { size, circle } = cutoutEraseParams();
+  paintCutoutBrush(draft.canvas.getContext('2d'), draft.lastImagePoint, imagePoint, size, circle);
+  draft.lastImagePoint = imagePoint;
+  cutoutDraftRegion = { shape: 'bitmap', canvas: draft.canvas, operation: cutoutDraftOperation() };
+  scheduleCutoutPreview();
+}
+
+function commitDrawCutout(draft) {
+  if (!draft?.canvas) {
+    cutoutDraftRegion = null;
+    return;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = draft.canvas.width;
+  canvas.height = draft.canvas.height;
+  canvas.getContext('2d').drawImage(draft.canvas, 0, 0);
+  cutoutDraftRegion = null;
+  addCutoutRegion({ shape: 'bitmap', canvas });
 }
 
 function cutoutCanvasPoint(event) {
@@ -533,6 +870,10 @@ function cutoutCanvasPoint(event) {
 }
 
 function drawCutoutRegion(context, region, layer) {
+  if (region.shape === 'bitmap' && region.canvas) {
+    context.drawImage(region.canvas, 0, 0);
+    return;
+  }
   const scaleX = context.canvas.width / (layer.width || layer.width_original || context.canvas.width);
   const scaleY = context.canvas.height / (layer.height || layer.height_original || context.canvas.height);
   const map = (point) => ({ x: (point.x - layer.x) * scaleX, y: (point.y - layer.y) * scaleY });
@@ -717,7 +1058,10 @@ async function applyCutoutSelection(intent) {
   result.width = dimensions.width;
   result.height = dimensions.height;
   const context = result.getContext('2d');
-  context.drawImage(layer.link, 0, 0);
+  const source = cutoutPreview.layerId === layer.id && cutoutPreview.source
+    ? cutoutPreview.source
+    : layer.link;
+  context.drawImage(source, 0, 0);
   const mask = createCutoutMask(regions, layer, cutoutSelection.inverted);
   if (!mask) return false;
   context.globalCompositeOperation = intent === 'keep' ? 'destination-in' : 'destination-out';
@@ -725,14 +1069,14 @@ async function applyCutoutSelection(intent) {
   context.globalCompositeOperation = 'source-over';
   await window.State.do_action(new window.app.Actions.Update_layer_image_action(result));
   cutoutSelection.hintRemoved = false;
+  cutoutDraftRegion = null;
+  clearCutoutPreview();
   removeCutoutHintOverlay();
-  if (cutoutSelection.regions.length === 0) {
-    const selection = getCoreToolModule('selection');
-    if (selection?.selection) {
-      selection.selection = { x: null, y: null, width: null, height: null };
-      window.AppConfig.need_render = true;
-    }
+  const selection = getCoreToolModule('selection');
+  if (selection?.selection) {
+    selection.selection = { x: null, y: null, width: null, height: null };
   }
+  window.AppConfig.need_render = true;
   return true;
 }
 
@@ -742,7 +1086,7 @@ function isCutoutCanvasMouseEvent(event) {
 }
 
 function shieldCutoutCoreMouseEvent(event) {
-  if (!cutoutCoreEventShieldActive || !CUTOUT_SHAPE_MODES.has(cutoutSelection.mode)) return;
+  if (!cutoutCoreEventShieldActive || !CUTOUT_STAGED_MODES.has(cutoutSelection.mode)) return;
   if (!cutoutPointer && !isCutoutCanvasMouseEvent(event)) return;
   event.preventDefault();
   event.stopImmediatePropagation();
@@ -790,7 +1134,7 @@ function reconcileCutoutTouchSession(event) {
 }
 
 function canStartCutoutTouchHandoff() {
-  return cutoutCoreEventShieldActive && CUTOUT_SHAPE_MODES.has(cutoutSelection.mode)
+  return cutoutCoreEventShieldActive && CUTOUT_STAGED_MODES.has(cutoutSelection.mode)
     && activeImageLayerIsEditable() && !hasUnsupportedCutoutRotation();
 }
 
@@ -831,22 +1175,61 @@ function bindCutoutCanvasGestures() {
   if (!canvas || canvas.dataset.cutoutGesturesBound === 'true') return;
   canvas.dataset.cutoutGesturesBound = 'true';
   const finishCutoutGesture = (gesture, point) => {
+    cutoutDraftRegion = null;
     if (!gesture || !point) return;
-    const region = cutoutSelection.mode === 'lasso'
-      ? { shape: 'lasso', points: [...gesture.points, point] }
-      : cutoutSelection.mode === 'line'
-        ? { shape: 'line', start: gesture.start, end: point }
-      : {
-        shape: cutoutSelection.mode,
-        x: Math.min(gesture.start.x, point.x),
-        y: Math.min(gesture.start.y, point.y),
-        width: Math.abs(point.x - gesture.start.x),
-        height: Math.abs(point.y - gesture.start.y),
-      };
-    if ((region.shape === 'lasso' && region.points.length < 4)
-      || (region.shape === 'line' && region.start.x === region.end.x && region.start.y === region.end.y)
-      || (region.shape !== 'lasso' && region.shape !== 'line' && (!region.width || !region.height))) return;
+    if (gesture.draw) {
+      commitDrawCutout(gesture.draw);
+      return;
+    }
+    if (gesture.magic) return;
+    const region = cutoutRegionFromGesture(
+      cutoutSelection.mode,
+      gesture.start,
+      point,
+      gesture.points,
+    );
+    if (!isUsableCutoutRegion(region)) return;
     addCutoutRegion(region);
+  };
+  const beginStagedCutoutPointer = (point, pointerId, source) => {
+    if (cutoutSelection.mode === 'magic_erase') {
+      commitMagicCutoutAt(point);
+      return { pointerId, start: point, points: [point], source, magic: true };
+    }
+    if (cutoutSelection.mode === 'erase') {
+      const draft = beginDrawCutoutAt(point);
+      if (!draft) return null;
+      return { pointerId, start: point, points: [point], source, draw: draft };
+    }
+    const region = cutoutRegionFromGesture(cutoutSelection.mode, point, point, [point]);
+    cutoutDraftRegion = isUsableCutoutRegion(region) ? region : null;
+    if (cutoutDraftRegion) {
+      refreshCutoutPreview();
+      renderCutoutHintOverlay();
+    }
+    return { pointerId, start: point, points: [point], source };
+  };
+  const extendStagedCutoutPointer = (gesture, point) => {
+    gesture.points.push(point);
+    if (gesture.magic) return;
+    if (gesture.draw) {
+      extendDrawCutoutTo(gesture.draw, point);
+      return;
+    }
+    const region = cutoutRegionFromGesture(
+      cutoutSelection.mode,
+      gesture.start,
+      point,
+      gesture.points,
+    );
+    cutoutDraftRegion = isUsableCutoutRegion(region) ? region : null;
+    scheduleCutoutPreview();
+  };
+  const discardCutoutDraft = () => {
+    if (!cutoutDraftRegion) return;
+    cutoutDraftRegion = null;
+    refreshCutoutPreview();
+    renderCutoutHintOverlay();
   };
   canvas.addEventListener('touchstart', (event) => {
     const canStartHandoff = canStartCutoutTouchHandoff();
@@ -858,8 +1241,9 @@ function bindCutoutCanvasGestures() {
     // has ended or been cancelled; it can never start a second Cutout path.
     if (!wasActive && canStartHandoff && touch && !cutoutPointer) {
       const point = cutoutCanvasPoint(touch);
-      if (point) {
-        cutoutPointer = { pointerId: touch.identifier, start: point, points: [point], source: 'touch' };
+      const gesture = point ? beginStagedCutoutPointer(point, touch.identifier, 'touch') : null;
+      if (gesture && !gesture.magic) {
+        cutoutPointer = gesture;
         session.ownerPointerId = touch.identifier;
         session.handoffActive = true;
       }
@@ -876,7 +1260,7 @@ function bindCutoutCanvasGestures() {
       ? [...event.touches].find((item) => item.identifier === cutoutPointer.pointerId)
       : null;
     const point = touch && cutoutCanvasPoint(touch);
-    if (point) cutoutPointer.points.push(point);
+    if (point) extendStagedCutoutPointer(cutoutPointer, point);
     reconcileCutoutTouchSession(event);
     // Cutout owns the full native touch lifecycle, not only the interval in
     // which its first pointer is still active. A second finger can remain
@@ -914,13 +1298,14 @@ function bindCutoutCanvasGestures() {
         cutoutTouchSession.ownerPointerId = null;
         cutoutTouchSession.handoffActive = false;
       }
+      discardCutoutDraft();
     }
     reconcileCutoutTouchSession(event);
     event.preventDefault();
     event.stopImmediatePropagation();
   }, { capture: true, passive: false });
   canvas.addEventListener('pointerdown', (event) => {
-    if (!cutoutCoreEventShieldActive || !CUTOUT_SHAPE_MODES.has(cutoutSelection.mode)
+    if (!cutoutCoreEventShieldActive || !CUTOUT_STAGED_MODES.has(cutoutSelection.mode)
       || !activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return;
     if (event.pointerType === 'touch') return;
     // A shape gesture has exactly one owner. Do not replace its state or
@@ -932,11 +1317,18 @@ function bindCutoutCanvasGestures() {
     }
     const point = cutoutCanvasPoint(event);
     if (!point) return;
-    cutoutPointer = { pointerId: event.pointerId, start: point, points: [point] };
+    const gesture = beginStagedCutoutPointer(point, event.pointerId);
+    if (!gesture || gesture.magic) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    cutoutPointer = gesture;
     try {
       canvas.setPointerCapture(event.pointerId);
     } catch {
       releaseCutoutPointer(canvas, event.pointerId);
+      discardCutoutDraft();
       return;
     }
     event.preventDefault();
@@ -952,7 +1344,7 @@ function bindCutoutCanvasGestures() {
     }
     const point = cutoutCanvasPoint(event);
     if (!point) return;
-    cutoutPointer.points.push(point);
+    extendStagedCutoutPointer(cutoutPointer, point);
     event.preventDefault();
     event.stopImmediatePropagation();
   }, true);
@@ -966,7 +1358,10 @@ function bindCutoutCanvasGestures() {
     const gesture = releaseCutoutPointer(canvas, event.pointerId);
     if (!gesture) return;
     const point = cutoutCanvasPoint(event);
-    if (!point) return;
+    if (!point) {
+      discardCutoutDraft();
+      return;
+    }
     finishCutoutGesture(gesture, point);
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -980,11 +1375,20 @@ function bindCutoutCanvasGestures() {
     }
     const gesture = releaseCutoutPointer(canvas, event.pointerId);
     if (!gesture) return;
+    discardCutoutDraft();
     event.preventDefault();
     event.stopImmediatePropagation();
   };
   canvas.addEventListener('pointercancel', cancelCutoutPointer, true);
   canvas.addEventListener('lostpointercapture', cancelCutoutPointer, true);
+  document.addEventListener('mousemove', (event) => {
+    if (cutoutSelection.mode !== 'selection' || (event.buttons & 1) === 0) return;
+    scheduleCutoutPreview();
+  });
+  document.addEventListener('mouseup', () => {
+    if (cutoutSelection.mode !== 'selection') return;
+    commitNativeRectangleSelection();
+  });
 }
 
 function invokeEditableImageModule(path, method, ...args) {
@@ -1744,7 +2148,7 @@ function renderEditorToolControls(key) {
           <input type="range" min="1" max="500" value="${eraseSize}" data-testid="cutout-erase-size">
         </label>
         <label class="studio-control-check"><input type="checkbox" data-testid="cutout-erase-circle" ${eraseConfig.circle !== false ? 'checked' : ''}>圆形笔刷</label>
-        <p class="studio-control-hint">画笔会直接擦除活动图片图层的透明区域；每次笔触均可撤销。</p>
+        <p class="studio-control-hint">画笔会叠加到抠图遮罩，画布即时预览效果；应用前不写入历史。</p>
       </section>
     ` : ''}
     ${cutoutFamily === 'lasso' ? `
@@ -1805,6 +2209,7 @@ function renderEditorToolControls(key) {
       cutoutSelection.softness = button.dataset.cutoutSoftness;
       setToolAttribute('magic_erase', 'anti_aliasing', cutoutSelection.softness !== 'none');
       target.querySelectorAll('[data-cutout-softness]').forEach((item) => item.classList.toggle('is-selected', item === button));
+      refreshCutoutPreview();
       renderCutoutHintOverlay();
     });
   });
@@ -1816,6 +2221,7 @@ function renderEditorToolControls(key) {
         item.setAttribute('aria-pressed', String(selected));
         item.classList.toggle('is-selected', selected);
       });
+      refreshCutoutPreview();
       renderCutoutHintOverlay();
     });
   });
@@ -1844,6 +2250,7 @@ function renderEditorToolControls(key) {
     cutoutSelection.inverted = !cutoutSelection.inverted;
     event.currentTarget.setAttribute('aria-pressed', String(cutoutSelection.inverted));
     event.currentTarget.classList.toggle('is-selected', cutoutSelection.inverted);
+    refreshCutoutPreview();
     renderCutoutHintOverlay();
   });
   target.querySelectorAll('[data-cutout-mode]').forEach((button) => {
@@ -2924,6 +3331,8 @@ async function activateEditorTool(key) {
 }
 
 async function activateEditorToolMode(coreTool) {
+  if (cutoutSelection.mode === 'selection') commitNativeRectangleSelection();
+  cutoutDraftRegion = null;
   if (CUTOUT_SHAPE_MODES.has(coreTool)) {
     if (!activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return false;
     cutoutSelection.mode = coreTool;
@@ -2933,12 +3342,20 @@ async function activateEditorToolMode(coreTool) {
     await deactivateCoreTool();
     installCutoutCoreEventShield();
     document.body.dataset.canvasToolMode = `cutout-${coreTool}`;
+    refreshCutoutPreview();
     return true;
   }
   if (!MANUAL_CUTOUT_TOOLS.includes(coreTool)) return;
-  uninstallCutoutCoreEventShield();
   cutoutSelection.mode = coreTool;
+  if (coreTool === 'magic_erase' || coreTool === 'erase') {
+    await activateCoreTool(coreTool);
+    installCutoutCoreEventShield();
+    refreshCutoutPreview();
+    return true;
+  }
+  uninstallCutoutCoreEventShield();
   await activateCoreTool(coreTool);
+  refreshCutoutPreview();
   return true;
 }
 
