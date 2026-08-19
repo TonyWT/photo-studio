@@ -2144,6 +2144,25 @@ test('Effect 提供分类卡、真实本地预设，并保留全部效果浏览�
   await page.getByTestId('effect-category-mono').click();
   await expect(page.getByTestId('effect-category-back')).toBeVisible();
   await expect(page.locator('.studio-effect-preset')).toHaveCount(11);
+  await expect(page.getByTestId('effect-apply')).toHaveCount(0);
+  await expect(page.getByTestId('effect-preset-mono-black_and_white').locator('img[src^="data:image"]')).toBeVisible();
+  await expect.poll(() => page.locator('.studio-effect-preset').first().evaluate((card) => {
+    const grid = card.parentElement;
+    const media = card.querySelector('.studio-effect-preset-media');
+    const label = card.querySelector('strong');
+    const gridColumns = getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length;
+    const mediaBox = media.getBoundingClientRect();
+    const labelBox = label.getBoundingClientRect();
+    return {
+      gridColumns,
+      imageAboveLabel: mediaBox.bottom <= labelBox.top + 1,
+      hasPreview: Boolean(media.querySelector('img')?.src?.startsWith('data:image/')),
+    };
+  })).toEqual({
+    gridColumns: 1,
+    imageAboveLabel: true,
+    hasPreview: true,
+  });
   const before = await page.evaluate(() => ({
     historyIndex: window.app.State.action_history_index,
     pixelHash: (() => {
@@ -2157,9 +2176,7 @@ test('Effect 提供分类卡、真实本地预设，并保留全部效果浏览�
     })(),
   }));
   await page.getByTestId('effect-preset-mono-black_and_white').click();
-  await page.getByTestId('effect-apply').click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await page.locator('[data-id="popup_ok"]').click();
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect.poll(() => page.evaluate(() => window.app.State.action_history_index)).toBe(before.historyIndex + 1);
   await expect.poll(() => page.evaluate(() => {
     const image = window.AppConfig.layer.link;
@@ -2180,12 +2197,13 @@ test('Effect 提供分类卡、真实本地预设，并保留全部效果浏览�
     context.drawImage(image, 0, 0);
     return Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data).join(',');
   })).toBe(before.pixelHash);
+  await page.getByTestId('effect-category-back').click();
   await page.getByTestId('effect-browser').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('heading', { name: '特效浏览器' })).toBeVisible();
 });
 
-test('Effect 在固定底部操作区暂存预设，取消不写入历史', async ({ page }) => {
+test('Effect 详情以大预览图展示，点击立即生效，返回分类不额外写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
   await expect(page).toHaveURL(/\/editor\/$/);
@@ -2194,27 +2212,22 @@ test('Effect 在固定底部操作区暂存预设，取消不写入历史', asyn
   if (await page.getByTestId('effect-category-back').isVisible()) {
     await page.getByTestId('effect-category-back').click();
   }
-  await expect(page.getByTestId('effect-apply')).toBeVisible();
-  await expect(page.getByTestId('effect-apply')).toBeDisabled();
+  await expect(page.getByTestId('effect-apply')).toHaveCount(0);
   await page.getByTestId('effect-category-mono').click();
+  await expect(page.getByTestId('effect-apply')).toHaveCount(0);
+  await expect(page.getByTestId('effect-panel-footer')).toHaveCount(0);
 
   const historyIndex = await page.evaluate(() => window.app.State.action_history_index);
   const preset = page.getByTestId('effect-preset-mono-black_and_white');
+  await expect(preset.locator('img[src^="data:image"]')).toBeVisible();
   await preset.click();
   await expect(preset).toHaveClass(/is-selected/);
   await expect(page.getByRole('dialog')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.app.State.action_history_index)).toBe(historyIndex + 1);
 
-  const footer = page.getByTestId('effect-panel-footer');
-  await expect(footer).toBeVisible();
-  await expect(footer.locator('[data-testid="effect-apply"]')).toBeEnabled();
-  await expect.poll(() => footer.evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    return Math.round(box.bottom);
-  })).toBe(await page.evaluate(() => window.innerHeight - 56));
-
-  await page.getByTestId('effect-cancel').click();
+  await page.getByTestId('effect-category-back').click();
   await expect(page.locator('.studio-effect-category')).toHaveCount(11);
-  await expect.poll(() => page.evaluate(() => window.app.State.action_history_index)).toBe(historyIndex);
+  await expect.poll(() => page.evaluate(() => window.app.State.action_history_index)).toBe(historyIndex + 1);
 });
 
 test('Effect 提供 11 组共 108 个原创本地预设，并保留每组可检验的配方入口', async ({ page }) => {
@@ -2245,11 +2258,7 @@ test('Effect 提供 11 组共 108 个原创本地预设，并保留每组可检�
     const presets = page.locator(`[data-effect-category="${category}"]`);
     await expect(presets).toHaveCount(count);
     expect(await presets.evaluateAll((buttons) => buttons.every((button) => Boolean(button.dataset.effectRecipe)))).toBe(true);
-    await presets.first().click();
-    await page.getByTestId('effect-apply').click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await page.locator('[data-id="popup_cancel"]').click();
-    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(presets.first().locator('img[src^="data:image"]')).toBeVisible();
     await page.getByTestId('effect-category-back').click();
   }
 });
@@ -2272,8 +2281,7 @@ test('不同本地 Effect 配方会产生不同像素结果，且都能撤销', 
   const baseline = await pixelHash();
   await page.getByTestId('effect-category-mono').click();
   await page.getByTestId('effect-preset-mono-black_and_white').click();
-  await page.getByTestId('effect-apply').click();
-  await page.locator('[data-id="popup_ok"]').click();
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect.poll(pixelHash).not.toBe(baseline);
   const mono = await pixelHash();
   await page.locator('[data-editor-history="undo"]').click();
@@ -2281,8 +2289,7 @@ test('不同本地 Effect 配方会产生不同像素结果，且都能撤销', 
   await page.getByTestId('effect-category-back').click();
   await page.getByTestId('effect-category-friends').click();
   await page.getByTestId('effect-preset-friends-friends-01').click();
-  await page.getByTestId('effect-apply').click();
-  await page.locator('[data-id="popup_ok"]').click();
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect.poll(pixelHash).not.toBe(baseline);
   const portrait = await pixelHash();
   expect(portrait).not.toBe(mono);

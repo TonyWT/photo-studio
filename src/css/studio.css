@@ -231,13 +231,6 @@ body.photo-studio-editor .studio-crop-panel-footer button { min-height: 36px; bo
 body.photo-studio-editor .studio-crop-panel-footer button:hover { border-color: #bbb; color: #fff; background: #383838; }
 body.photo-studio-editor .studio-crop-panel-footer button[data-testid="crop-apply"] { border-color: #00a9df; background: #00a9df; }
 body.photo-studio-editor .studio-crop-panel-footer button[data-testid="crop-apply"]:hover { border-color: #19b9ec; background: #19b9ec; }
-body.photo-studio-editor .studio-tool-controls:has(.studio-effect-panel-footer) { padding-bottom: 62px; }
-body.photo-studio-editor .studio-effect-panel-footer { position: fixed; z-index: 26; bottom: 56px; left: var(--studio-rail-width); display: grid; box-sizing: border-box; width: var(--studio-panel-width); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 10px 14px; border-top: 1px solid #414141; background: #252525; box-shadow: 0 -8px 16px rgba(0, 0, 0, .24); }
-body.photo-studio-editor .studio-effect-panel-footer button { min-height: 36px; border: 1px solid #8a8a8a; border-radius: 20px; color: #e6e6e6; background: #2c2c2c; font: 600 13px/1 inherit; cursor: pointer; }
-body.photo-studio-editor .studio-effect-panel-footer button:hover:not(:disabled) { border-color: #bbb; color: #fff; background: #383838; }
-body.photo-studio-editor .studio-effect-panel-footer button:disabled { visibility: visible; opacity: .46; cursor: not-allowed; }
-body.photo-studio-editor .studio-effect-panel-footer button[data-testid="effect-apply"] { border-color: #00a9df; background: #00a9df; }
-body.photo-studio-editor .studio-effect-panel-footer button[data-testid="effect-apply"]:hover:not(:disabled) { border-color: #19b9ec; background: #19b9ec; }
 body.photo-studio-editor .studio-retouch-section { display: grid; gap: 7px; padding: 9px; border: 1px solid #383838; border-radius: 7px; background: #282828; }
 body.photo-studio-editor .studio-retouch-section > strong { color: #dedede; font-size: 12px; }
 body.photo-studio-editor .studio-retouch-section .studio-control-group-four button { min-width: 0; padding: 4px 2px; font-size: 10px; }
@@ -312,15 +305,17 @@ body.photo-studio-editor .studio-effect-category--creative .studio-effect-catego
 body.photo-studio-editor .studio-effect-category--focus .studio-effect-category-copy { background: #80908d; }
 body.photo-studio-editor .studio-effect-category-copy strong { font-size: 21px; line-height: 1; letter-spacing: -.3px; }
 body.photo-studio-editor .studio-effect-category-copy small { color: rgba(255, 255, 255, .82); font-size: 11px; font-weight: 700; }
-body.photo-studio-editor .studio-effect-category-heading { display: flex; align-items: center; justify-content: space-between; min-height: 30px; margin-bottom: 2px; color: #efefef; font-size: 14px; }
-body.photo-studio-editor .studio-effect-category-heading button { padding: 0; border: 0; color: #b9b9b9; background: transparent; font: 12px/1 inherit; cursor: pointer; }
-body.photo-studio-editor .studio-effect-category-heading button:hover { color: #00b7ee; }
-body.photo-studio-editor .studio-effect-preset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-body.photo-studio-editor .studio-effect-preset { display: grid; min-height: 68px; padding: 9px; border: 1px solid #3c3c3c; border-radius: 6px; color: #e7e7e7; background: #282828; text-align: left; cursor: pointer; }
-body.photo-studio-editor .studio-effect-preset:hover { border-color: #00a9df; background: #303030; }
+body.photo-studio-editor .studio-effect-category-heading { display: grid; gap: 10px; margin-bottom: 12px; }
+body.photo-studio-editor .studio-effect-category-heading button { display: flex; width: 100%; min-height: 36px; align-items: center; justify-content: center; padding: 0 14px; border: 1px solid #f3f3f3; border-radius: 20px; color: #f3f3f3; background: transparent; font: 13px/1 inherit; cursor: pointer; }
+body.photo-studio-editor .studio-effect-category-heading button:hover { border-color: #00b7ee; color: #fff; }
+body.photo-studio-editor .studio-effect-preset-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+body.photo-studio-editor .studio-effect-preset { display: grid; gap: 8px; padding: 0; border: 0; color: #f4f4f4; background: transparent; text-align: center; cursor: pointer; }
+body.photo-studio-editor .studio-effect-preset:hover .studio-effect-preset-media,
+body.photo-studio-editor .studio-effect-preset.is-selected .studio-effect-preset-media { outline: 2px solid #00a9df; outline-offset: 0; }
 body.photo-studio-editor .studio-effect-preset:disabled { opacity: .46; cursor: not-allowed; }
-body.photo-studio-editor .studio-effect-preset span { font-size: 13px; font-weight: 700; }
-body.photo-studio-editor .studio-effect-preset small { margin-top: 4px; color: #979797; font-size: 10px; line-height: 1.25; }
+body.photo-studio-editor .studio-effect-preset-media { display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; background: #1d1d1d; }
+body.photo-studio-editor .studio-effect-preset-media img { width: 100%; height: 100%; object-fit: cover; }
+body.photo-studio-editor .studio-effect-preset strong { font-size: 14px; font-weight: 600; letter-spacing: .01em; }
 body.photo-studio-editor .studio-text-preset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 body.photo-studio-editor .studio-text-create { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 40px; padding: 12px 14px; border: 0; border-left: 4px solid #00a9df; border-radius: 7px; color: #f1f1f1; background: #3a3a3a; text-align: left; cursor: pointer; }
 body.photo-studio-editor .studio-text-create:hover { background: #454545; }

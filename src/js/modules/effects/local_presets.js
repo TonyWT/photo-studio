@@ -66,6 +66,37 @@ class Effects_localPresets_class {
 		this.Base_layers = new Base_layers_class();
 	}
 
+	/**
+	 * 按配方生成缩略图数据 URL，不写入图层历史。
+	 * @param {string} recipeId
+	 * @param {CanvasImageSource} source
+	 * @param {number} [width]
+	 * @param {number} [height]
+	 * @returns {string}
+	 */
+	preview(recipeId, source, width = 320, height = 180) {
+		if (!source) return '';
+		const canvas = document.createElement('canvas');
+		canvas.width = Math.max(1, width);
+		canvas.height = Math.max(1, height);
+		const context = canvas.getContext('2d', { willReadFrequently: true });
+		context.drawImage(source, 0, 0, canvas.width, canvas.height);
+		const image = context.getImageData(0, 0, canvas.width, canvas.height);
+		context.putImageData(this.change(image, profileFor(recipeId), { intensity: 100 }), 0, 0);
+		return canvas.toDataURL('image/jpeg', 0.72);
+	}
+
+	/**
+	 * 立刻把本地效果写入当前图层，供撤销恢复。
+	 * @param {string} recipeId
+	 * @returns {Promise<boolean>|boolean}
+	 */
+	apply(recipeId) {
+		const target = captureEditableImageLayer();
+		if (!target) return false;
+		return this.save({ intensity: 100 }, profileFor(recipeId), target);
+	}
+
 	preset(recipeId, title = '本地效果') {
 		const target = captureEditableImageLayer();
 		if (!target) return false;

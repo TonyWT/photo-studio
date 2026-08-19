@@ -262,6 +262,48 @@ const EFFECT_CATEGORIES = Object.freeze(EFFECT_CATEGORY_DEFINITIONS.map((categor
 })));
 let activeEffectCategoryId = null;
 let activeEffectRecipeId = null;
+let effectPreviewBase = null;
+let effectApplyInFlight = false;
+
+/**
+ * 进入效果分类时冻结一张底图，缩略图始终基于进入时的画面，避免连点叠滤镜。
+ * @param {object} layer
+ * @returns {HTMLCanvasElement|null}
+ */
+function getEffectPreviewBase(layer) {
+  const source = layer?.link;
+  if (!source) return null;
+  const key = `${layer.id}:${activeEffectCategoryId}:${Number(layer.width) || 0}x${Number(layer.height) || 0}`;
+  if (effectPreviewBase?.key === key) return effectPreviewBase.canvas;
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 180;
+  canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+  effectPreviewBase = { key, canvas, urls: {} };
+  return canvas;
+}
+
+/**
+ * @param {string} recipeId
+ * @param {object} layer
+ * @returns {string}
+ */
+function getEffectPreviewUrl(recipeId, layer) {
+  const base = getEffectPreviewBase(layer);
+  if (!base) return '';
+  if (effectPreviewBase.urls[recipeId]) return effectPreviewBase.urls[recipeId];
+  const url = invokeEditorModule('effects/local_presets', 'preview', recipeId, base, base.width, base.height) || '';
+  effectPreviewBase.urls[recipeId] = url;
+  return url;
+}
+
+/**
+ * 离开效果分类时丢掉冻结底图与选中态，避免下一组缩略图叠到上一组结果上。
+ */
+function resetEffectPreviewSession() {
+  effectPreviewBase = null;
+  activeEffectRecipeId = null;
+}
 
 const EXPORT_TYPES = Object.freeze({
   png: 'PNG - Portable Network Graphics',
@@ -2863,52 +2905,53 @@ function renderEditorToolControls(key) {
       <span class="studio-effect-category-media">${previewSource ? `<img src="${previewSource}" alt="" aria-hidden="true">` : ''}</span>
       <span class="studio-effect-category-copy"><strong>${category.label}</strong><small>${category.effects.length} Effects</small></span>
     </button>`).join('');
-    const effectCards = activeCategory?.effects.map((effect) => `<button type="button" class="studio-effect-preset studio-effect-preset--${activeCategory.previewClass}${activeEffectRecipeId === effect.id ? ' is-selected' : ''}" aria-pressed="${activeEffectRecipeId === effect.id}" data-testid="effect-preset-${activeCategory.id}-${effect.id}" data-effect-category="${activeCategory.id}" data-effect-recipe="${effect.id}"${effectDisabled}>
-      <span>${effect.label}</span><small>Local preview &amp; apply</small>
-    </button>`).join('') ?? '';
-    target.innerHTML = `
-      ${activeCategory ? `<div class="studio-effect-category-heading"><button type="button" data-testid="effect-category-back">‹ Back</button><strong>${activeCategory.label}</strong></div>
-        <div class="studio-effect-preset-grid" aria-label="${activeCategory.label}本地效果">${effectCards}</div>` : `<div class="studio-effect-category-grid" aria-label="本地效果分类">${categoryCards}</div>`}
+    const effectCards = activeCategory?.effects.map((effect) => {
+      const previewUrl = getEffectPreviewUrl(effect.id, layer);
+      return `<button type="button" class="studio-effect-preset${activeEffectRecipeId === effect.id ? ' is-selected' : ''}" aria-pressed="${activeEffectRecipeId === effect.id}" data-testid="effect-preset-${activeCategory.id}-${effect.id}" data-effect-category="${activeCategory.id}" data-effect-recipe="${effect.id}"${effectDisabled}>
+      <span class="studio-effect-preset-media">${previewUrl ? `<img src="${previewUrl}" alt="">` : ''}</span>
+      <strong>${effect.label}</strong>
+    </button>`;
+    }).join('') ?? '';
+    target.innerHTML = activeCategory
+      ? `<div class="studio-effect-category-heading">
+          <button type="button" data-testid="effect-category-back">‹ Back</button>
+        </div>
+        <div class="studio-effect-preset-grid" aria-label="${activeCategory.label}本地效果">${effectCards}</div>`
+      : `<div class="studio-effect-category-grid" aria-label="本地效果分类">${categoryCards}</div>
       <div class="studio-control-group studio-control-group-two" aria-label="全部本地效果与常用参数">
         <button type="button" data-testid="effect-browser"${effectDisabled}>All effects</button>
         <button type="button" data-testid="effect-contrast"${effectDisabled}>Contrast</button>
         <button type="button" data-testid="effect-blur"${effectDisabled}>Blur</button>
-      </div>
-      <footer class="studio-effect-panel-footer" data-testid="effect-panel-footer" aria-label="效果操作">
-        <button type="button" data-testid="effect-cancel">Cancel</button>
-        <button type="button" data-testid="effect-apply"${activeEffectRecipeId && !effectDisabled ? '' : ' disabled'}>Apply</button>
-      </footer>
-    `;
+      </div>`;
     target.querySelectorAll('.studio-effect-category[data-testid]')?.forEach((button) => {
       button.addEventListener('click', () => {
         if (!activeImageLayerIsEditable()) return;
         activeEffectCategoryId = button.dataset.testid.replace('effect-category-', '');
-        activeEffectRecipeId = null;
+        resetEffectPreviewSession();
         renderEditorToolControls('effect');
       });
     });
     target.querySelector('[data-testid="effect-category-back"]')?.addEventListener('click', () => {
       activeEffectCategoryId = null;
-      activeEffectRecipeId = null;
+      resetEffectPreviewSession();
       renderEditorToolControls('effect');
     });
     target.querySelectorAll('[data-effect-recipe]').forEach((button) => {
-      button.addEventListener('click', () => {
-        if (!activeImageLayerIsEditable()) return;
-        activeEffectRecipeId = button.dataset.effectRecipe;
-        renderEditorToolControls('effect');
+      button.addEventListener('click', async () => {
+        if (!activeImageLayerIsEditable() || !activeCategory || effectApplyInFlight) return;
+        const selected = activeCategory.effects.find((effect) => effect.id === button.dataset.effectRecipe);
+        if (!selected) return;
+        activeEffectRecipeId = selected.id;
+        button.classList.add('is-selected');
+        button.setAttribute('aria-pressed', 'true');
+        effectApplyInFlight = true;
+        try {
+          await invokeEditorModule('effects/local_presets', 'apply', selected.id);
+        } finally {
+          effectApplyInFlight = false;
+          renderEditorToolControls('effect');
+        }
       });
-    });
-    target.querySelector('[data-testid="effect-cancel"]')?.addEventListener('click', () => {
-      activeEffectCategoryId = null;
-      activeEffectRecipeId = null;
-      renderEditorToolControls('effect');
-    });
-    target.querySelector('[data-testid="effect-apply"]')?.addEventListener('click', () => {
-      if (!activeImageLayerIsEditable() || !activeCategory || !activeEffectRecipeId) return;
-      const selected = activeCategory.effects.find((effect) => effect.id === activeEffectRecipeId);
-      if (!selected) return;
-      invokeEditorModule('effects/local_presets', 'preset', selected.id, selected.label);
     });
     target.querySelector('[data-testid="effect-browser"]')?.addEventListener('click', () => {
       if (activeImageLayerIsEditable()) invokeEditorModule('effects/browser', 'browser');
