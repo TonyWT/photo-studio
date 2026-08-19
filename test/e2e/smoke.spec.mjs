@@ -4375,6 +4375,46 @@ test('Liquify 推移沿笔触暂存本地预览，并只在应用时写入一次
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).toBe(applied);
 });
 
+test('Liquify 膨胀与收缩拖拽时实时更新预览', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(desktopFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-liquify').click();
+  const bulge = page.getByTestId('liquify-mode-bulge');
+  await expect(bulge).toBeVisible();
+
+  const webgl2Available = await page.evaluate(() => document.body.dataset.liquifyAcceleration === 'webgl2');
+  if (!webgl2Available) {
+    await expect(bulge).toBeDisabled();
+    return;
+  }
+
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+
+  for (const [testId, mode] of [['liquify-mode-bulge', 'bulge'], ['liquify-mode-pinch', 'pinch']]) {
+    if (await page.getByTestId('liquify-cancel').isEnabled()) {
+      await page.getByTestId('liquify-cancel').click();
+      await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object.has_session())).toBe(false);
+    }
+    await page.getByTestId(testId).click();
+    await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'bulge_pinch').attributes.mode.value)).toBe(mode);
+    await page.mouse.move(bounds.x + bounds.width * 0.4, bounds.y + bounds.height * 0.45);
+    await page.mouse.down();
+    await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object.has_session())).toBe(true);
+    const afterDown = await page.evaluate(() => document.getElementById('canvas_preview').toDataURL());
+    await page.mouse.move(bounds.x + bounds.width * 0.62, bounds.y + bounds.height * 0.55, { steps: 10 });
+    await expect.poll(() => page.evaluate(() => document.getElementById('canvas_preview').toDataURL())).not.toBe(afterDown);
+    await page.mouse.up();
+    await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+    await page.getByTestId('liquify-cancel').click();
+    await expect.poll(() => page.evaluate(() => window.app.GUI.GUI_tools.tools_modules.bulge_pinch.object.has_session())).toBe(false);
+  }
+});
+
 test('Liquify 左右旋与恢复模式均写入本地临时会话，而非远程处理', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(desktopFixture);

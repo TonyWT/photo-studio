@@ -6,6 +6,62 @@ import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
 import glfx from './../libs/glfx.js';
 import Helper_class from './../libs/helpers.js';
 
+/**
+ * 从 ImageData 缓冲区做双线性取样，避免推移时出现块状像素。
+ * @param {Uint8ClampedArray} source
+ * @param {number} width
+ * @param {number} height
+ * @param {number} x
+ * @param {number} y
+ * @param {Uint8ClampedArray} destination
+ * @param {number} destIndex
+ */
+function sampleBilinear(source, width, height, x, y, destination, destIndex) {
+	const maxX = width - 1;
+	const maxY = height - 1;
+	if (x < 0 || y < 0 || x > maxX || y > maxY) {
+		const cx = Math.max(0, Math.min(maxX, Math.round(x)));
+		const cy = Math.max(0, Math.min(maxY, Math.round(y)));
+		const srcIndex = (cy * width + cx) * 4;
+		destination[destIndex] = source[srcIndex];
+		destination[destIndex + 1] = source[srcIndex + 1];
+		destination[destIndex + 2] = source[srcIndex + 2];
+		destination[destIndex + 3] = source[srcIndex + 3];
+		return;
+	}
+	const x0 = Math.floor(x);
+	const y0 = Math.floor(y);
+	const x1 = Math.min(maxX, x0 + 1);
+	const y1 = Math.min(maxY, y0 + 1);
+	const fx = x - x0;
+	const fy = y - y0;
+	const i00 = (y0 * width + x0) * 4;
+	const i10 = (y0 * width + x1) * 4;
+	const i01 = (y1 * width + x0) * 4;
+	const i11 = (y1 * width + x1) * 4;
+	const w00 = (1 - fx) * (1 - fy);
+	const w10 = fx * (1 - fy);
+	const w01 = (1 - fx) * fy;
+	const w11 = fx * fy;
+	for (let channel = 0; channel < 4; channel++) {
+		destination[destIndex + channel] = source[i00 + channel] * w00
+			+ source[i10 + channel] * w10
+			+ source[i01 + channel] * w01
+			+ source[i11 + channel] * w11;
+	}
+}
+
+/**
+ * 把 1–100 的滑杆值夹到 (0, 1]。
+ * @param {unknown} value
+ * @returns {number}
+ */
+function unitAmount(value) {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed)) return 0.5;
+	return Math.max(0.01, Math.min(1, parsed / 100));
+}
+
 class BulgePinch_class extends Base_tools_class {
 
 	constructor(ctx) {
@@ -21,11 +77,14 @@ class BulgePinch_class extends Base_tools_class {
 		this.previewCanvasCtx = null;
 		this.previewDownsampleCanvas = null;
 		this.previewDownsampleCtx = null;
+		this.regionCanvas = null;
+		this.regionCanvasCtx = null;
 		this.sourceCanvas = null;
 		this.sourceCanvasCtx = null;
 		this.started = false;
 		this.sessionLayerId = null;
-		this.lastPushPoint = null;
+		this.lastStrokePoint = null;
+		this.previewRaf = 0;
 	}
 
 	load() {
@@ -84,23 +143,11 @@ class BulgePinch_class extends Base_tools_class {
 			this.sourceCanvasCtx.drawImage(config.layer.link, 0, 0);
 		}
 
-		const mode = this.get_mode(params);
-		if (mode === 'push') {
-			this.lastPushPoint = this.get_layer_canvas_point(mouse);
-		} else if (mode === 'twirl_left' || mode === 'twirl_right') {
-			this.twirl_general(mouse, params.power, params.radius, params.density, mode === 'twirl_left' ? -1 : 1);
-		} else if (mode === 'restore') {
-			this.restore_general(mouse, params.radius, params.density);
-		} else {
-			this.bulgePinch_general(mouse, params.power, params.radius, mode !== 'pinch');
-		}
-
-		// The editable source stays full resolution. The optional fast preview is
-		// deliberately separate so switching preview quality can never lower the
-		// pixels committed by Apply.
-		this.refresh_preview(params);
-		config.need_render = true;
+		const point = this.get_layer_canvas_point(mouse);
+		this.lastStrokePoint = point;
+		this.apply_dab(point, null, params);
 		this.announce_session_change();
+		this.queue_preview(params);
 	}
 
 	is_webgl2_available() {
@@ -111,19 +158,18 @@ class BulgePinch_class extends Base_tools_class {
 	mouseup(e) {
 		if (this.started == false) return;
 		this.started = false;
-		this.lastPushPoint = null;
+		this.lastStrokePoint = null;
+		this.flush_preview();
 	}
 
 	mousemove(e) {
 		const mouse = this.get_mouse_info(e);
 		const params = this.getParams();
-		if (!this.started || this.get_mode(params) !== 'push' || !mouse.is_drag || !mouse.click_valid || !this.tmpCanvas) return;
+		if (!this.started || !mouse.is_drag || !mouse.click_valid || !this.tmpCanvas) return;
 		const point = this.get_layer_canvas_point(mouse);
-		if (this.lastPushPoint) this.push_general(this.lastPushPoint, point, params.radius, params.density);
-		this.lastPushPoint = point;
-		this.refresh_preview(params);
-		config.need_render = true;
-		this.announce_session_change();
+		if (this.lastStrokePoint) this.apply_stroke(this.lastStrokePoint, point, params);
+		this.lastStrokePoint = point;
+		this.queue_preview(params);
 	}
 
 	has_session() {
@@ -134,6 +180,31 @@ class BulgePinch_class extends Base_tools_class {
 		const layer = this.sessionLayerId == null ? null : app.Layers.get_layer(this.sessionLayerId);
 		if (layer && (layer.link_canvas === this.tmpCanvas || layer.link_canvas === this.previewCanvas)) delete layer.link_canvas;
 		config.need_render = true;
+	}
+
+	/**
+	 * 合并同一帧内的多次笔触，只刷新一次预览，保证拖拽实时且不卡顿。
+	 * @param {object} params
+	 */
+	queue_preview(params) {
+		this.pendingPreviewParams = params;
+		if (this.previewRaf) return;
+		this.previewRaf = requestAnimationFrame(() => {
+			this.previewRaf = 0;
+			this.refresh_preview(this.pendingPreviewParams);
+			config.need_render = true;
+		});
+	}
+
+	flush_preview() {
+		if (this.previewRaf) {
+			cancelAnimationFrame(this.previewRaf);
+			this.previewRaf = 0;
+		}
+		if (this.tmpCanvas) {
+			this.refresh_preview(this.pendingPreviewParams || this.getParams());
+			config.need_render = true;
+		}
 	}
 
 	refresh_preview(params = this.getParams()) {
@@ -170,6 +241,10 @@ class BulgePinch_class extends Base_tools_class {
 	}
 
 	discard_session() {
+		if (this.previewRaf) {
+			cancelAnimationFrame(this.previewRaf);
+			this.previewRaf = 0;
+		}
 		this.clear_session_preview();
 		if (this.tmpCanvas) {
 			this.tmpCanvas.width = 1;
@@ -185,10 +260,16 @@ class BulgePinch_class extends Base_tools_class {
 			this.previewDownsampleCanvas.width = 1;
 			this.previewDownsampleCanvas.height = 1;
 		}
+		if (this.regionCanvas) {
+			this.regionCanvas.width = 1;
+			this.regionCanvas.height = 1;
+		}
 		this.previewCanvas = null;
 		this.previewCanvasCtx = null;
 		this.previewDownsampleCanvas = null;
 		this.previewDownsampleCtx = null;
+		this.regionCanvas = null;
+		this.regionCanvasCtx = null;
 		if (this.sourceCanvas) {
 			this.sourceCanvas.width = 1;
 			this.sourceCanvas.height = 1;
@@ -197,7 +278,7 @@ class BulgePinch_class extends Base_tools_class {
 		this.sourceCanvasCtx = null;
 		this.sessionLayerId = null;
 		this.started = false;
-		this.lastPushPoint = null;
+		this.lastStrokePoint = null;
 		this.announce_session_change();
 	}
 
@@ -215,6 +296,7 @@ class BulgePinch_class extends Base_tools_class {
 			alertify.error('请选择未锁定的图片图层后使用液化。');
 			return false;
 		}
+		this.flush_preview();
 		const canvas = this.tmpCanvas;
 		const layerId = this.sessionLayerId;
 		this.clear_session_preview();
@@ -235,31 +317,123 @@ class BulgePinch_class extends Base_tools_class {
 		this.cancel_session();
 	}
 
-	bulgePinch_general(mouse, power, radius, bulge) {
+	/**
+	 * 沿拖拽路径插值落笔，使膨胀/收缩/旋转像 Pixlr 一样随鼠标连续变形。
+	 * @param {{x:number,y:number}} from
+	 * @param {{x:number,y:number}} to
+	 * @param {object} params
+	 */
+	apply_stroke(from, to, params) {
+		const mode = this.get_mode(params);
+		const radius = Math.max(1, Number(params.radius) || 80);
+		const dx = to.x - from.x;
+		const dy = to.y - from.y;
+		const distance = Math.hypot(dx, dy);
+		if (mode === 'push') {
+			if (distance < 0.5) return;
+			this.push_general(from, to, radius, params.density, params.power);
+			return;
+		}
+		const step = Math.max(1, radius * 0.18);
+		const steps = distance < 0.5 ? 1 : Math.max(1, Math.ceil(distance / step));
+		for (let index = 1; index <= steps; index++) {
+			const t = index / steps;
+			this.apply_dab({ x: from.x + dx * t, y: from.y + dy * t }, from, params);
+		}
+	}
+
+	/**
+	 * 在当前点落下一次笔触。推移在没有位移时不处理。
+	 * @param {{x:number,y:number}} point
+	 * @param {{x:number,y:number}|null} previous
+	 * @param {object} params
+	 */
+	apply_dab(point, previous, params) {
+		const mode = this.get_mode(params);
+		const radius = Math.max(1, Number(params.radius) || 80);
+		if (mode === 'push') {
+			if (!previous) return;
+			this.push_general(previous, point, radius, params.density, params.power);
+			return;
+		}
+		if (mode === 'restore') {
+			this.restore_general(point, radius, params.density, params.power);
+			return;
+		}
+		if (mode === 'twirl_left' || mode === 'twirl_right') {
+			this.twirl_general(point, params.power, radius, params.density, mode === 'twirl_left' ? -1 : 1);
+			return;
+		}
+		this.bulgePinch_general(point, params.power, radius, params.density, mode !== 'pinch');
+	}
+
+	ensure_fx_filter() {
 		if (this.fx_filter == false) {
-			//init glfx lib
 			this.fx_filter = glfx.canvas();
 		}
+		return this.fx_filter;
+	}
 
-		var ctx = this.tmpCanvasCtx;
-		const point = this.get_layer_canvas_point(mouse);
-		var mouse_x = point.x;
-		var mouse_y = point.y;
-
-		const density = Math.max(1, Math.min(100, Number(this.getParams().density) || 50));
-		power = power / 100 * density / 100;
-		if (power > 1) {
-			//max 100%
-			power = 1;
+	/**
+	 * 复用局部画布，只把笔刷范围交给 glfx，保证大图拖拽仍然实时。
+	 * @param {number} width
+	 * @param {number} height
+	 * @returns {HTMLCanvasElement}
+	 */
+	get_region_canvas(width, height) {
+		if (!this.regionCanvas) {
+			this.regionCanvas = document.createElement('canvas');
+			this.regionCanvasCtx = this.regionCanvas.getContext('2d');
 		}
+		if (this.regionCanvas.width !== width || this.regionCanvas.height !== height) {
+			this.regionCanvas.width = width;
+			this.regionCanvas.height = height;
+		}
+		return this.regionCanvas;
+	}
 
-		if (bulge == false)
-			power = -1 * power;
+	/**
+	 * 在笔刷半径内调用 miniPaint 自带的 glfx 滤镜。
+	 * @param {{x:number,y:number}} point
+	 * @param {number} radius
+	 * @param {(filter: object, localX: number, localY: number) => void} applyEffect
+	 */
+	apply_region_effect(point, radius, applyEffect) {
+		if (!this.tmpCanvas || !this.tmpCanvasCtx) return;
+		const pad = Math.max(2, Math.ceil(radius) + 2);
+		const left = Math.max(0, Math.floor(point.x - pad));
+		const top = Math.max(0, Math.floor(point.y - pad));
+		const right = Math.min(this.tmpCanvas.width, Math.ceil(point.x + pad));
+		const bottom = Math.min(this.tmpCanvas.height, Math.ceil(point.y + pad));
+		const width = right - left;
+		const height = bottom - top;
+		if (width <= 1 || height <= 1) return;
+		const region = this.get_region_canvas(width, height);
+		this.regionCanvasCtx.clearRect(0, 0, width, height);
+		this.regionCanvasCtx.drawImage(this.tmpCanvas, left, top, width, height, 0, 0, width, height);
+		const filter = this.ensure_fx_filter();
+		const texture = filter.texture(region);
+		filter.draw(texture);
+		applyEffect(filter, point.x - left, point.y - top);
+		filter.update();
+		if (typeof texture.destroy === 'function') texture.destroy();
+		this.tmpCanvasCtx.drawImage(filter, 0, 0, width, height, left, top, width, height);
+	}
 
-		var texture = this.fx_filter.texture(this.tmpCanvas);
-		this.fx_filter.draw(texture).bulgePinch(mouse_x, mouse_y, radius, power).update();	//effect
-		this.tmpCanvasCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
-		this.tmpCanvasCtx.drawImage(this.fx_filter, 0, 0);
+	/**
+	 * 使用上游 miniPaint / glfx 的 bulgePinch 做局部膨胀或收缩。
+	 * @param {{x:number,y:number}} point
+	 * @param {number} power
+	 * @param {number} radius
+	 * @param {number} density
+	 * @param {boolean} bulge
+	 */
+	bulgePinch_general(point, power, radius, density, bulge) {
+		const intensity = unitAmount(power) * unitAmount(density) * 0.55;
+		const strength = bulge ? intensity : -intensity;
+		this.apply_region_effect(point, radius, (filter, localX, localY) => {
+			filter.bulgePinch(localX, localY, radius, strength);
+		});
 	}
 
 	get_mode(params) {
@@ -269,23 +443,27 @@ class BulgePinch_class extends Base_tools_class {
 		return params.bulge === false ? 'pinch' : 'bulge';
 	}
 
-	twirl_general(mouse, power, radius, density, direction) {
-		if (this.fx_filter == false) this.fx_filter = glfx.canvas();
-		const point = this.get_layer_canvas_point(mouse);
-		const intensity = Math.max(0.01, Math.min(1, Number(power) / 100 || 0.5));
-		const falloff = Math.max(0.01, Math.min(1, Number(density) / 100 || 0.5));
-		const texture = this.fx_filter.texture(this.tmpCanvas);
-		this.fx_filter.draw(texture).swirl(point.x, point.y, radius, direction * intensity * falloff * Math.PI).update();
-		this.tmpCanvasCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
-		this.tmpCanvasCtx.drawImage(this.fx_filter, 0, 0);
+	/**
+	 * 使用上游 glfx.swirl 做局部旋转。
+	 * @param {{x:number,y:number}} point
+	 * @param {number} power
+	 * @param {number} radius
+	 * @param {number} density
+	 * @param {number} direction
+	 */
+	twirl_general(point, power, radius, density, direction) {
+		const intensity = unitAmount(power) * unitAmount(density);
+		const angle = direction * intensity * Math.PI * 0.35;
+		this.apply_region_effect(point, radius, (filter, localX, localY) => {
+			filter.swirl(localX, localY, radius, angle);
+		});
 	}
 
 	/** Restore only the affected disc from the image that opened this session.
 	 * This keeps the operation local and temporary until the normal Apply action.
 	 */
-	restore_general(mouse, radius, density) {
+	restore_general(point, radius, density, power) {
 		if (!this.sourceCanvasCtx || !this.tmpCanvasCtx) return;
-		const point = this.get_layer_canvas_point(mouse);
 		const radiusX = Math.max(1, Math.round(this.adaptSize(radius, 'width')));
 		const radiusY = Math.max(1, Math.round(this.adaptSize(radius, 'height')));
 		const left = Math.max(0, Math.floor(point.x - radiusX));
@@ -297,7 +475,7 @@ class BulgePinch_class extends Base_tools_class {
 		if (width <= 0 || height <= 0) return;
 		const current = this.tmpCanvasCtx.getImageData(left, top, width, height);
 		const original = this.sourceCanvasCtx.getImageData(left, top, width, height);
-		const strength = Math.max(0, Math.min(1, Number(density) / 100 || 0.5));
+		const strength = unitAmount(power) * unitAmount(density);
 		for (let y = 0; y < height; y++) {
 			for (let x = 0; x < width; x++) {
 				const nx = (left + x - point.x) / radiusX;
@@ -307,7 +485,7 @@ class BulgePinch_class extends Base_tools_class {
 				const alpha = (1 - distance) * (1 - distance) * strength;
 				const index = (y * width + x) * 4;
 				for (let channel = 0; channel < 4; channel++) {
-					current.data[index + channel] = Math.round(current.data[index + channel] * (1 - alpha) + original.data[index + channel] * alpha);
+					current.data[index + channel] = current.data[index + channel] * (1 - alpha) + original.data[index + channel] * alpha;
 				}
 			}
 		}
@@ -323,24 +501,26 @@ class BulgePinch_class extends Base_tools_class {
 	}
 
 	/**
-	 * A small, deterministic local warp for the Push subtype.  The displacement
-	 * is inverse-sampled from the preceding brush point so dragging right pulls
-	 * nearby pixels right with a soft radial falloff.  It runs only on the
-	 * temporary Liquify canvas, so Apply/Cancel keep the existing one-history
-	 * transaction model and never contact a remote service.
+	 * 推移：沿拖拽方向做局部反向采样。使用双线性插值，并把 Strength 计入位移幅度。
+	 * @param {{x:number,y:number}} previous
+	 * @param {{x:number,y:number}} current
+	 * @param {number} radius
+	 * @param {number} density
+	 * @param {number} power
 	 */
-	push_general(previous, current, radius, density) {
+	push_general(previous, current, radius, density, power) {
 		const radiusX = Math.max(1, Math.round(this.adaptSize(radius, 'width')));
 		const radiusY = Math.max(1, Math.round(this.adaptSize(radius, 'height')));
-		const influence = Math.max(0.01, Math.min(1, Number(density) / 100 || 0.5));
+		const influence = unitAmount(power) * unitAmount(density);
 		const shiftX = (current.x - previous.x) * influence;
 		const shiftY = (current.y - previous.y) * influence;
 		if (Math.abs(shiftX) < 0.01 && Math.abs(shiftY) < 0.01) return;
 
-		const left = Math.max(0, Math.floor(current.x - radiusX - Math.abs(shiftX)));
-		const top = Math.max(0, Math.floor(current.y - radiusY - Math.abs(shiftY)));
-		const right = Math.min(this.tmpCanvas.width, Math.ceil(current.x + radiusX + Math.abs(shiftX)));
-		const bottom = Math.min(this.tmpCanvas.height, Math.ceil(current.y + radiusY + Math.abs(shiftY)));
+		const extra = Math.ceil(Math.max(Math.abs(shiftX), Math.abs(shiftY))) + 1;
+		const left = Math.max(0, Math.floor(current.x - radiusX - extra));
+		const top = Math.max(0, Math.floor(current.y - radiusY - extra));
+		const right = Math.min(this.tmpCanvas.width, Math.ceil(current.x + radiusX + extra));
+		const bottom = Math.min(this.tmpCanvas.height, Math.ceil(current.y + radiusY + extra));
 		const width = right - left;
 		const height = bottom - top;
 		if (width <= 0 || height <= 0) return;
@@ -354,15 +534,10 @@ class BulgePinch_class extends Base_tools_class {
 				const distance = Math.sqrt(dx * dx + dy * dy);
 				if (distance >= 1) continue;
 				const falloff = (1 - distance) * (1 - distance);
-				const sampleX = Math.round(localX - shiftX * falloff);
-				const sampleY = Math.round(localY - shiftY * falloff);
-				if (sampleX < 0 || sampleY < 0 || sampleX >= width || sampleY >= height) continue;
+				const sampleX = localX - shiftX * falloff;
+				const sampleY = localY - shiftY * falloff;
 				const destinationIndex = (localY * width + localX) * 4;
-				const sourceIndex = (sampleY * width + sampleX) * 4;
-				imageData.data[destinationIndex] = source[sourceIndex];
-				imageData.data[destinationIndex + 1] = source[sourceIndex + 1];
-				imageData.data[destinationIndex + 2] = source[sourceIndex + 2];
-				imageData.data[destinationIndex + 3] = source[sourceIndex + 3];
+				sampleBilinear(source, width, height, sampleX, sampleY, imageData.data, destinationIndex);
 			}
 		}
 		this.tmpCanvasCtx.putImageData(imageData, left, top);
