@@ -3,6 +3,7 @@ import config from './../config.js';
 import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
+import { isDrawableLayer, notifyNotDrawable, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Erase_class extends Base_tools_class {
 
@@ -60,7 +61,14 @@ class Erase_class extends Base_tools_class {
 			return;
 		}
 		if (config.layer.type != 'image') {
-			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+			if (shouldPaintOnCurrentLayer() && isDrawableLayer(config.layer) && config.layer.type == null) {
+				return;
+			}
+			if (shouldPaintOnCurrentLayer()) {
+				notifyNotDrawable();
+			} else {
+				alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+			}
 			return;
 		}
 		if (config.layer.is_vector == true) {

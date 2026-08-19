@@ -3,6 +3,7 @@ import config from './../config.js';
 import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import Helper_class from './../libs/helpers.js';
+import { ShapePaintController, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Gradient_class extends Base_tools_class {
 
@@ -13,6 +14,7 @@ class Gradient_class extends Base_tools_class {
 		this.ctx = ctx;
 		this.name = 'gradient';
 		this.layer = {};
+		this._shapePaint = null;
 	}
 
 	load() {
@@ -30,6 +32,19 @@ class Gradient_class extends Base_tools_class {
 		if (params.radial == true) {
 			name = 'Radial gradient';
 			is_vector = true;
+		}
+
+		if (shouldPaintOnCurrentLayer()) {
+			this._shapePaint = new ShapePaintController(this);
+			if (!this._shapePaint.begin(mouse.x, mouse.y, {
+				name: this.Helper.ucfirst(name),
+				data: { center_x: mouse.x, center_y: mouse.y },
+			})) {
+				this._shapePaint = null;
+				return;
+			}
+			this.layer = this._shapePaint.draft;
+			return;
 		}
 
 		//register new object - current layer is not ours or params changed
@@ -68,6 +83,20 @@ class Gradient_class extends Base_tools_class {
 		var width = mouse.x - this.layer.x;
 		var height = mouse.y - this.layer.y;
 
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			if (params.radial == true) {
+				this._shapePaint.updateDraft({
+					x: this.layer.data.center_x - width,
+					y: this.layer.data.center_y - height,
+					width: width * 2,
+					height: height * 2,
+				});
+			} else {
+				this._shapePaint.updateDraft({ width, height });
+			}
+			return;
+		}
+
 		if (params.radial == true) {
 			config.layer.x = this.layer.data.center_x - width;
 			config.layer.y = this.layer.data.center_y - height;
@@ -85,6 +114,34 @@ class Gradient_class extends Base_tools_class {
 	mouseup(e) {
 		var mouse = this.get_mouse_info(e);
 		var params = this.getParams();
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			if (mouse.click_valid == false) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+			var width = mouse.x - this.layer.x;
+			var height = mouse.y - this.layer.y;
+			if (width == 0 && height == 0) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+			if (params.radial == true) {
+				this._shapePaint.updateDraft({
+					x: this.layer.data.center_x - width,
+					y: this.layer.data.center_y - height,
+					width: width * 2,
+					height: height * 2,
+				});
+			} else {
+				this._shapePaint.updateDraft({ width, height });
+			}
+			this._shapePaint.commit('draw_gradient', 'Draw Gradient');
+			this._shapePaint = null;
+			return;
+		}
+
 		if (mouse.click_valid == false) {
 			config.layer.status = null;
 			return;

@@ -2,6 +2,7 @@ import app from './../../app.js';
 import config from './../../config.js';
 import Base_tools_class from './../../core/base-tools.js';
 import Base_layers_class from './../../core/base-layers.js';
+import { ShapePaintController, shouldPaintOnCurrentLayer } from './../../libs/draw-on-layer.js';
 
 class Arrow_class extends Base_tools_class {
 
@@ -14,6 +15,7 @@ class Arrow_class extends Base_tools_class {
 		this.best_ratio = 1;
 		this.snap_line_info = {x: null, y: null};
 		this.mouse_click = {x: null, y: null};
+		this._shapePaint = null;
 	}
 
 	load() {
@@ -42,6 +44,16 @@ class Arrow_class extends Base_tools_class {
 
 		this.mouse_click.x = mouse_x;
 		this.mouse_click.y = mouse_y;
+
+		if (shouldPaintOnCurrentLayer()) {
+			this._shapePaint = new ShapePaintController(this);
+			if (!this._shapePaint.begin(Math.round(mouse_x), Math.round(mouse_y), { rotate: null, color: config.COLOR })) {
+				this._shapePaint = null;
+				return;
+			}
+			this.layer = this._shapePaint.draft;
+			return;
+		}
 
 		//register new object - current layer is not ours or params changed
 		this.layer = {
@@ -96,6 +108,11 @@ class Arrow_class extends Base_tools_class {
 				height = 0;
 		}
 
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			this._shapePaint.updateDraft({ width, height });
+			return;
+		}
+
 		//more data
 		config.layer.width = width;
 		config.layer.height = height;
@@ -105,6 +122,45 @@ class Arrow_class extends Base_tools_class {
 
 	mouseup(e) {
 		var mouse = this.get_mouse_info(e);
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			if (mouse.click_valid == false) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+
+			var mouse_x = Math.round(mouse.x);
+			var mouse_y = Math.round(mouse.y);
+			var snap_info = this.calc_snap_position(e, mouse_x, mouse_y, config.layer.id);
+			if(snap_info != null){
+				if(snap_info.x != null) {
+					mouse_x = snap_info.x;
+				}
+				if(snap_info.y != null) {
+					mouse_y = snap_info.y;
+				}
+			}
+			this.snap_line_info = {x: null, y: null};
+
+			var width = mouse_x - this.layer.x;
+			var height = mouse_y - this.layer.y;
+			if (width == 0 && height == 0) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+			if (e.ctrlKey == true || e.metaKey) {
+				if (Math.abs(width) < Math.abs(height))
+					width = 0;
+				else
+					height = 0;
+			}
+			this._shapePaint.updateDraft({ width, height, status: null });
+			this._shapePaint.commit('draw_arrow', 'Draw Arrow');
+			this._shapePaint = null;
+			return;
+		}
+
 		if (mouse.click_valid == false) {
 			config.layer.status = null;
 			return;

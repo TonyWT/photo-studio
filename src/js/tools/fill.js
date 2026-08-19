@@ -4,6 +4,7 @@ import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import Helper_class from './../libs/helpers.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
+import { notifyNotDrawable, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Fill_class extends Base_tools_class {
 
@@ -64,7 +65,11 @@ class Fill_class extends Base_tools_class {
 		}
 
 		if (config.layer.type != 'image' && config.layer.type !== null) {
-			alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+			if (shouldPaintOnCurrentLayer()) {
+				notifyNotDrawable();
+			} else {
+				alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+			}
 			return;
 		}
 		if (config.layer.is_vector == true) {
@@ -117,18 +122,21 @@ class Fill_class extends Base_tools_class {
 			);
 		}
 		else {
-			//create new
-			var params = [];
-			params.type = 'image';
-			params.name = 'Fill';
-			params.data = canvas.toDataURL("image/png");
-			params.x = parseInt(canvas.dataset.x) || 0;
-			params.y = parseInt(canvas.dataset.y) || 0;
-			params.width = canvas.width;
-			params.height = canvas.height;
+			const image = new Image();
+			image.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 			app.State.do_action(
 				new app.Actions.Bundle_action('fill_tool', 'Fill Tool', [
-					new app.Actions.Insert_layer_action(params)
+					new app.Actions.Update_layer_action(config.layer.id, {
+						type: 'image',
+						link: image,
+						x: config.layer.x || 0,
+						y: config.layer.y || 0,
+						width: canvas.width,
+						height: canvas.height,
+						width_original: canvas.width,
+						height_original: canvas.height,
+					}),
+					new app.Actions.Update_layer_image_action(canvas, config.layer.id)
 				])
 			);
 		}

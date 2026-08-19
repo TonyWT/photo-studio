@@ -2,6 +2,7 @@ import app from './../app.js';
 import config from './../config.js';
 import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
+import { LayerPaintSession, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Brush_class extends Base_tools_class {
 
@@ -17,6 +18,10 @@ class Brush_class extends Base_tools_class {
 		this.power = 2; //how speed affects size
 		this.event_links = [];
 		this.data_index = 0;
+		this._paintSession = null;
+		this._strokeData = null;
+		this._paintParams = null;
+		this._paintColor = null;
 	}
 
 	load() {
@@ -199,6 +204,11 @@ class Brush_class extends Base_tools_class {
 		if (mouse.click_valid == false)
 			return;
 
+		if (shouldPaintOnCurrentLayer()) {
+			this._beginPaintStroke(e, index, event_identifier);
+			return;
+		}
+
 		var params_hash = this.get_params_hash();
 
 		if (config.layer.type != this.name || params_hash != this.params_hash) {
@@ -288,6 +298,11 @@ class Brush_class extends Base_tools_class {
 			return;
 		}
 
+		if (shouldPaintOnCurrentLayer()) {
+			this._continuePaintStroke(e);
+			return;
+		}
+
 		//in case of undo, recalculate index
 		for(var i = index; i >= 0; i++){
 			if(typeof config.layer.data[index] != "undefined"){
@@ -325,6 +340,20 @@ class Brush_class extends Base_tools_class {
 
 	mouseup_action(e, index) {
 		var mouse = this.get_mouse_info(e);
+		if (shouldPaintOnCurrentLayer()) {
+			if (!this._paintSession?.active) return;
+			if (mouse.click_valid == false) {
+				this._paintSession.cancel();
+				this._paintSession = null;
+				return;
+			}
+			this._rasterizePaintStroke();
+			this._paintSession.commit('draw_brush', 'Draw Brush');
+			this._paintSession = null;
+			this._strokeData = null;
+			return;
+		}
+
 		if (mouse.click_valid == false) {
 			config.layer.status = null;
 			return;
@@ -334,6 +363,97 @@ class Brush_class extends Base_tools_class {
 
 		this.check_dimensions();
 		this.Base_layers.render();
+	}
+
+	/**
+	 * Draw 工作区：在当前图像/空白层上开始一笔，而不是新建 brush 图层。
+	 * @param {MouseEvent | Touch} e
+	 * @param {number} index
+	 * @param {number | null} event_identifier
+	 * @returns {void}
+	 */
+	_beginPaintStroke(e, index, event_identifier) {
+		if (this._paintSession?.active) this._paintSession.cancel();
+		this._paintSession = new LayerPaintSession();
+		if (!this._paintSession.begin()) {
+			this._paintSession = null;
+			this._strokeData = null;
+			return;
+		}
+		this._strokeData = [[]];
+		this._paintParams = this.clone(this.getParams());
+		this._paintColor = config.COLOR;
+		this.data_index = 0;
+		index = 0;
+		this.event_links = [{
+			identifier: event_identifier,
+			index: this.data_index,
+		}];
+		this._pushPaintPoint(e, index);
+		this._rasterizePaintStroke();
+	}
+
+	/**
+	 * @param {MouseEvent | Touch} e
+	 * @returns {void}
+	 */
+	_continuePaintStroke(e) {
+		if (!this._paintSession?.active || !this._strokeData) return;
+		this._pushPaintPoint(e, 0);
+		this._rasterizePaintStroke();
+	}
+
+	/**
+	 * @param {MouseEvent | Touch} e
+	 * @param {number} index
+	 * @returns {void}
+	 */
+	_pushPaintPoint(e, index) {
+		const mouse = this.get_mouse_info(e);
+		const params = this._paintParams || this.getParams();
+		let size = params.size;
+		if (params.pressure == true) {
+			if (this.pressure_supported) {
+				size = size * this.pointer_pressure * 2;
+			} else {
+				size = size + size / this.max_speed * mouse.speed_average * this.power;
+				size = Math.max(size, params.size / 4);
+				size = Math.round(size);
+			}
+		}
+		const mouse_coords = this.get_mouse_coordinates_from_event(e);
+		const layer = this._paintSession.layer;
+		this._strokeData[index].push([
+			mouse_coords.x - (layer.x || 0),
+			mouse_coords.y - (layer.y || 0),
+			size,
+		]);
+	}
+
+	/**
+	 * 把当前笔触栅格化到预览画布。点坐标已是图层本地显示坐标。
+	 * @returns {void}
+	 */
+	_rasterizePaintStroke() {
+		const session = this._paintSession;
+		if (!session?.active || !this._strokeData) return;
+		session.restoreSnapshot();
+		const ctx = session.tmpCtx;
+		const layer = session.layer;
+		const displayWidth = layer.width || session.tmpCanvas.width;
+		const displayHeight = layer.height || session.tmpCanvas.height;
+		ctx.save();
+		ctx.globalAlpha = config.ALPHA / 255;
+		ctx.scale(session.tmpCanvas.width / displayWidth, session.tmpCanvas.height / displayHeight);
+		this.render(ctx, {
+			x: 0,
+			y: 0,
+			data: this._strokeData,
+			params: this._paintParams,
+			color: this._paintColor,
+		});
+		ctx.restore();
+		session.preview();
 	}
 
 	render(ctx, layer) {
