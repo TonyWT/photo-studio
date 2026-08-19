@@ -5651,8 +5651,26 @@ test('Drawing 在文字图层上会提示只能在图像图层使用，且不新
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles({ name: 'draw-text-guard.png', mimeType: 'image/png', buffer: samplePng });
   await expect(page).toHaveURL(/\/editor\/$/);
-  await page.getByTestId('tool-text').click();
-  await page.locator('#canvas_minipaint').click({ position: { x: 80, y: 80 } });
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.evaluate(async () => {
+    await window.State.do_action(new window.app.Actions.Insert_layer_action({
+      type: 'text',
+      name: 'Text',
+      params: {
+        boundary: 'dynamic',
+        kerning: 'metrics',
+        text_direction: 'ltr',
+        wrap_direction: 'ttb',
+        halign: 'left',
+        valign: 'top',
+        wrap: 'letter',
+      },
+      render_function: ['text', 'render'],
+      x: 40,
+      y: 40,
+      is_vector: true,
+    }));
+  });
   await expect.poll(() => page.evaluate(() => window.AppConfig.layer.type)).toBe('text');
   const before = await page.evaluate(() => ({
     count: window.AppConfig.layers.length,
@@ -5691,7 +5709,9 @@ test('Drawing 在空白图层上绘制会写回同一图层并变成图像层', 
     buffer: Buffer.from(drawingFixture, 'base64'),
   });
   await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-new-layer')).toBeVisible();
   await page.getByTestId('drawing-new-layer').click();
   await expect.poll(() => page.evaluate(() => window.AppConfig.layer.type)).toBe(null);
   const before = await page.evaluate(() => ({
