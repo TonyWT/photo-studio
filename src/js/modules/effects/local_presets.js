@@ -1,6 +1,7 @@
 import Dialog_class from './../../libs/popup.js';
 import Base_layers_class from './../../core/base-layers.js';
 import { captureEditableImageLayer, commitCapturedFilter } from './filter-commit.js';
+import { grainSample } from './grain-noise.js';
 
 const GROUP_BASES = Object.freeze({
 	mono: { saturation: -0.92, contrast: 0.24, brightness: -4, mono: 0.92, tint: [0, 0, 0], tintMix: 0, vignette: 0.06, grain: 2 },
@@ -64,7 +65,7 @@ function profileFor(recipeId) {
 			tint: [0, 0, 0],
 			tintMix: 0,
 			vignette: 0.04 + (index % 4) * 0.08,
-			grain: 2 + (index % 5) * 3,
+			grain: Math.min(5, 1 + (index % 3)),
 			seed: hash,
 		};
 	}
@@ -82,7 +83,7 @@ function profileFor(recipeId) {
 		],
 		tintMix: clamp(0.18 + (index % 5) * 0.03, 0.18, 0.30),
 		vignette: clamp(base.vignette + (index % 4) * 0.07, 0, 0.38),
-		grain: Math.min(16, base.grain + (index % 5) * 2),
+		grain: Math.min(5, base.grain + (index % 3)),
 		seed: hash,
 	};
 }
@@ -181,7 +182,7 @@ class Effects_localPresets_class {
 			blue = blue * (1 - mono) + mixedLuminance * mono;
 			const distance = Math.hypot((x - width / 2) / Math.max(1, width / 2), (y - height / 2) / Math.max(1, height / 2));
 			const edge = 1 - clamp((distance - 0.35) / 1.05, 0, 1) * profile.vignette * intensity;
-			const noise = ((((x + 1) * 73856093) ^ ((y + 1) * 19349663) ^ profile.seed) % 17 - 8) * profile.grain * 0.08 * intensity;
+			const noise = grainSample(x, y, profile.seed) * profile.grain * 0.06 * intensity;
 			data[offset] = clamp(Math.round(red * edge + noise));
 			data[offset + 1] = clamp(Math.round(green * edge + noise));
 			data[offset + 2] = clamp(Math.round(blue * edge + noise));
