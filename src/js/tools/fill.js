@@ -4,7 +4,7 @@ import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import Helper_class from './../libs/helpers.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
-import { notifyNotDrawable, settlePaintedLayerImage, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
+import { copyVisibleLayerImage, notifyNotDrawable, queueLayerImageWrite, settlePaintedLayerImage, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Fill_class extends Base_tools_class {
 
@@ -87,7 +87,7 @@ class Fill_class extends Base_tools_class {
 		if (config.layer.type !== null) {
 			canvas.width = config.layer.width_original;
 			canvas.height = config.layer.height_original;
-			ctx.drawImage(config.layer.link, 0, 0);
+			copyVisibleLayerImage(ctx, config.layer);
 		}
 		else {
 			canvas.width = config.WIDTH;
@@ -120,11 +120,11 @@ class Fill_class extends Base_tools_class {
 				await settlePaintedLayerImage(
 					canvas,
 					config.layer,
-					app.State.do_action(
+					queueLayerImageWrite(config.layer, () => app.State.do_action(
 						new app.Actions.Bundle_action('fill_tool', 'Fill Tool', [
-							new app.Actions.Update_layer_image_action(canvas)
+							new app.Actions.Update_layer_image_action(canvas, config.layer.id)
 						])
-					),
+					)),
 				);
 			}
 			else {
@@ -133,7 +133,7 @@ class Fill_class extends Base_tools_class {
 				await settlePaintedLayerImage(
 					canvas,
 					config.layer,
-					app.State.do_action(
+					queueLayerImageWrite(config.layer, () => app.State.do_action(
 						new app.Actions.Bundle_action('fill_tool', 'Fill Tool', [
 							new app.Actions.Update_layer_action(config.layer.id, {
 								type: 'image',
@@ -147,7 +147,7 @@ class Fill_class extends Base_tools_class {
 							}),
 							new app.Actions.Update_layer_image_action(canvas, config.layer.id)
 						])
-					),
+					)),
 				);
 			}
 
