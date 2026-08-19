@@ -59,6 +59,44 @@ async function openSaveMenu(page) {
   await expect(menu).toBeVisible();
 }
 
+/**
+ * 读取当前 Effect 详情里前几张缩略图的平均色，用来确认预览能看出不同效果。
+ * @param {import('@playwright/test').Page} page
+ * @param {number} [limit]
+ */
+async function readEffectPreviewAverageColors(page, limit = 3) {
+  return page.evaluate((count) => {
+    return [...document.querySelectorAll('.studio-effect-preset')].slice(0, count).map((button) => {
+      const image = button.querySelector('img');
+      const canvas = document.createElement('canvas');
+      canvas.width = 48;
+      canvas.height = 27;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(image, 0, 0, 48, 27);
+      const data = context.getImageData(0, 0, 48, 27).data;
+      let red = 0;
+      let green = 0;
+      let blue = 0;
+      const pixels = data.length / 4;
+      for (let offset = 0; offset < data.length; offset += 4) {
+        red += data[offset];
+        green += data[offset + 1];
+        blue += data[offset + 2];
+      }
+      return {
+        recipe: button.dataset.effectRecipe,
+        r: red / pixels,
+        g: green / pixels,
+        b: blue / pixels,
+      };
+    });
+  }, limit);
+}
+
+function averageColorDistance(left, right) {
+  return Math.hypot(left.r - right.r, left.g - right.g, left.b - right.b);
+}
+
 test('主页提供本地打开和新建入口', async ({ page }) => {
   await openHome(page);
   await expect(page.getByTestId('open-image')).toBeVisible();
@@ -2146,6 +2184,7 @@ test('Effect 提供分类卡、真实本地预设，并保留全部效果浏览�
   await expect(page.locator('.studio-effect-preset')).toHaveCount(11);
   await expect(page.getByTestId('effect-apply')).toHaveCount(0);
   await expect(page.getByTestId('effect-preset-mono-black_and_white').locator('img[src^="data:image"]')).toBeVisible();
+  await expect.poll(() => page.getByTestId('effect-preset-mono-black_and_white').locator('img').evaluate((image) => getComputedStyle(image).filter)).not.toMatch(/invert/i);
   await expect.poll(() => page.locator('.studio-effect-preset').first().evaluate((card) => {
     const grid = card.parentElement;
     const media = card.querySelector('.studio-effect-preset-media');
@@ -2228,6 +2267,27 @@ test('Effect 详情以大预览图展示，点击立即生效，返回分类不�
   await page.getByTestId('effect-category-back').click();
   await expect(page.locator('.studio-effect-category')).toHaveCount(11);
   await expect.poll(() => page.evaluate(() => window.app.State.action_history_index)).toBe(historyIndex + 1);
+});
+
+test('Effect 同一分类里的缩略图要能看出不同效果', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
+  await page.getByTestId('tool-effect').click();
+  if (await page.getByTestId('effect-category-back').isVisible()) {
+    await page.getByTestId('effect-category-back').click();
+  }
+  await page.getByTestId('effect-category-friends').click();
+  await expect(page.getByTestId('effect-preset-friends-friends-01').locator('img[src^="data:image"]')).toBeVisible();
+  const colors = await readEffectPreviewAverageColors(page, 3);
+  expect(colors).toHaveLength(3);
+  const distances = [
+    averageColorDistance(colors[0], colors[1]),
+    averageColorDistance(colors[0], colors[2]),
+    averageColorDistance(colors[1], colors[2]),
+  ];
+  expect(Math.min(...distances)).toBeGreaterThan(18);
 });
 
 test('Effect 提供 11 组共 108 个原创本地预设，并保留每组可检验的配方入口', async ({ page }) => {

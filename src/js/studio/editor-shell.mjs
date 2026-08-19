@@ -266,6 +266,26 @@ let effectPreviewBase = null;
 let effectApplyInFlight = false;
 
 /**
+ * 按目标画布比例居中裁切绘制，避免把原图拉成 16:9 变形。
+ * @param {CanvasRenderingContext2D} context
+ * @param {CanvasImageSource} source
+ * @param {number} width
+ * @param {number} height
+ */
+function drawImageCover(context, source, width, height) {
+  const sourceWidth = Number(source.naturalWidth || source.width) || 0;
+  const sourceHeight = Number(source.naturalHeight || source.height) || 0;
+  if (!sourceWidth || !sourceHeight) {
+    context.drawImage(source, 0, 0, width, height);
+    return;
+  }
+  const scale = Math.max(width / sourceWidth, height / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  context.drawImage(source, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
+/**
  * 进入效果分类时冻结一张底图，缩略图始终基于进入时的画面，避免连点叠滤镜。
  * @param {object} layer
  * @returns {HTMLCanvasElement|null}
@@ -278,7 +298,7 @@ function getEffectPreviewBase(layer) {
   const canvas = document.createElement('canvas');
   canvas.width = 320;
   canvas.height = 180;
-  canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+  drawImageCover(canvas.getContext('2d'), source, canvas.width, canvas.height);
   effectPreviewBase = { key, canvas, urls: {} };
   return canvas;
 }
