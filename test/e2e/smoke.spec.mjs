@@ -5657,7 +5657,7 @@ test('Drawing 在文字图层上会提示只能在图像图层使用，且不新
       type: 'text',
       name: 'Text',
       params: {
-        boundary: 'dynamic',
+        boundary: 'box',
         kerning: 'metrics',
         text_direction: 'ltr',
         wrap_direction: 'ttb',
@@ -5668,21 +5668,29 @@ test('Drawing 在文字图层上会提示只能在图像图层使用，且不新
       render_function: ['text', 'render'],
       x: 40,
       y: 40,
+      width: 120,
+      height: 60,
+      rotate: 0,
       is_vector: true,
-    }));
+    }, false));
+    const textLayer = window.AppConfig.layers.find((layer) => layer.type === 'text');
+    textLayer.data = [[{ text: 'Hi', meta: { size: 24, family: 'Arial', fill_color: '#111111' } }]];
+    textLayer._needs_update_data = true;
+    window.AppConfig.layer = textLayer;
+    window.AppConfig.need_render = true;
   });
   await expect.poll(() => page.evaluate(() => window.AppConfig.layer.type)).toBe('text');
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-layer-warning')).toBeVisible();
+  await expect(page.getByTestId('drawing-layer-warning')).toHaveText('只有在图像图层或空白图层上才能使用绘制工具。');
+  await page.getByTestId('drawing-brush').click();
   const before = await page.evaluate(() => ({
     count: window.AppConfig.layers.length,
     id: window.AppConfig.layer.id,
     history: window.State.action_history.length,
     type: window.AppConfig.layer.type,
   }));
-  await page.getByTestId('tool-drawing').click();
-  await expect(page.getByTestId('drawing-layer-warning')).toBeVisible();
-  await expect(page.getByTestId('drawing-layer-warning')).toHaveText('只有在图像图层或空白图层上才能使用绘制工具。');
-  await page.getByTestId('drawing-brush').click();
-  await page.locator('#canvas_minipaint').click({ position: { x: 90, y: 90 } });
+  await page.locator('#canvas_minipaint').click({ position: { x: 1, y: 1 }, force: true });
   await expect.poll(() => page.evaluate(() => ({
     count: window.AppConfig.layers.length,
     id: window.AppConfig.layer.id,
