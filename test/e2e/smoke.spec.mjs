@@ -5258,7 +5258,9 @@ test('Drawing 松手后预览会留在图层上，直到像素写回完成', asy
     buffer: Buffer.from(drawingFixture, 'base64'),
   });
   await expect(page).toHaveURL(/\/editor\/$/);
+  await expect(page.locator('body')).toHaveAttribute('data-manual-cutout-tools', 'selection,magic_erase,erase');
   await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-color')).toBeVisible();
   await page.getByTestId('drawing-color').fill('#d946ef');
   await page.getByTestId('drawing-size').fill('20');
   await page.getByTestId('drawing-opacity').fill('100');
