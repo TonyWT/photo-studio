@@ -1175,6 +1175,226 @@ test('手动 Cutout 的套索会画出绿色选框，闭合后即时抠图，撤
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
 });
 
+test('Cutout 套索拖拽中只显示绿色虚线，松开闭合后才写入抠图预览', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-cutout').click();
+  await page.getByTestId('cutout-mode-lasso').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-lasso');
+
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds.x + bounds.width * 0.3, bounds.y + bounds.height * 0.28);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.55, bounds.y + bounds.height * 0.28);
+  await page.mouse.move(bounds.x + bounds.width * 0.55, bounds.y + bounds.height * 0.55);
+  await expect(page.getByTestId('cutout-path-overlay')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const overlay = document.querySelector('[data-testid="cutout-path-overlay"]');
+    if (!(overlay instanceof HTMLCanvasElement)) return { green: 0, regions: -1, preview: true };
+    const data = overlay.getContext('2d').getImageData(0, 0, overlay.width, overlay.height).data;
+    let green = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      if (data[index + 1] > 180 && data[index + 1] > data[index] && data[index + 3] > 0) green += 1;
+    }
+    return {
+      green,
+      regions: window.PhotoStudio.getCutoutSelection().regions.length,
+      preview: window.AppConfig.layer.link_canvas instanceof HTMLCanvasElement,
+    };
+  })).toEqual(expect.objectContaining({ regions: 0, preview: false }));
+  const greenWhileDragging = await page.evaluate(() => {
+    const overlay = document.querySelector('[data-testid="cutout-path-overlay"]');
+    const data = overlay.getContext('2d').getImageData(0, 0, overlay.width, overlay.height).data;
+    let green = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      if (data[index + 1] > 180 && data[index + 1] > data[index] && data[index + 3] > 0) green += 1;
+    }
+    return green;
+  });
+  expect(greenWhileDragging).toBeGreaterThan(0);
+  await page.mouse.move(bounds.x + bounds.width * 0.3, bounds.y + bounds.height * 0.55);
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('lasso');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link_canvas instanceof HTMLCanvasElement)).toBe(true);
+});
+
+test('Cutout 套索虚线框在缩小缩放后与实际抠图区域对齐', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-cutout').click();
+  await page.getByTestId('cutout-mode-lasso').click();
+  await page.evaluate(() => {
+    window.AppConfig.ZOOM = 0.4;
+    window.app.GUI.prepare_canvas();
+    window.AppConfig.need_render = true;
+    window.app.Layers.render(true);
+  });
+
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds.x + bounds.width * 0.28, bounds.y + bounds.height * 0.26);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.62, bounds.y + bounds.height * 0.26);
+  await page.mouse.move(bounds.x + bounds.width * 0.62, bounds.y + bounds.height * 0.62);
+  await page.mouse.move(bounds.x + bounds.width * 0.28, bounds.y + bounds.height * 0.62);
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('lasso');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link_canvas instanceof HTMLCanvasElement)).toBe(true);
+
+  const alignment = await page.evaluate(() => {
+    const overlay = document.querySelector('[data-testid="cutout-path-overlay"]');
+    const layer = window.AppConfig.layer;
+    const preview = layer.link_canvas;
+    const region = window.PhotoStudio.getCutoutSelection().regions[0];
+    if (!(overlay instanceof HTMLCanvasElement) || !(preview instanceof HTMLCanvasElement) || !region?.points) {
+      return null;
+    }
+    const toWorld = window.app.Layers.get_world_coords.bind(window.app.Layers);
+    const data = overlay.getContext('2d').getImageData(0, 0, overlay.width, overlay.height).data;
+    let minX = overlay.width;
+    let minY = overlay.height;
+    let maxX = 0;
+    let maxY = 0;
+    let green = 0;
+    for (let y = 0; y < overlay.height; y += 1) {
+      for (let x = 0; x < overlay.width; x += 1) {
+        const index = (y * overlay.width + x) * 4;
+        if (data[index + 1] > 80 && data[index + 3] > 0) {
+          green += 1;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    const worldMin = toWorld(minX, minY);
+    const worldMax = toWorld(maxX, maxY);
+    const xs = region.points.map((point) => point.x);
+    const ys = region.points.map((point) => point.y);
+    const lasso = {
+      minX: Math.min(...xs),
+      minY: Math.min(...ys),
+      maxX: Math.max(...xs),
+      maxY: Math.max(...ys),
+    };
+    const scaleX = preview.width / (layer.width || preview.width);
+    const scaleY = preview.height / (layer.height || preview.height);
+    const inside = {
+      x: (lasso.minX + lasso.maxX) / 2,
+      y: (lasso.minY + lasso.maxY) / 2,
+    };
+    const previewInside = preview.getContext('2d').getImageData(
+      Math.round((inside.x - layer.x) * scaleX),
+      Math.round((inside.y - layer.y) * scaleY),
+      1,
+      1,
+    ).data[3];
+    return {
+      green,
+      previewInside,
+      previewOutside: preview.getContext('2d').getImageData(2, 2, 1, 1).data[3],
+      overlay: { minX: worldMin.x, minY: worldMin.y, maxX: worldMax.x, maxY: worldMax.y },
+      lasso,
+    };
+  });
+  expect(alignment).not.toBeNull();
+  expect(alignment.green).toBeGreaterThan(0);
+  expect(alignment.previewInside).toBe(255);
+  expect(alignment.previewOutside).toBe(0);
+  expect(Math.abs(alignment.overlay.minX - alignment.lasso.minX)).toBeLessThan(12);
+  expect(Math.abs(alignment.overlay.minY - alignment.lasso.minY)).toBeLessThan(12);
+  expect(Math.abs(alignment.overlay.maxX - alignment.lasso.maxX)).toBeLessThan(12);
+  expect(Math.abs(alignment.overlay.maxY - alignment.lasso.maxY)).toBeLessThan(12);
+});
+
+test('切换 Cutout 子工具不新建图层，也不把当前图片层清空', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  const before = await page.evaluate(() => {
+    const layer = window.AppConfig.layer;
+    const scratch = document.createElement('canvas');
+    scratch.width = layer.link.naturalWidth;
+    scratch.height = layer.link.naturalHeight;
+    scratch.getContext('2d').drawImage(layer.link, 0, 0);
+    return {
+      id: layer.id,
+      type: layer.type,
+      layerCount: window.AppConfig.layers.length,
+      width: layer.link.naturalWidth,
+      height: layer.link.naturalHeight,
+      cornerAlpha: scratch.getContext('2d').getImageData(2, 2, 1, 1).data[3],
+    };
+  });
+  expect(before.type).toBe('image');
+  expect(before.cornerAlpha).toBe(255);
+
+  await page.getByTestId('tool-cutout').click();
+  await page.getByTestId('cutout-mode-lasso').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-lasso');
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds.x + bounds.width * 0.3, bounds.y + bounds.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.7, bounds.y + bounds.height * 0.3);
+  await page.mouse.move(bounds.x + bounds.width * 0.7, bounds.y + bounds.height * 0.7);
+  await page.mouse.move(bounds.x + bounds.width * 0.3, bounds.y + bounds.height * 0.7);
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('lasso');
+
+  await page.getByTestId('cutout-tool-shape').click();
+  await page.getByTestId('cutout-mode-ellipse').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-ellipse');
+  await page.getByTestId('cutout-mode-magic').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('magic_erase');
+  await page.getByTestId('cutout-mode-erase').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('erase');
+  await page.getByTestId('cutout-mode-lasso').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-lasso');
+
+  const after = await page.evaluate(() => {
+    const layer = window.AppConfig.layer;
+    const scratch = document.createElement('canvas');
+    scratch.width = layer.link.naturalWidth;
+    scratch.height = layer.link.naturalHeight;
+    scratch.getContext('2d').drawImage(layer.link, 0, 0);
+    return {
+      id: layer.id,
+      type: layer.type,
+      tool: window.AppConfig.TOOL.name,
+      layerCount: window.AppConfig.layers.length,
+      width: layer.link.naturalWidth,
+      height: layer.link.naturalHeight,
+      cornerAlpha: scratch.getContext('2d').getImageData(2, 2, 1, 1).data[3],
+      vectorLayers: window.AppConfig.layers.filter((item) => item.type && item.type !== 'image').map((item) => item.type),
+      regions: window.PhotoStudio.getCutoutSelection().regions.length,
+      preview: layer.link_canvas instanceof HTMLCanvasElement,
+    };
+  });
+  expect(after).toEqual(expect.objectContaining({
+    id: before.id,
+    type: 'image',
+    tool: 'selection',
+    layerCount: before.layerCount,
+    width: before.width,
+    height: before.height,
+    cornerAlpha: 255,
+    vectorLayers: [],
+    regions: 1,
+    preview: true,
+  }));
+});
+
 test('手动 Cutout 的 Hint removed 只在本地预览即将移除区域，不写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
