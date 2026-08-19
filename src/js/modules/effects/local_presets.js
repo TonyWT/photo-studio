@@ -35,27 +35,54 @@ function parseRecipeId(recipeId) {
 	return { group: GROUP_BASES[group] ? group : 'artzy', index: Math.max(0, Number(number) - 1) };
 }
 
+const LOOK_ACCENTS = Object.freeze([
+	[236, 72, 64],
+	[48, 168, 196],
+	[236, 198, 64],
+	[72, 112, 228],
+	[242, 148, 52],
+	[168, 88, 214],
+	[72, 186, 102],
+	[226, 88, 156],
+]);
+
+/**
+ * 生成可区分的本地效果配方：同组保留风格，相邻编号用对比色拉开观感。
+ * @param {string} recipeId
+ */
 function profileFor(recipeId) {
 	const { group, index } = parseRecipeId(recipeId);
 	const base = GROUP_BASES[group];
 	const hash = recipeHash(recipeId);
-	const cycle = (hash % 17) - 8;
-	const accent = (hash >>> 8) % 3;
-	const palette = [
-		[234, 111, 126],
-		[90, 162, 232],
-		[127, 196, 132],
-	][accent];
+	if (group === 'mono') {
+		return {
+			...base,
+			contrast: 0.08 + (index % 5) * 0.16,
+			brightness: -18 + (index % 6) * 8,
+			saturation: -0.95,
+			mono: 0.9,
+			tint: [0, 0, 0],
+			tintMix: 0,
+			vignette: 0.04 + (index % 4) * 0.08,
+			grain: 2 + (index % 5) * 3,
+			seed: hash,
+		};
+	}
+	const accent = LOOK_ACCENTS[index % LOOK_ACCENTS.length];
 	return {
 		...base,
-		contrast: base.contrast + cycle * 0.012,
-		brightness: base.brightness + cycle,
-		saturation: base.saturation + cycle * 0.014,
-		mono: clamp(base.mono + (index % 4) * 0.015, 0, 1),
-		tint: base.tintMix === 0 ? base.tint : base.tint.map((channel, channelIndex) => Math.round(channel * 0.62 + palette[channelIndex] * 0.38)),
-		tintMix: clamp(base.tintMix + ((hash >>> 13) % 5) * 0.012, 0, 0.30),
-		vignette: clamp(base.vignette + (index % 3) * 0.025, 0, 0.28),
-		grain: Math.max(0, base.grain + (hash % 4)),
+		contrast: base.contrast + ((index % 5) - 2) * 0.14,
+		brightness: base.brightness + ((index % 7) - 3) * 7,
+		saturation: clamp(base.saturation + ((index % 4) - 1.5) * 0.22, -0.75, 0.75),
+		mono: index % 8 === 7 ? 0.55 : base.mono,
+		tint: [
+			Math.round(base.tint[0] * 0.35 + accent[0] * 0.65),
+			Math.round(base.tint[1] * 0.35 + accent[1] * 0.65),
+			Math.round(base.tint[2] * 0.35 + accent[2] * 0.65),
+		],
+		tintMix: clamp(0.18 + (index % 5) * 0.03, 0.18, 0.30),
+		vignette: clamp(base.vignette + (index % 4) * 0.07, 0, 0.38),
+		grain: Math.min(16, base.grain + (index % 5) * 2),
 		seed: hash,
 	};
 }
