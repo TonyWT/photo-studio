@@ -4405,7 +4405,9 @@ test('Retouch Spot 能消除大于滤波窗口的色块污点', async ({ page })
     buffer: Buffer.from(repairFixture, 'base64'),
   });
   await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => window.AppConfig?.layer?.type)).toBe('image');
   await page.getByTestId('tool-retouch').click();
+  await expect(page.getByTestId('retouch-repair')).toBeVisible();
   await page.getByTestId('retouch-repair').click();
   await expect(page.locator('#tools_container .repair')).toHaveClass(/active/);
   await page.evaluate(() => {

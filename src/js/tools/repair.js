@@ -69,7 +69,7 @@ class Repair_class extends Base_tools_class {
 	}
 
 	/**
-	 * 从笔刷外圈取样填补内圈污点。只读取笔刷邻域，避免整图 copy。
+	 * 用笔刷外圈像素的均值填补内圈污点。只读取笔刷邻域，避免整图 copy。
 	 * @param {object} mouse
 	 * @param {object} params
 	 */
@@ -82,77 +82,50 @@ class Repair_class extends Base_tools_class {
 		centerY = Math.round(this.adaptSize(centerY, 'height'));
 		const radiusX = Math.max(1, Math.round(this.adaptSize(size, 'width') / 2));
 		const radiusY = Math.max(1, Math.round(this.adaptSize(size, 'height') / 2));
-		const left = Math.max(0, centerX - radiusX);
-		const top = Math.max(0, centerY - radiusY);
-		const right = Math.min(this.tmpCanvas.width, centerX + radiusX + 1);
-		const bottom = Math.min(this.tmpCanvas.height, centerY + radiusY + 1);
-		const width = right - left;
-		const height = bottom - top;
-		if (width <= 0 || height <= 0) return;
+		const margin = Math.max(2, Math.round(Math.max(radiusX, radiusY) * 0.45));
+		const sampleLeft = Math.max(0, centerX - radiusX - margin);
+		const sampleTop = Math.max(0, centerY - radiusY - margin);
+		const sampleRight = Math.min(this.tmpCanvas.width, centerX + radiusX + margin + 1);
+		const sampleBottom = Math.min(this.tmpCanvas.height, centerY + radiusY + margin + 1);
+		const sampleWidth = sampleRight - sampleLeft;
+		const sampleHeight = sampleBottom - sampleTop;
+		if (sampleWidth <= 0 || sampleHeight <= 0) return;
 
 		const quality = params.quality?.value ?? params.quality ?? 'balanced';
-		const sampleCount = quality === 'speed' ? 1 : quality === 'quality' ? 8 : 3;
-		const margin = Math.max(2, Math.round(Math.max(radiusX, radiusY) * 0.45));
-		const sampleLeft = Math.max(0, left - margin);
-		const sampleTop = Math.max(0, top - margin);
-		const sampleRight = Math.min(this.tmpCanvas.width, right + margin);
-		const sampleBottom = Math.min(this.tmpCanvas.height, bottom + margin);
-		const source = this.tmpCanvasCtx.getImageData(
-			sampleLeft,
-			sampleTop,
-			sampleRight - sampleLeft,
-			sampleBottom - sampleTop,
-		);
-		const result = this.tmpCanvasCtx.getImageData(left, top, width, height);
-		const mixed = [0, 0, 0];
-		const sample = [0, 0, 0];
+		const outerScale = quality === 'speed' ? 1.25 : quality === 'quality' ? 1.7 : 1.45;
+		const source = this.tmpCanvasCtx.getImageData(sampleLeft, sampleTop, sampleWidth, sampleHeight);
+		const ring = [0, 0, 0];
+		let ringCount = 0;
+		for (let y = 0; y < sampleHeight; y += 1) {
+			for (let x = 0; x < sampleWidth; x += 1) {
+				const dist = this.brushDistance(sampleLeft + x, sampleTop + y, centerX, centerY, radiusX, radiusY);
+				if (dist <= 1 || dist > outerScale) continue;
+				const index = (y * sampleWidth + x) * 4;
+				ring[0] += source.data[index];
+				ring[1] += source.data[index + 1];
+				ring[2] += source.data[index + 2];
+				ringCount += 1;
+			}
+		}
+		if (ringCount === 0) return;
+		ring[0] /= ringCount;
+		ring[1] /= ringCount;
+		ring[2] /= ringCount;
 
+		const left = Math.max(sampleLeft, centerX - radiusX);
+		const top = Math.max(sampleTop, centerY - radiusY);
+		const width = Math.min(sampleRight, centerX + radiusX + 1) - left;
+		const height = Math.min(sampleBottom, centerY + radiusY + 1) - top;
+		if (width <= 0 || height <= 0) return;
+		const result = this.tmpCanvasCtx.getImageData(left, top, width, height);
 		for (let y = 0; y < height; y += 1) {
 			for (let x = 0; x < width; x += 1) {
-				const targetX = left + x;
-				const targetY = top + y;
-				const distanceX = (targetX - centerX) / radiusX;
-				const distanceY = (targetY - centerY) / radiusY;
-				const dist = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-				if (dist > 1.05) continue;
-				const blend = dist >= 1 ? 0.15 : (1 - dist) * (1 - dist);
-				if (blend <= 0) continue;
-
-				let dirX = targetX - centerX;
-				let dirY = targetY - centerY;
-				const length = Math.hypot(dirX, dirY);
-				if (length < 1e-6) {
-					dirX = 1;
-					dirY = 0;
-				} else {
-					dirX /= length;
-					dirY /= length;
-				}
-
-				mixed[0] = mixed[1] = mixed[2] = 0;
-				for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
-					const angle = sampleCount === 1 ? 0 : (sampleIndex / sampleCount) * Math.PI * 2;
-					const cos = Math.cos(angle);
-					const sin = Math.sin(angle);
-					const rayX = dirX * cos - dirY * sin;
-					const rayY = dirX * sin + dirY * cos;
-					this.sampleSourcePixel(
-						source,
-						sampleLeft,
-						sampleTop,
-						centerX + rayX * (radiusX + margin * 0.6),
-						centerY + rayY * (radiusY + margin * 0.6),
-						sample,
-					);
-					mixed[0] += sample[0];
-					mixed[1] += sample[1];
-					mixed[2] += sample[2];
-				}
-
-				const targetIndex = (y * width + x) * 4;
+				const dist = this.brushDistance(left + x, top + y, centerX, centerY, radiusX, radiusY);
+				if (dist > 1) continue;
+				const blend = dist < 0.62 ? 1 : (1 - (dist - 0.62) / 0.38) ** 2;
+				const index = (y * width + x) * 4;
 				for (let channel = 0; channel < 3; channel += 1) {
-					const healed = mixed[channel] / sampleCount;
-					result.data[targetIndex + channel] = result.data[targetIndex + channel] * (1 - blend) + healed * blend;
+					result.data[index + channel] = result.data[index + channel] * (1 - blend) + ring[channel] * blend;
 				}
 			}
 		}
@@ -160,33 +133,19 @@ class Repair_class extends Base_tools_class {
 	}
 
 	/**
-	 * 从邻域 ImageData 双线性取样 RGB。
-	 * @param {ImageData} source
-	 * @param {number} originX
-	 * @param {number} originY
-	 * @param {number} imageX
-	 * @param {number} imageY
-	 * @param {number[]} into
+	 * 椭圆笔刷内的归一化距离，圆心为 0，边缘为 1。
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {number} centerX
+	 * @param {number} centerY
+	 * @param {number} radiusX
+	 * @param {number} radiusY
+	 * @returns {number}
 	 */
-	sampleSourcePixel(source, originX, originY, imageX, imageY, into) {
-		const localX = Math.max(0, Math.min(source.width - 1, imageX - originX));
-		const localY = Math.max(0, Math.min(source.height - 1, imageY - originY));
-		const x0 = Math.floor(localX);
-		const y0 = Math.floor(localY);
-		const x1 = Math.min(source.width - 1, x0 + 1);
-		const y1 = Math.min(source.height - 1, y0 + 1);
-		const tx = localX - x0;
-		const ty = localY - y0;
-		const at = (x, y) => (y * source.width + x) * 4;
-		const i00 = at(x0, y0);
-		const i10 = at(x1, y0);
-		const i01 = at(x0, y1);
-		const i11 = at(x1, y1);
-		for (let channel = 0; channel < 3; channel += 1) {
-			const topMix = source.data[i00 + channel] * (1 - tx) + source.data[i10 + channel] * tx;
-			const bottomMix = source.data[i01 + channel] * (1 - tx) + source.data[i11 + channel] * tx;
-			into[channel] = topMix * (1 - ty) + bottomMix * ty;
-		}
+	brushDistance(x, y, centerX, centerY, radiusX, radiusY) {
+		const distanceX = (x - centerX) / radiusX;
+		const distanceY = (y - centerY) / radiusY;
+		return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 	}
 }
 
