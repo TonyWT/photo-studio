@@ -550,7 +550,18 @@ function sameRectangleRegion(left, right) {
     && left.width === right.width && left.height === right.height;
 }
 
-function currentCutoutRegions() {
+/**
+ * 魔术橡皮和画笔在按下时就要改预览；套索/形状只在闭合后抠图。
+ * @returns {boolean}
+ */
+function cutoutPreviewIncludesDraft() {
+  return cutoutSelection.mode === 'magic_erase' || cutoutSelection.mode === 'erase';
+}
+
+/**
+ * @param {{includeDraft?: boolean}} [options]
+ */
+function currentCutoutRegions({ includeDraft = true } = {}) {
   const regions = cutoutSelection.regions.length > 0
     ? [...cutoutSelection.regions]
     : cutoutSelection.mode === 'selection'
@@ -565,7 +576,7 @@ function currentCutoutRegions() {
       });
     }
   }
-  if (cutoutDraftRegion) regions.push(cutoutDraftRegion);
+  if (includeDraft && cutoutDraftRegion) regions.push(cutoutDraftRegion);
   return regions;
 }
 
@@ -631,6 +642,18 @@ function scheduleCutoutPreview() {
   });
 }
 
+/**
+ * 只重绘绿色虚线框，不改图层预览。套索拖拽过程用这条路径。
+ */
+function scheduleCutoutPathOverlay() {
+  if (cutoutPreviewFrame) return;
+  cutoutPreviewFrame = window.requestAnimationFrame(() => {
+    cutoutPreviewFrame = 0;
+    renderCutoutHintOverlay();
+    renderCutoutPathOverlay();
+  });
+}
+
 function clearCutoutPreview() {
   cancelScheduledCutoutPreview();
   const layer = cutoutPreview.layerId == null ? null : window.app?.Layers?.get_layer?.(cutoutPreview.layerId);
@@ -687,7 +710,8 @@ function ensureCutoutSource(layer) {
  */
 function refreshCutoutPreview() {
   const layer = window.AppConfig?.layer;
-  const regions = currentCutoutRegions().filter(isUsableCutoutRegion);
+  const regions = currentCutoutRegions({ includeDraft: cutoutPreviewIncludesDraft() })
+    .filter(isUsableCutoutRegion);
   if (!layer || !activeImageLayerIsEditable() || hasUnsupportedCutoutRotation() || regions.length === 0) {
     if (cutoutPreview.canvas) clearCutoutPreview();
     return false;
@@ -1066,10 +1090,50 @@ function removeCutoutHintOverlay() {
   document.querySelector('[data-testid="cutout-hint-overlay"]')?.remove();
 }
 
+/**
+ * 读取主画布当前的世界原点与缩放，与 zoomView.toWorld / toScreen 一致。
+ * @returns {{origin:{x:number,y:number},zoom:number}}
+ */
+function getCutoutViewTransform() {
+  const toWorld = window.app?.Layers?.get_world_coords;
+  const fallbackZoom = Math.max(0.01, Number(window.AppConfig?.ZOOM) || 1);
+  if (typeof toWorld !== 'function') return { origin: { x: 0, y: 0 }, zoom: fallbackZoom };
+  const origin = toWorld(0, 0);
+  const offset = toWorld(100, 0);
+  const span = offset.x - origin.x;
+  const zoom = Math.abs(span) > 1e-6 ? 100 / span : fallbackZoom;
+  return { origin, zoom };
+}
+
+/**
+ * 把 overlay 的绘制坐标系对齐到文档世界坐标，避免缩放下虚线框和抠图像素错位。
+ * @param {CanvasRenderingContext2D} context
+ * @returns {number} 当前缩放
+ */
+function applyCutoutOverlayWorldTransform(context) {
+  const { origin, zoom } = getCutoutViewTransform();
+  context.setTransform(zoom, 0, 0, zoom, -origin.x * zoom, -origin.y * zoom);
+  return zoom;
+}
+
+/**
+ * 在主画布位图像素空间里画出一层按世界坐标放置的图层内容。
+ * @param {CanvasRenderingContext2D} context
+ * @param {CanvasImageSource} source
+ * @param {object} layer
+ */
+function drawCutoutOverlayInWorld(context, source, layer) {
+  context.save();
+  applyCutoutOverlayWorldTransform(context);
+  context.drawImage(source, Number(layer.x) || 0, Number(layer.y) || 0, Number(layer.width) || 0, Number(layer.height) || 0);
+  context.restore();
+}
+
 function renderCutoutHintOverlay() {
   removeCutoutHintOverlay();
   if (!cutoutSelection.hintRemoved || !activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return;
-  const regions = currentCutoutRegions().filter(isUsableCutoutRegion);
+  const regions = currentCutoutRegions({ includeDraft: cutoutPreviewIncludesDraft() })
+    .filter(isUsableCutoutRegion);
   const layer = window.AppConfig?.layer;
   const canvas = document.getElementById('canvas_minipaint');
   const wrapper = document.getElementById('canvas_wrapper');
@@ -1091,7 +1155,7 @@ function renderCutoutHintOverlay() {
   const documentMask = document.createElement('canvas');
   documentMask.width = overlay.width;
   documentMask.height = overlay.height;
-  documentMask.getContext('2d').drawImage(removedMask, layer.x, layer.y, layer.width, layer.height);
+  drawCutoutOverlayInWorld(documentMask.getContext('2d'), removedMask, layer);
 
   // Pixlr calls this Hint removed: retain a faint local ghost of the source
   // while darkening exactly the pixels that the staged cutout would remove.
@@ -1101,17 +1165,13 @@ function renderCutoutHintOverlay() {
   context.drawImage(documentMask, 0, 0);
   context.globalCompositeOperation = 'source-over';
   context.globalAlpha = 0.33;
-  context.drawImage(layer.link, layer.x, layer.y, layer.width, layer.height);
+  drawCutoutOverlayInWorld(context, layer.link, layer);
   context.globalCompositeOperation = 'destination-in';
   context.drawImage(documentMask, 0, 0);
   context.globalCompositeOperation = 'source-over';
   context.globalAlpha = 1;
 
-  const canvasStyle = getComputedStyle(canvas);
-  overlay.style.left = `${canvas.offsetLeft}px`;
-  overlay.style.top = `${canvas.offsetTop}px`;
-  overlay.style.width = canvasStyle.width;
-  overlay.style.height = canvasStyle.height;
+  positionCutoutOverlay(overlay, canvas);
   wrapper.append(overlay);
 }
 
@@ -1192,7 +1252,7 @@ function traceCutoutRegionPath(context, region) {
 }
 
 /**
- * 绘制绿色套索/形状选框。拖拽中显示路径，闭合后保留轮廓并配合实时抠图。
+ * 绘制绿色套索/形状选框。拖拽中只显示虚线，闭合后才叠加抠图预览。
  */
 function renderCutoutPathOverlay() {
   removeCutoutPathOverlay();
@@ -1207,12 +1267,12 @@ function renderCutoutPathOverlay() {
   overlay.width = canvas.width;
   overlay.height = canvas.height;
   const context = overlay.getContext('2d');
-  const zoom = Math.max(0.2, Number(window.AppConfig?.ZOOM) || 1);
+  const zoom = applyCutoutOverlayWorldTransform(context);
   context.lineJoin = 'round';
   context.lineCap = 'round';
   context.fillStyle = 'rgba(0, 255, 0, 0.28)';
   context.strokeStyle = 'rgb(0, 220, 70)';
-  context.lineWidth = Math.max(1.5, 2 / zoom);
+  context.lineWidth = Math.max(1.5, 2) / zoom;
   context.setLineDash([7 / zoom, 5 / zoom]);
   for (const region of regions) {
     if (region.shape === 'rectangle' && cutoutSelection.mode === 'selection') continue;
@@ -1448,10 +1508,6 @@ function bindCutoutCanvasGestures() {
     const region = cutoutRegionFromGesture(cutoutSelection.mode, point, point, [point]);
     cutoutDraftRegion = region;
     renderCutoutPathOverlay();
-    if (isUsableCutoutRegion(region)) {
-      refreshCutoutPreview();
-      renderCutoutHintOverlay();
-    }
     return { pointerId, start: point, points: [point], source };
   };
   const extendStagedCutoutPointer = (gesture, point) => {
@@ -1468,7 +1524,7 @@ function bindCutoutCanvasGestures() {
       gesture.points,
     );
     cutoutDraftRegion = region;
-    scheduleCutoutPreview();
+    scheduleCutoutPathOverlay();
   };
   const discardCutoutDraft = () => {
     if (!cutoutDraftRegion) return;
@@ -3578,16 +3634,52 @@ async function activateEditorTool(key) {
   updateCanvasStatus();
 }
 
+/**
+ * 清掉原生矩形选区的视觉状态。不要走 selection.on_leave：它会删掉抠图预览用的 link_canvas。
+ */
+function clearNativeRectangleSelectionVisual() {
+  const selection = getCoreToolModule('selection');
+  if (!selection) return;
+  if (selection.selection) {
+    selection.selection = { x: null, y: null, width: null, height: null };
+  }
+  selection.selection_coords_from = null;
+}
+
+/**
+ * 切换 miniPaint 核心工具，并保住当前抠图预览画布。
+ * `selection.on_leave` 会 `delete link_canvas`，直接切工具会把图片层显示成空。
+ * @param {string} toolName
+ * @param {HTMLCanvasElement|null} previewCanvas
+ * @param {object|null} layer
+ */
+async function activateCutoutCoreTool(toolName, previewCanvas, layer) {
+  await activateCoreTool(toolName);
+  if (previewCanvas && layer && layer.link_canvas !== previewCanvas) {
+    layer.link_canvas = previewCanvas;
+    if (window.AppConfig) window.AppConfig.need_render = true;
+  }
+}
+
+/**
+ * 切换 Cutout 子工具。套索/形状不激活矢量工具或 select，始终作用在当前图片层。
+ * @param {string} coreTool
+ */
 async function activateEditorToolMode(coreTool) {
   if (cutoutSelection.mode === 'selection') commitNativeRectangleSelection();
   cutoutDraftRegion = null;
+  const layer = window.AppConfig?.layer;
+  const previewCanvas = cutoutPreview.canvas
+    && layer?.link_canvas === cutoutPreview.canvas
+    ? cutoutPreview.canvas
+    : null;
   if (CUTOUT_SHAPE_MODES.has(coreTool)) {
     if (!activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return false;
     cutoutSelection.mode = coreTool;
-    // miniPaint tools attach document-level mouse listeners. Keep their
-    // lifecycle clean, then shield those listeners while our pointer gesture
-    // owns the canvas.
-    await deactivateCoreTool();
+    // miniPaint 的 ellipse/triangle/star/heart/line 会 Insert_layer 新建矢量层；
+    // select 会画出整层变换框。套索/形状抠图始终停在 selection 上，只改当前图片层。
+    await activateCutoutCoreTool('selection', previewCanvas, layer);
+    clearNativeRectangleSelectionVisual();
     installCutoutCoreEventShield();
     document.body.dataset.canvasToolMode = `cutout-${coreTool}`;
     refreshCutoutPreview();
@@ -3597,14 +3689,14 @@ async function activateEditorToolMode(coreTool) {
   if (!MANUAL_CUTOUT_TOOLS.includes(coreTool)) return;
   cutoutSelection.mode = coreTool;
   if (coreTool === 'magic_erase' || coreTool === 'erase') {
-    await activateCoreTool(coreTool);
+    await activateCutoutCoreTool(coreTool, previewCanvas, layer);
     installCutoutCoreEventShield();
     refreshCutoutPreview();
     renderCutoutPathOverlay();
     return true;
   }
   uninstallCutoutCoreEventShield();
-  await activateCoreTool(coreTool);
+  await activateCutoutCoreTool(coreTool, previewCanvas, layer);
   refreshCutoutPreview();
   renderCutoutPathOverlay();
   return true;
