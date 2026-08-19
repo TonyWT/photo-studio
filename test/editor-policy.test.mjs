@@ -57,8 +57,15 @@ test('Draw 提交时保留预览直到图层写回，橡皮从可见像素取样
   const erase = await readFile(new URL('../src/js/tools/erase.js', import.meta.url), 'utf8');
   assert.match(erase, /copyVisibleLayerImage/);
   assert.match(erase, /queueLayerImageWrite/);
+  assert.match(erase, /softness/);
+  assert.match(erase, /Math\.hypot/);
+  assert.match(erase, /strokeLastX/);
+  assert.doesNotMatch(erase, /alpha \/ 255 \/ 2/);
   assert.doesNotMatch(erase, /LayerPaintSession/);
 
   const shell = await readFile(new URL('../src/js/studio/editor-shell.mjs', import.meta.url), 'utf8');
   assert.match(shell, /data-testid="drawing-eraser" data-core-tool="erase"/);
+  assert.match(shell, /setToolAttribute\('erase', 'softness'/);
+  assert.match(shell, /mode:\s*'erase'|mode === 'erase'|mode == 'erase'/);
+  assert.match(shell, /syncDrawingTransparencyGrid/);
 });

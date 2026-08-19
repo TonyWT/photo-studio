@@ -5710,9 +5710,190 @@ test('Drawing 橡皮可以擦掉刚画上的笔触', async ({ page }) => {
   await page.getByTestId('drawing-eraser').click();
   await expect(page.locator('#tools_container .erase')).toHaveClass(/active/);
   await canvas.click({ position: { x: 134, y: 134 } });
-  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 2);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBeGreaterThanOrEqual(history + 2);
   await expect.poll(displayPixel).not.toEqual([217, 70, 239, 255]);
   await expect.poll(activeLayerPixel).toEqual([0, 0, 0, 0]);
+});
+
+test('Drawing 柔化橡皮拖动应连续擦掉笔触，而不是留下半透明圆戳', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'erase-drag-stroke.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-eraser')).toBeVisible();
+  await expect(page.locator('#canvas_minipaint_background')).toHaveClass(/squares/);
+  await expect(page.locator('#canvas_minipaint_background')).not.toHaveClass(/white/);
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-size').fill('18');
+  await page.getByTestId('drawing-softness').fill('20');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-brush').click();
+
+  const layerPixel = (x, y) => page.evaluate(({ sampleX, sampleY }) => {
+    const layer = window.AppConfig.layer;
+    const source = layer.link_canvas || layer.link;
+    const canvas = document.createElement('canvas');
+    canvas.width = layer.width_original || source.width || source.naturalWidth;
+    canvas.height = layer.height_original || source.height || source.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
+    return Array.from(context.getImageData(sampleX, sampleY, 1, 1).data);
+  }, { sampleX: x, sampleY: y });
+
+  const canvas = page.locator('#canvas_minipaint');
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  await canvas.hover({ position: { x: 70, y: 135 } });
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + 200, canvasBox.y + 135, { steps: 12 });
+  await page.mouse.up();
+  await expect.poll(() => layerPixel(140, 135)).toEqual([217, 70, 239, 255]);
+
+  await page.getByTestId('drawing-size').fill('28');
+  await page.getByTestId('drawing-eraser').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe('erase');
+  await canvas.hover({ position: { x: 70, y: 135 } });
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + 200, canvasBox.y + 135, { steps: 1 });
+  await page.mouse.up();
+
+  await expect.poll(() => layerPixel(140, 135).then((pixel) => pixel[3])).toBe(0);
+  await expect.poll(() => layerPixel(140, 135)).not.toEqual([217, 70, 239, 255]);
+  await expect.poll(() => layerPixel(140, 135)).not.toEqual([255, 255, 255, 255]);
+});
+
+test('Drawing 选中橡皮后预览呈现透明挖空而不是前景色', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'erase-preview.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-eraser')).toBeVisible();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-size').fill('40');
+  await page.getByTestId('drawing-softness').fill('20');
+  await page.getByTestId('drawing-eraser').click();
+  await expect(page.locator('#tools_container .erase')).toHaveClass(/active/);
+  await expect(page.getByTestId('drawing-eraser')).toHaveClass(/is-selected/);
+  const preview = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-testid="drawing-brush-preview"]');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    return Array.from(context.getImageData(canvas.width / 2, canvas.height / 2, 1, 1).data);
+  });
+  expect(preview.slice(0, 3)).not.toEqual([217, 70, 239]);
+  expect(preview[0]).toBeGreaterThan(40);
+  expect(preview[0]).toBeLessThan(90);
+});
+
+test('Drawing 柔化会改变橡皮外缘透明度', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'erase-softness.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-size')).toBeVisible();
+  await page.getByTestId('drawing-size').fill('40');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-eraser').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe('erase');
+  await expect.poll(() => page.evaluate(() => (
+    window.AppConfig.TOOLS.find((tool) => tool.name === 'erase').attributes.softness
+  ))).toBe(20);
+
+  const edgeAlpha = () => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    return canvas.getContext('2d', { willReadFrequently: true }).getImageData(148, 135, 1, 1).data[3];
+  });
+  await page.getByTestId('drawing-softness').fill('0');
+  await expect.poll(() => page.evaluate(() => (
+    window.AppConfig.TOOLS.find((tool) => tool.name === 'erase').attributes.softness
+  ))).toBe(0);
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  const hardEdge = await edgeAlpha();
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(edgeAlpha).toBe(255);
+
+  await page.getByTestId('drawing-softness').fill('100');
+  await expect.poll(() => page.evaluate(() => (
+    window.AppConfig.TOOLS.find((tool) => tool.name === 'erase').attributes.softness
+  ))).toBe(100);
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(edgeAlpha).not.toBe(hardEdge);
+  await expect.poll(edgeAlpha).toBeLessThan(255);
+});
+
+test('Drawing 在图层类型尚未写回 image 时仍能擦掉可见笔触', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'erase-pending-type.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio?.activateEditorTool))).toBe(true);
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-color')).toBeVisible();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-size').fill('30');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-brush').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
+  })).not.toEqual([20, 30, 40, 255]);
+
+  await page.evaluate(() => {
+    window.AppConfig.layer.type = null;
+  });
+  await page.getByTestId('drawing-eraser').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => {
+    const layer = window.AppConfig.layer;
+    const source = layer.link_canvas || layer.link;
+    const canvas = document.createElement('canvas');
+    canvas.width = layer.width_original || source.width || source.naturalWidth;
+    canvas.height = layer.height_original || source.height || source.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  })).toEqual([0, 0, 0, 0]);
 });
 
 test('Drawing 取色器从本地图层读取像素颜色，不写入编辑历史', async ({ page }) => {

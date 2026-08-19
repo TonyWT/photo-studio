@@ -94,7 +94,8 @@ config.TOOLS = [
 		name: 'erase',
 		on_update: 'on_params_update',
 		attributes: {
-			size: 30,
+			size: 40,
+			softness: 20,
 			circle: true,
 			strict: true,
 		},

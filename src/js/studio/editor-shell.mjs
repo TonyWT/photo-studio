@@ -421,7 +421,13 @@ function setToolAttribute(name, attribute, value) {
   if (tool?.attributes) tool.attributes[attribute] = value;
 }
 
-function renderDrawingBrushPreview(preview, { color, size, softness, opacity }) {
+/**
+ * 在棋盘格上绘制当前画笔或橡皮的真实预览。
+ * @param {HTMLCanvasElement | null} preview
+ * @param {{color: string, size: number, softness: number, opacity: number, mode?: string}} options
+ * @returns {void}
+ */
+function renderDrawingBrushPreview(preview, { color, size, softness, opacity, mode }) {
   const context = preview?.getContext?.('2d');
   if (!context) return;
   const { width, height } = preview;
@@ -437,17 +443,95 @@ function renderDrawingBrushPreview(preview, { color, size, softness, opacity }) 
   const centerX = width / 2;
   const centerY = height / 2;
   const featherStop = Math.max(.08, 1 - Number(softness) / 100);
-  const gradient = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-  gradient.addColorStop(0, color);
-  gradient.addColorStop(featherStop, color);
-  gradient.addColorStop(1, 'rgba(0,0,0,0)');
   context.save();
-  context.globalAlpha = Math.max(0, Math.min(1, Number(opacity) / 100));
-  context.fillStyle = gradient;
-  context.beginPath();
-  context.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  context.fill();
+  if (mode === 'erase') {
+    context.globalAlpha = Math.max(0.2, Math.min(1, Number(opacity) / 100));
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(centerX, centerY, radius * 1.35, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = 1;
+    context.globalCompositeOperation = 'destination-out';
+    const eraseGradient = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    eraseGradient.addColorStop(0, 'rgba(0,0,0,1)');
+    eraseGradient.addColorStop(featherStop, 'rgba(0,0,0,1)');
+    eraseGradient.addColorStop(1, 'rgba(0,0,0,0)');
+    context.fillStyle = eraseGradient;
+    context.beginPath();
+    context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    context.fill();
+    context.globalCompositeOperation = 'destination-over';
+    for (let y = 0; y < height; y += cell) {
+      for (let x = 0; x < width; x += cell) {
+        context.fillStyle = ((x / cell + y / cell) % 2 === 0) ? '#494949' : '#303030';
+        context.fillRect(x, y, cell, cell);
+      }
+    }
+  } else {
+    const gradient = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(featherStop, color);
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    context.globalAlpha = Math.max(0, Math.min(1, Number(opacity) / 100));
+    context.fillStyle = gradient;
+    context.beginPath();
+    context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    context.fill();
+  }
   context.restore();
+}
+
+/**
+ * 按当前核心工具同步 Draw 面板的选中态。
+ * @param {ParentNode | null} [target]
+ * @returns {void}
+ */
+function syncDrawingToolSelection(target = document.querySelector('[data-editor-tool-controls]')) {
+  const active = window.AppConfig?.TOOL?.name;
+  target?.querySelectorAll('[data-core-tool]').forEach((button) => {
+    button.classList.toggle('is-selected', button.dataset.coreTool === active);
+  });
+}
+
+/** @type {boolean | null} */
+let drawingTransparencyRestore = null;
+
+/**
+ * Draw 工作区显示棋盘格，擦除后的透明像素才不会被白底衬成白色笔触。
+ * @param {boolean} enabled
+ * @returns {void}
+ */
+function syncDrawingTransparencyGrid(enabled) {
+  const gui = window.app?.GUI;
+  const appConfig = window.AppConfig;
+  if (!gui?.render_canvas_background || !appConfig) return;
+  if (enabled) {
+    if (drawingTransparencyRestore == null) {
+      drawingTransparencyRestore = Boolean(appConfig.TRANSPARENCY);
+    }
+    appConfig.TRANSPARENCY = true;
+  } else if (drawingTransparencyRestore != null) {
+    appConfig.TRANSPARENCY = drawingTransparencyRestore;
+    drawingTransparencyRestore = null;
+  }
+  gui.render_canvas_background('canvas_minipaint');
+}
+
+/**
+ * 用当前滑杆参数重绘 Draw 笔刷/橡皮预览。
+ * @param {ParentNode | null} [target]
+ * @returns {void}
+ */
+function refreshDrawingBrushPreviewFromPanel(target = document.querySelector('[data-editor-tool-controls]')) {
+  const preview = target?.querySelector('[data-testid="drawing-brush-preview"]');
+  if (!preview) return;
+  renderDrawingBrushPreview(preview, {
+    color: target.querySelector('[data-testid="drawing-color"]')?.value ?? window.AppConfig?.COLOR ?? '#ffffff',
+    size: Number(target.querySelector('[data-testid="drawing-size"]')?.value ?? 40),
+    softness: Number(target.querySelector('[data-testid="drawing-softness"]')?.value ?? 20),
+    opacity: Number(target.querySelector('[data-testid="drawing-opacity"]')?.value ?? 100),
+    mode: window.AppConfig?.TOOL?.name === 'erase' ? 'erase' : 'brush',
+  });
 }
 
 function setToolAttributeValue(name, attribute, value) {
@@ -3310,6 +3394,7 @@ function renderEditorToolControls(key) {
       size: Number(sizeInput.value),
       softness: Number(softnessInput.value),
       opacity: Number(opacityInput.value),
+      mode: window.AppConfig?.TOOL?.name === 'erase' ? 'erase' : 'brush',
     });
     const applyDrawingColor = (nextColor) => {
       colorInput.value = nextColor;
@@ -3357,6 +3442,8 @@ function renderEditorToolControls(key) {
     softnessInput.addEventListener('input', () => {
       const softness = Number(softnessInput.value);
       setToolAttribute('brush', 'softness', softness);
+      setToolAttribute('erase', 'softness', softness);
+      setToolAttribute('erase', 'strict', softness === 0);
       target.querySelector('[data-drawing-softness-output]').textContent = `${softness}%`;
       refreshBrushPreview();
     });
@@ -3370,6 +3457,9 @@ function renderEditorToolControls(key) {
     const applyBrushPreset = ({ size, softness }) => {
       setToolAttribute('brush', 'size', size);
       setToolAttribute('brush', 'softness', softness);
+      setToolAttribute('erase', 'size', size);
+      setToolAttribute('erase', 'softness', softness);
+      setToolAttribute('erase', 'strict', softness === 0);
       sizeInput.value = String(size);
       softnessInput.value = String(softness);
       sizeOutput.textContent = `${size}px`;
@@ -3393,7 +3483,11 @@ function renderEditorToolControls(key) {
       });
     });
     target.querySelectorAll('[data-core-tool]').forEach((button) => {
-      button.addEventListener('click', () => activateCoreTool(button.dataset.coreTool));
+      button.addEventListener('click', async () => {
+        await activateCoreTool(button.dataset.coreTool);
+        syncDrawingToolSelection(target);
+        refreshBrushPreview();
+      });
     });
     return;
   }
@@ -3647,6 +3741,13 @@ async function activateEditorTool(key) {
   } else {
     await activateCoreTool(tool.coreTool);
   }
+  if (key === 'drawing') {
+    syncDrawingTransparencyGrid(true);
+    syncDrawingToolSelection();
+    refreshDrawingBrushPreviewFromPanel();
+  } else {
+    syncDrawingTransparencyGrid(false);
+  }
   if (key === 'crop' || key === 'cutout' || key === 'liquify' || key === 'retouch') {
     document.getElementById('action_attributes')?.setAttribute('hidden', '');
   }
@@ -3751,6 +3852,7 @@ async function closeActiveEditorToolPanel() {
   if (panel) panel.hidden = true;
   document.body.classList.remove('studio-tool-panel-open');
   document.body.classList.remove('studio-drawing-palette-open');
+  syncDrawingTransparencyGrid(false);
   document.body.dataset.collageCanvasGestures = 'false';
   removeCutoutHintOverlay();
   syncCanvasInteractionOffset();

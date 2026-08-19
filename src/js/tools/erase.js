@@ -3,7 +3,7 @@ import config from './../config.js';
 import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
-import { copyVisibleLayerImage, isDrawableLayer, notifyNotDrawable, queueLayerImageWrite, settlePaintedLayerImage, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
+import { copyVisibleLayerImage, hasErasablePixels, isDrawableLayer, notifyNotDrawable, queueLayerImageWrite, settlePaintedLayerImage, shouldPaintOnCurrentLayer, TRANSPARENT_PIXEL } from './../libs/draw-on-layer.js';
 
 class Erase_class extends Base_tools_class {
 
@@ -15,6 +15,8 @@ class Erase_class extends Base_tools_class {
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
 		this.started = false;
+		this.strokeLastX = null;
+		this.strokeLastY = null;
 	}
 
 	load() {
@@ -61,15 +63,15 @@ class Erase_class extends Base_tools_class {
 			return;
 		}
 		if (config.layer.type != 'image') {
-			if (shouldPaintOnCurrentLayer() && isDrawableLayer(config.layer) && config.layer.type == null) {
-				return;
-			}
-			if (shouldPaintOnCurrentLayer()) {
+			if (shouldPaintOnCurrentLayer() && isDrawableLayer(config.layer) && hasErasablePixels(config.layer)) {
+				// Draw 刚提交时会暂时把 type 还原成 null，但 link_canvas 上已经有可见笔触。
+			} else if (shouldPaintOnCurrentLayer()) {
 				notifyNotDrawable();
+				return;
 			} else {
 				alertify.error('This layer must contain an image. Please convert it to raster to apply this tool.');
+				return;
 			}
-			return;
 		}
 		if (config.layer.is_vector == true) {
 			alertify.error('Layer is vector, convert it to raster to apply this tool.');
@@ -80,22 +82,28 @@ class Erase_class extends Base_tools_class {
 			return;
 		}
 		this.started = true;
+		this.strokeLastX = null;
+		this.strokeLastY = null;
 
-		//get canvas from layer
+		const source = config.layer.link_canvas || config.layer.link;
 		this.tmpCanvas = document.createElement('canvas');
 		this.tmpCanvasCtx = this.tmpCanvas.getContext("2d");
-		this.tmpCanvas.width = config.layer.width_original;
-		this.tmpCanvas.height = config.layer.height_original;
+		this.tmpCanvas.width = config.layer.width_original || source?.width || source?.naturalWidth || config.WIDTH;
+		this.tmpCanvas.height = config.layer.height_original || source?.height || source?.naturalHeight || config.HEIGHT;
 		/** 从当前可见像素取样，才能擦掉尚未写回 `layer.link` 的画笔。 */
 		copyVisibleLayerImage(this.tmpCanvasCtx, config.layer);
 
-		this.tmpCanvasCtx.scale(
-			config.layer.width_original / config.layer.width,
-			config.layer.height_original / config.layer.height
-		);
+		const displayWidth = config.layer.width || this.tmpCanvas.width;
+		const displayHeight = config.layer.height || this.tmpCanvas.height;
+		if (displayWidth && displayHeight) {
+			this.tmpCanvasCtx.scale(
+				this.tmpCanvas.width / displayWidth,
+				this.tmpCanvas.height / displayHeight
+			);
+		}
 
 		//do erase
-		this.erase_general(this.tmpCanvasCtx, 'click', mouse, params.size, params.strict, params.circle);
+		this.erase_general(this.tmpCanvasCtx, 'click', mouse, params.size, params.strict, params.circle, false, params.softness);
 
 		//register tmp canvas for faster redraw
 		config.layer.link_canvas = this.tmpCanvas;
@@ -119,7 +127,7 @@ class Erase_class extends Base_tools_class {
 		}
 
 		//do erase
-		this.erase_general(this.tmpCanvasCtx, 'move', mouse, params.size, params.strict, params.circle, is_touch);
+		this.erase_general(this.tmpCanvasCtx, 'move', mouse, params.size, params.strict, params.circle, is_touch, params.softness);
 
 		//draw draft preview
 		config.need_render = true;
@@ -130,93 +138,141 @@ class Erase_class extends Base_tools_class {
 			return;
 		}
 		this.started = false;
+		this.strokeLastX = null;
+		this.strokeLastY = null;
 		const canvas = this.tmpCanvas;
 		const layer = config.layer;
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
 		if (!canvas || !layer) return;
 
+		const actions = [];
+		if (layer.type != 'image') {
+			const image = new Image();
+			image.src = TRANSPARENT_PIXEL;
+			actions.push(new app.Actions.Update_layer_action(layer.id, {
+				type: 'image',
+				link: image,
+				x: layer.x || 0,
+				y: layer.y || 0,
+				width: canvas.width,
+				height: canvas.height,
+				width_original: canvas.width,
+				height_original: canvas.height,
+			}));
+		}
+		actions.push(new app.Actions.Update_layer_image_action(canvas, layer.id));
 		void settlePaintedLayerImage(
 			canvas,
 			layer,
 			queueLayerImageWrite(layer, () => app.State.do_action(
-				new app.Actions.Bundle_action('erase_tool', 'Erase Tool', [
-					new app.Actions.Update_layer_image_action(canvas, layer.id)
-				])
+				new app.Actions.Bundle_action('erase_tool', 'Erase Tool', actions)
 			)),
 		);
 	}
 
-	erase_general(ctx, type, mouse, size, strict, is_circle, is_touch) {
+	/**
+	 * 在图层像素上盖一个 destination-out 圆戳。
+	 * @param {CanvasRenderingContext2D} ctx
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {number} size
+	 * @param {number} eraseAlpha
+	 * @param {number} softnessValue
+	 * @returns {void}
+	 */
+	stampEraseCircle(ctx, x, y, size, eraseAlpha, softnessValue) {
+		ctx.save();
+		ctx.globalCompositeOperation = 'destination-out';
+		if (softnessValue > 0) {
+			const featherStop = Math.max(0.08, 1 - softnessValue / 100);
+			const radgrad = ctx.createRadialGradient(
+				x, y, size / 2 * featherStop,
+				x, y, size / 2);
+			radgrad.addColorStop(0, "rgba(255, 255, 255, " + eraseAlpha + ")");
+			radgrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+			ctx.fillStyle = radgrad;
+		} else {
+			ctx.fillStyle = "rgba(255, 255, 255, " + eraseAlpha + ")";
+		}
+		ctx.beginPath();
+		ctx.arc(x, y, size / 2, 0, Math.PI * 2, true);
+		ctx.fill();
+		ctx.restore();
+	}
+
+	/**
+	 * 按圆形/方形和柔化把目标像素变成透明。
+	 * @param {CanvasRenderingContext2D} ctx
+	 * @param {'click' | 'move'} type
+	 * @param {object} mouse
+	 * @param {number} size
+	 * @param {boolean} strict
+	 * @param {boolean} is_circle
+	 * @param {boolean} [is_touch]
+	 * @param {number} [softness]
+	 * @returns {void}
+	 */
+	erase_general(ctx, type, mouse, size, strict, is_circle, is_touch, softness) {
 		var mouse_x = Math.round(mouse.x) - config.layer.x;
 		var mouse_y = Math.round(mouse.y) - config.layer.y;
 		var alpha = config.ALPHA;
-		var mouse_last_x = parseInt(mouse.last_x) - config.layer.x;
-		var mouse_last_y = parseInt(mouse.last_y) - config.layer.y;
-
-		ctx.beginPath();
-		ctx.lineWidth = size;
-		ctx.lineCap = 'round';
-		ctx.lineJoin = 'round';
-		if (alpha < 255)
-			ctx.strokeStyle = "rgba(255, 255, 255, " + alpha / 255 / 10 + ")";
-		else
-			ctx.strokeStyle = "rgba(255, 255, 255, 1)";
+		const eraseAlpha = alpha / 255;
+		const softnessValue = Math.max(0, Math.min(100, Number(softness) || 0));
+		const useSoft = is_circle && (softnessValue > 0 || strict == false);
+		const stampSoftness = softnessValue > 0 ? softnessValue : (strict == false ? 20 : 0);
+		const lastX = Number.isFinite(this.strokeLastX) ? this.strokeLastX : mouse_x;
+		const lastY = Number.isFinite(this.strokeLastY) ? this.strokeLastY : mouse_y;
 
 		if (is_circle == false) {
-			//rectangle
 			var size_half = Math.ceil(size / 2);
 			if (size == 1) {
-				//single cell mode
 				mouse_x = Math.floor(mouse.x) - config.layer.x;
 				mouse_y = Math.floor(mouse.y) - config.layer.y;
 				size_half = 0;
 			}
 			ctx.save();
 			ctx.globalCompositeOperation = 'destination-out';
-			ctx.fillStyle = "rgba(255, 255, 255, " + alpha / 255 + ")";
+			ctx.fillStyle = "rgba(255, 255, 255, " + eraseAlpha + ")";
 			ctx.fillRect(mouse_x - size_half, mouse_y - size_half, size, size);
 			ctx.restore();
+			this.strokeLastX = mouse_x;
+			this.strokeLastY = mouse_y;
+			return;
 		}
-		else {
-			//circle
-			ctx.save();
 
-			if (strict == false) {
-				var radgrad = ctx.createRadialGradient(
-					mouse_x, mouse_y, size / 8,
-					mouse_x, mouse_y, size / 2);
-				if (type == 'click')
-					radgrad.addColorStop(0, "rgba(255, 255, 255, " + alpha / 255 + ")");
-				else if (type == 'move')
-					radgrad.addColorStop(0, "rgba(255, 255, 255, " + alpha / 255 / 2 + ")");
-				radgrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+		this.stampEraseCircle(ctx, mouse_x, mouse_y, size, eraseAlpha, stampSoftness);
+
+		if (type == 'move' && (mouse_x !== lastX || mouse_y !== lastY)) {
+			const dx = mouse_x - lastX;
+			const dy = mouse_y - lastY;
+			const distance = Math.hypot(dx, dy);
+			const spacing = Math.max(1, size / 4);
+			if (distance > spacing) {
+				const steps = Math.floor(distance / spacing);
+				for (let i = 1; i < steps; i++) {
+					const t = i / steps;
+					this.stampEraseCircle(ctx, lastX + dx * t, lastY + dy * t, size, eraseAlpha, stampSoftness);
+				}
 			}
 
-			//set Composite
-			ctx.globalCompositeOperation = 'destination-out';
-			if (strict == true)
-				ctx.fillStyle = "rgba(255, 255, 255, " + alpha / 255 + ")";
-			else
-				ctx.fillStyle = radgrad;
-			ctx.beginPath();
-			ctx.arc(mouse_x, mouse_y, size / 2, 0, Math.PI * 2, true);
-			ctx.fill();
-			ctx.restore();
+			if (!useSoft) {
+				ctx.save();
+				ctx.globalCompositeOperation = 'destination-out';
+				ctx.lineWidth = size;
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
+				ctx.strokeStyle = "rgba(255, 255, 255, " + eraseAlpha + ")";
+				ctx.beginPath();
+				ctx.moveTo(lastX, lastY);
+				ctx.lineTo(mouse_x, mouse_y);
+				ctx.stroke();
+				ctx.restore();
+			}
 		}
 
-		//extra work if mouse moving fast - fill gaps
-		if (type == 'move' && is_circle == true && mouse_last_x != false && mouse_last_y != false && is_touch !== true) {
-			ctx.save();
-			ctx.globalCompositeOperation = 'destination-out';
-
-			ctx.beginPath();
-			ctx.moveTo(mouse_last_x, mouse_last_y);
-			ctx.lineTo(mouse_x, mouse_y);
-			ctx.stroke();
-
-			ctx.restore();
-		}
+		this.strokeLastX = mouse_x;
+		this.strokeLastY = mouse_y;
 	}
 
 }

@@ -3,7 +3,7 @@ import config from './../config.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
 
 /** 空白层转图片时，给 Update_layer_image 一个可写入的初始 src。 */
-const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+export const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 /** Draw 工具在非图像/空白层上的提示文案。 */
 export const DRAW_LAYER_ERROR_MESSAGE = '只有在图像图层或空白图层上才能使用绘制工具。';
@@ -32,6 +32,16 @@ export function shouldPaintOnCurrentLayer() {
 export function isDrawableLayer(layer) {
 	if (!layer) return false;
 	return layer.type === 'image' || layer.type == null;
+}
+
+/**
+ * 当前层是否有可擦除的可见像素，包括尚未写回 `layer.link` 的预览。
+ * @param {object | null | undefined} layer
+ * @returns {boolean}
+ */
+export function hasErasablePixels(layer) {
+	if (!layer) return false;
+	return Boolean(layer.link_canvas || layer.link);
 }
 
 /**
