@@ -1352,10 +1352,13 @@ test('切换 Cutout 子工具不新建图层，也不把当前图片层清空', 
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('lasso');
 
+  await page.getByTestId('cutout-tool-shape').click();
   await page.getByTestId('cutout-mode-ellipse').click();
   await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-ellipse');
   await page.getByTestId('cutout-mode-magic').click();
   await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('magic_erase');
+  await page.getByTestId('cutout-mode-erase').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('erase');
   await page.getByTestId('cutout-mode-lasso').click();
   await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-lasso');
 
