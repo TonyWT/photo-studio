@@ -2184,6 +2184,7 @@ test('Effect 提供分类卡、真实本地预设，并保留全部效果浏览�
   await expect(page.locator('.studio-effect-preset')).toHaveCount(11);
   await expect(page.getByTestId('effect-apply')).toHaveCount(0);
   await expect(page.getByTestId('effect-preset-mono-black_and_white').locator('img[src^="data:image"]')).toBeVisible();
+  await expect.poll(() => page.getByTestId('effect-preset-mono-black_and_white').locator('img').evaluate((image) => getComputedStyle(image).filter)).not.toMatch(/invert/i);
   await expect.poll(() => page.locator('.studio-effect-preset').first().evaluate((card) => {
     const grid = card.parentElement;
     const media = card.querySelector('.studio-effect-preset-media');
