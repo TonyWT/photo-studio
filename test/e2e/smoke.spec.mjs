@@ -4313,7 +4313,7 @@ test('Retouch Blur 与 Sharpen 都会写入本地像素，并可分别撤销', a
   }
 });
 
-test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', async ({ page }) => {
+test('Retouch 修复笔刷会用外圈纹理消除局部瑕疵，并可撤销', async ({ page }) => {
   await openHome(page);
   const repairFixture = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
@@ -4349,7 +4349,9 @@ test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', 
   await page.getByTestId('retouch-repair').click();
   await expect(page.locator('#tools_container .repair')).toHaveClass(/active/);
   await expect(page.getByTestId('retouch-repair')).toHaveClass(/is-selected/);
-  await page.getByTestId('retouch-size').fill('1');
+  await page.evaluate(() => {
+    window.AppConfig.TOOLS.find((tool) => tool.name === 'repair').attributes.size = 12;
+  });
   const before = await page.evaluate(() => ({
     history: window.State.action_history.length,
     index: window.State.action_history_index,
@@ -4361,7 +4363,7 @@ test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', 
   }));
   expect(before.pixel).toEqual([255, 0, 255, 255]);
 
-  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await page.locator('#canvas_minipaint').click({ position: { x: 135, y: 135 } });
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
   await expect.poll(() => page.evaluate(() => {
     const canvas = document.createElement('canvas');
@@ -4382,6 +4384,49 @@ test('Retouch 修复笔刷会用邻域中值消除局部瑕疵，并可撤销', 
     return Array.from(context.getImageData(135, 135, 1, 1).data);
   })).toEqual(before.pixel);
   await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
+});
+
+test('Retouch Spot 能消除大于滤波窗口的色块污点', async ({ page }) => {
+  await openHome(page);
+  const repairFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(40, 140, 200)';
+    context.fillRect(0, 0, 270, 270);
+    context.fillStyle = 'rgb(255, 0, 255)';
+    context.fillRect(123, 123, 24, 24);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'repair-large-blemish.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(repairFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await page.getByTestId('tool-retouch').click();
+  await page.getByTestId('retouch-repair').click();
+  await expect(page.locator('#tools_container .repair')).toHaveClass(/active/);
+  await page.evaluate(() => {
+    window.AppConfig.TOOLS.find((tool) => tool.name === 'repair').attributes.size = 80;
+  });
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+  await page.locator('#canvas_minipaint').click({ position: { x: 135, y: 135 } });
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore + 1);
+  const healed = await page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const scratch = document.createElement('canvas');
+    scratch.width = image.naturalWidth;
+    scratch.height = image.naturalHeight;
+    const context = scratch.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    return Array.from(context.getImageData(135, 135, 1, 1).data);
+  });
+  expect(healed[0]).toBeLessThan(80);
+  expect(healed[1]).toBeGreaterThan(100);
+  expect(healed[2]).toBeGreaterThan(150);
+  expect(healed[3]).toBe(255);
 });
 
 test('Retouch 减淡笔刷会局部提亮并提供可撤销的本地像素修改', async ({ page }) => {
