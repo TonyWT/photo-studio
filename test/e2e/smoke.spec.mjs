@@ -2197,6 +2197,7 @@ test('Effect 提供分类卡、真实本地预设，并保留全部效果浏览�
     context.drawImage(image, 0, 0);
     return Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data).join(',');
   })).toBe(before.pixelHash);
+  await page.getByTestId('effect-category-back').click();
   await page.getByTestId('effect-browser').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('heading', { name: '特效浏览器' })).toBeVisible();
