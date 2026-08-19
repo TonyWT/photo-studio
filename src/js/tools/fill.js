@@ -4,7 +4,7 @@ import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import Helper_class from './../libs/helpers.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
-import { notifyNotDrawable, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
+import { notifyNotDrawable, settlePaintedLayerImage, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Fill_class extends Base_tools_class {
 
@@ -108,42 +108,54 @@ class Fill_class extends Base_tools_class {
 		var color_to = this.Helper.hexToRgb(config.COLOR);
 		color_to.a = config.ALPHA;
 
-		//change
 		this.working = true;
-		this.fill_general(ctx, config.WIDTH, config.HEIGHT,
-			mouse_x, mouse_y, color_to, params.power, params.anti_aliasing, params.contiguous);
+		try {
+			this.fill_general(ctx, canvas.width, canvas.height,
+				mouse_x, mouse_y, color_to, params.power, params.anti_aliasing, params.contiguous);
 
-		if (config.layer.type != null) {
-			//update
-			app.State.do_action(
-				new app.Actions.Bundle_action('fill_tool', 'Fill Tool', [
-					new app.Actions.Update_layer_image_action(canvas)
-				])
-			);
-		}
-		else {
-			const image = new Image();
-			image.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-			app.State.do_action(
-				new app.Actions.Bundle_action('fill_tool', 'Fill Tool', [
-					new app.Actions.Update_layer_action(config.layer.id, {
-						type: 'image',
-						link: image,
-						x: config.layer.x || 0,
-						y: config.layer.y || 0,
-						width: canvas.width,
-						height: canvas.height,
-						width_original: canvas.width,
-						height_original: canvas.height,
-					}),
-					new app.Actions.Update_layer_image_action(canvas, config.layer.id)
-				])
-			);
-		}
+			config.layer.link_canvas = canvas;
+			config.need_render = true;
 
-		//prevent crash bug on touch screen - hard to explain and debug
-		await new Promise(r => setTimeout(r, 10));
-		this.working = false;
+			if (config.layer.type != null) {
+				await settlePaintedLayerImage(
+					canvas,
+					config.layer,
+					app.State.do_action(
+						new app.Actions.Bundle_action('fill_tool', 'Fill Tool', [
+							new app.Actions.Update_layer_image_action(canvas)
+						])
+					),
+				);
+			}
+			else {
+				const image = new Image();
+				image.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+				await settlePaintedLayerImage(
+					canvas,
+					config.layer,
+					app.State.do_action(
+						new app.Actions.Bundle_action('fill_tool', 'Fill Tool', [
+							new app.Actions.Update_layer_action(config.layer.id, {
+								type: 'image',
+								link: image,
+								x: config.layer.x || 0,
+								y: config.layer.y || 0,
+								width: canvas.width,
+								height: canvas.height,
+								width_original: canvas.width,
+								height_original: canvas.height,
+							}),
+							new app.Actions.Update_layer_image_action(canvas, config.layer.id)
+						])
+					),
+				);
+			}
+
+			//prevent crash bug on touch screen - hard to explain and debug
+			await new Promise(r => setTimeout(r, 10));
+		} finally {
+			this.working = false;
+		}
 	}
 
 	fill_general(context, W, H, x, y, color_to, sensitivity, anti_aliasing, contiguous = false) {

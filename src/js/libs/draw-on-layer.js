@@ -43,6 +43,41 @@ export function notifyNotDrawable() {
 }
 
 /**
+ * 等到图层图像可以绘制，避免 src 刚换完时主画布读到旧图。
+ * @param {CanvasImageSource | null | undefined} image
+ * @returns {Promise<void>}
+ */
+export function waitForLayerImage(image) {
+	if (!image) return Promise.resolve();
+	if (typeof image.decode === 'function') {
+		return image.decode().catch(() => undefined);
+	}
+	if (image.complete) return Promise.resolve();
+	return new Promise((resolve) => {
+		image.addEventListener('load', () => resolve(), { once: true });
+		image.addEventListener('error', () => resolve(), { once: true });
+	});
+}
+
+/**
+ * 图像写回完成前保留 `link_canvas` 预览；完成后只摘掉本次自己挂上的画布。
+ * @param {HTMLCanvasElement} canvas
+ * @param {object} layer
+ * @param {Promise<{status?: string} | void>} actionPromise
+ * @returns {Promise<void>}
+ */
+export async function settlePaintedLayerImage(canvas, layer, actionPromise) {
+	const result = await actionPromise;
+	if (result?.status !== 'aborted' && layer?.link) {
+		await waitForLayerImage(layer.link);
+	}
+	if (layer && layer.link_canvas === canvas) {
+		delete layer.link_canvas;
+		config.need_render = true;
+	}
+}
+
+/**
  * 在当前图像层或空白层上建立一次像素绘制会话。
  * 预览走 `link_canvas`；提交时用 `Update_layer_image_action` 写回同一图层。
  */
@@ -175,9 +210,10 @@ export class LayerPaintSession {
 
 	/**
 	 * 把临时层元数据恢复成 begin() 之前的值，保证 undo 记录到空白层。
+	 * @param {{keepPreview?: boolean}} [options] keepPreview 为 true 时保留 `link_canvas`，避免提交空窗。
 	 * @returns {void}
 	 */
-	restoreLayerMeta() {
+	restoreLayerMeta({ keepPreview = false } = {}) {
 		if (!this.layer || !this.snapshot) return;
 		this.layer.type = this.snapshot.type;
 		this.layer.width = this.snapshot.width;
@@ -186,11 +222,14 @@ export class LayerPaintSession {
 		this.layer.height_original = this.snapshot.height_original;
 		this.layer.x = this.snapshot.x;
 		this.layer.y = this.snapshot.y;
-		delete this.layer.link_canvas;
+		if (!keepPreview) {
+			delete this.layer.link_canvas;
+		}
 	}
 
 	/**
 	 * 把预览像素写入当前图层历史。
+	 * 提交完成前继续挂着 `link_canvas`，这样松手后不会先闪回原图再跳到新像素。
 	 * @param {string} bundleName
 	 * @param {string} bundleTitle
 	 * @returns {boolean}
@@ -199,10 +238,14 @@ export class LayerPaintSession {
 		if (!this.active || !this.layer || !this.tmpCanvas) return false;
 		const layer = this.layer;
 		const canvas = this.tmpCanvas;
-		this.restoreLayerMeta();
+		const startedAsBlank = this.startedAsBlank;
+		this.active = false;
+		this.restoreLayerMeta({ keepPreview: true });
+		layer.link_canvas = canvas;
+		config.need_render = true;
 
 		const actions = [];
-		if (this.startedAsBlank) {
+		if (startedAsBlank) {
 			const image = new Image();
 			image.src = TRANSPARENT_PIXEL;
 			actions.push(new this.app.Actions.Update_layer_action(layer.id, {
@@ -217,7 +260,11 @@ export class LayerPaintSession {
 			}));
 		}
 		actions.push(new this.app.Actions.Update_layer_image_action(canvas, layer.id));
-		this.app.State.do_action(new this.app.Actions.Bundle_action(bundleName, bundleTitle, actions));
+		void settlePaintedLayerImage(
+			canvas,
+			layer,
+			this.app.State.do_action(new this.app.Actions.Bundle_action(bundleName, bundleTitle, actions)),
+		);
 		this._dispose();
 		return true;
 	}

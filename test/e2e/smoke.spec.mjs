@@ -5241,6 +5241,61 @@ test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', asy
   await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(before.index);
 });
 
+test('Drawing 松手后预览会留在图层上，直到像素写回完成', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'drawing-preview-hold.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-size').fill('20');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-brush').click();
+
+  await page.evaluate(() => {
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+      window.setTimeout(() => originalToBlob.call(this, callback, type, quality), 400);
+    };
+  });
+
+  const displayPixel = () => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
+  });
+  const before = await displayPixel();
+  expect(before).toEqual([20, 30, 40, 255]);
+  const history = await page.evaluate(() => window.State.action_history.length);
+
+  const canvas = page.locator('#canvas_minipaint');
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  await canvas.hover({ position: { x: 134, y: 134 } });
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + 160, canvasBox.y + 134, { steps: 6 });
+  await page.mouse.up();
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  }));
+
+  const duringCommit = await displayPixel();
+  expect(duringCommit).not.toEqual(before);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
+  await expect.poll(displayPixel).not.toEqual(before);
+});
+
 test('Drawing 柔化会改变画笔外缘像素，并可撤销回到底图', async ({ page }) => {
   await openHome(page);
   const drawingFixture = await page.evaluate(() => {
