@@ -3,7 +3,7 @@ import config from './../config.js';
 import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
-import { isDrawableLayer, notifyNotDrawable, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
+import { copyVisibleLayerImage, isDrawableLayer, notifyNotDrawable, queueLayerImageWrite, settlePaintedLayerImage, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Erase_class extends Base_tools_class {
 
@@ -86,7 +86,8 @@ class Erase_class extends Base_tools_class {
 		this.tmpCanvasCtx = this.tmpCanvas.getContext("2d");
 		this.tmpCanvas.width = config.layer.width_original;
 		this.tmpCanvas.height = config.layer.height_original;
-		this.tmpCanvasCtx.drawImage(config.layer.link, 0, 0);
+		/** 从当前可见像素取样，才能擦掉尚未写回 `layer.link` 的画笔。 */
+		copyVisibleLayerImage(this.tmpCanvasCtx, config.layer);
 
 		this.tmpCanvasCtx.scale(
 			config.layer.width_original / config.layer.width,
@@ -128,19 +129,22 @@ class Erase_class extends Base_tools_class {
 		if (this.started == false) {
 			return;
 		}
-		delete config.layer.link_canvas;
-
-		app.State.do_action(
-			new app.Actions.Bundle_action('erase_tool', 'Erase Tool', [
-				new app.Actions.Update_layer_image_action(this.tmpCanvas)
-			])
-		);
-
-		//decrease memory
-		this.tmpCanvas.width = 1;
-		this.tmpCanvas.height = 1;
+		this.started = false;
+		const canvas = this.tmpCanvas;
+		const layer = config.layer;
 		this.tmpCanvas = null;
 		this.tmpCanvasCtx = null;
+		if (!canvas || !layer) return;
+
+		void settlePaintedLayerImage(
+			canvas,
+			layer,
+			queueLayerImageWrite(layer, () => app.State.do_action(
+				new app.Actions.Bundle_action('erase_tool', 'Erase Tool', [
+					new app.Actions.Update_layer_image_action(canvas, layer.id)
+				])
+			)),
+		);
 	}
 
 	erase_general(ctx, type, mouse, size, strict, is_circle, is_touch) {

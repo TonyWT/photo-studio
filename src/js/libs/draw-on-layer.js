@@ -77,6 +77,44 @@ export async function settlePaintedLayerImage(canvas, layer, actionPromise) {
 	}
 }
 
+/** @type {Map<number, Promise<unknown>>} */
+const pendingLayerImageWrites = new Map();
+
+/**
+ * 同一图层的图像写回按提交顺序串行执行，避免后开始的橡皮被尚未完成的画笔盖回去。
+ * @param {object} layer
+ * @param {() => Promise<unknown>} startAction
+ * @returns {Promise<unknown>}
+ */
+export function queueLayerImageWrite(layer, startAction) {
+	const layerId = layer?.id;
+	const previous = (layerId != null && pendingLayerImageWrites.get(layerId)) || Promise.resolve();
+	const next = previous.catch(() => undefined).then(startAction);
+	if (layerId != null) {
+		pendingLayerImageWrites.set(layerId, next);
+		next.finally(() => {
+			if (pendingLayerImageWrites.get(layerId) === next) {
+				pendingLayerImageWrites.delete(layerId);
+			}
+		});
+	}
+	return next;
+}
+
+/**
+ * 复制图层当前可见像素。优先 `link_canvas`（尚未写回的预览），否则用 `link`。
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {object} layer
+ * @returns {void}
+ */
+export function copyVisibleLayerImage(ctx, layer) {
+	if (!ctx?.canvas || !layer) return;
+	const source = layer.link_canvas || layer.link;
+	if (!source) return;
+	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+	ctx.drawImage(source, 0, 0, ctx.canvas.width, ctx.canvas.height);
+}
+
 /**
  * 在当前图像层或空白层上建立一次像素绘制会话。
  * 预览走 `link_canvas`；提交时用 `Update_layer_image_action` 写回同一图层。
@@ -143,9 +181,7 @@ export class LayerPaintSession {
 		} else {
 			this.tmpCanvas.width = layer.width_original || layer.width || config.WIDTH;
 			this.tmpCanvas.height = layer.height_original || layer.height || config.HEIGHT;
-			if (layer.link) {
-				this.tmpCtx.drawImage(layer.link, 0, 0);
-			}
+			copyVisibleLayerImage(this.tmpCtx, layer);
 		}
 
 		this.snapshotCanvas = document.createElement('canvas');
@@ -263,7 +299,9 @@ export class LayerPaintSession {
 		void settlePaintedLayerImage(
 			canvas,
 			layer,
-			this.app.State.do_action(new this.app.Actions.Bundle_action(bundleName, bundleTitle, actions)),
+			queueLayerImageWrite(layer, () =>
+				this.app.State.do_action(new this.app.Actions.Bundle_action(bundleName, bundleTitle, actions)),
+			),
 		);
 		this._dispose();
 		return true;

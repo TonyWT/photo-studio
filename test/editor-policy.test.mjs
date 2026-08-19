@@ -46,14 +46,17 @@ test('编辑器工具注册表只包含明确保留的非 AI 工具', () => {
   });
 });
 
-test('Draw 提交时保留预览直到图层写回，且不改写橡皮擦实现', async () => {
+test('Draw 提交时保留预览直到图层写回，橡皮从可见像素取样', async () => {
   const drawOnLayer = await readFile(new URL('../src/js/libs/draw-on-layer.js', import.meta.url), 'utf8');
   assert.match(drawOnLayer, /keepPreview/);
   assert.match(drawOnLayer, /settlePaintedLayerImage/);
+  assert.match(drawOnLayer, /copyVisibleLayerImage/);
+  assert.match(drawOnLayer, /queueLayerImageWrite/);
   assert.match(drawOnLayer, /link_canvas === canvas/);
 
   const erase = await readFile(new URL('../src/js/tools/erase.js', import.meta.url), 'utf8');
-  assert.match(erase, /this\.tmpCanvasCtx\.drawImage\(config\.layer\.link/);
+  assert.match(erase, /copyVisibleLayerImage/);
+  assert.match(erase, /queueLayerImageWrite/);
   assert.doesNotMatch(erase, /LayerPaintSession/);
 
   const shell = await readFile(new URL('../src/js/studio/editor-shell.mjs', import.meta.url), 'utf8');
