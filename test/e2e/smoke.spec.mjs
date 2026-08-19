@@ -1071,6 +1071,72 @@ test('手动 Cutout 的魔术选区与画笔选区框选后即时预览，且不
   expect(drawPreview.transparent).toBeGreaterThan(0);
 });
 
+test('手动 Cutout 的套索会画出绿色选框，闭合后即时抠图，撤销可恢复预览前画面', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await expect.poll(() => page.evaluate(() => Boolean(window.PhotoStudio))).toBe(true);
+  await page.getByTestId('tool-cutout').click();
+  await page.getByTestId('cutout-mode-lasso').click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.canvasToolMode)).toBe('cutout-lasso');
+
+  const canvas = page.locator('#canvas_minipaint');
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const historyBefore = await page.evaluate(() => window.State.action_history.length);
+  await page.mouse.move(bounds.x + bounds.width * 0.28, bounds.y + bounds.height * 0.26);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.52, bounds.y + bounds.height * 0.26);
+  await page.mouse.move(bounds.x + bounds.width * 0.52, bounds.y + bounds.height * 0.52);
+  await page.mouse.move(bounds.x + bounds.width * 0.28, bounds.y + bounds.height * 0.52);
+  await page.mouse.up();
+
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('lasso');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link_canvas instanceof HTMLCanvasElement)).toBe(true);
+  await expect(page.getByTestId('cutout-path-overlay')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const overlay = document.querySelector('[data-testid="cutout-path-overlay"]');
+    if (!(overlay instanceof HTMLCanvasElement)) return { green: 0, previewOutside: 255 };
+    const data = overlay.getContext('2d').getImageData(0, 0, overlay.width, overlay.height).data;
+    let green = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      if (data[index + 1] > 180 && data[index + 1] > data[index] && data[index + 3] > 0) green += 1;
+    }
+    const preview = window.AppConfig.layer.link_canvas.getContext('2d').getImageData(2, 2, 1, 1).data[3];
+    return { green, previewOutside: preview };
+  })).toEqual(expect.objectContaining({ previewOutside: 0 }));
+  const overlayGreen = await page.evaluate(() => {
+    const overlay = document.querySelector('[data-testid="cutout-path-overlay"]');
+    const data = overlay.getContext('2d').getImageData(0, 0, overlay.width, overlay.height).data;
+    let green = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      if (data[index + 1] > 180 && data[index + 1] > data[index] && data[index + 3] > 0) green += 1;
+    }
+    return green;
+  });
+  expect(overlayGreen).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+
+  await page.locator('[data-editor-history="undo"]').click();
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions.length)).toBe(0);
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link_canvas == null)).toBe(true);
+  await expect(page.getByTestId('cutout-path-overlay')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => {
+    const image = window.AppConfig.layer.link;
+    const scratch = document.createElement('canvas');
+    scratch.width = image.naturalWidth;
+    scratch.height = image.naturalHeight;
+    scratch.getContext('2d').drawImage(image, 0, 0);
+    return scratch.getContext('2d').getImageData(2, 2, 1, 1).data[3];
+  })).toBe(255);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+
+  await page.locator('[data-editor-history="redo"]').click();
+  await expect.poll(() => page.evaluate(() => window.PhotoStudio.getCutoutSelection().regions[0]?.shape)).toBe('lasso');
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.link_canvas instanceof HTMLCanvasElement)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(historyBefore);
+});
+
 test('手动 Cutout 的 Hint removed 只在本地预览即将移除区域，不写入历史', async ({ page }) => {
   await openHome(page);
   await page.getByTestId('image-picker').setInputFiles(filterPixelFixture);

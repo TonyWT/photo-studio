@@ -51,6 +51,7 @@ let cutoutPointer = null;
 let cutoutPreview = { layerId: null, source: null, canvas: null };
 let cutoutDraftRegion = null;
 let cutoutPreviewFrame = 0;
+let cutoutRedoStack = [];
 let cutoutTouchSession = null;
 let cutoutCoreEventShieldActive = false;
 let retouchAdvancedOpen = false;
@@ -512,8 +513,10 @@ function resetCutoutSelection({ clearNativeSelection = true } = {}) {
     mode: 'selection', operation: 'add', intent: 'keep', inverted: false, softness: 'none', hintRemoved: false, advancedOpen: false, regions: [],
   };
   cutoutDraftRegion = null;
+  cutoutRedoStack = [];
   clearCutoutPreview();
   removeCutoutHintOverlay();
+  removeCutoutPathOverlay();
   const selection = getCoreToolModule('selection');
   // A custom mask must never mutate miniPaint's rectangle-selection state.
   // Only an explicit reset while using the native rectangle mode clears it.
@@ -540,8 +543,10 @@ function addCutoutRegion(region) {
   } else {
     cutoutSelection.regions.push({ ...region, operation: cutoutSelection.operation });
   }
+  cutoutRedoStack = [];
   refreshCutoutPreview();
   renderCutoutHintOverlay();
+  renderCutoutPathOverlay();
   window.AppConfig.need_render = true;
 }
 
@@ -560,6 +565,7 @@ function scheduleCutoutPreview() {
     cutoutPreviewFrame = 0;
     refreshCutoutPreview();
     renderCutoutHintOverlay();
+    renderCutoutPathOverlay();
   });
 }
 
@@ -619,7 +625,7 @@ function ensureCutoutSource(layer) {
  */
 function refreshCutoutPreview() {
   const layer = window.AppConfig?.layer;
-  const regions = currentCutoutRegions();
+  const regions = currentCutoutRegions().filter(isUsableCutoutRegion);
   if (!layer || !activeImageLayerIsEditable() || hasUnsupportedCutoutRotation() || regions.length === 0) {
     if (cutoutPreview.canvas) clearCutoutPreview();
     return false;
@@ -1001,7 +1007,7 @@ function removeCutoutHintOverlay() {
 function renderCutoutHintOverlay() {
   removeCutoutHintOverlay();
   if (!cutoutSelection.hintRemoved || !activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return;
-  const regions = currentCutoutRegions();
+  const regions = currentCutoutRegions().filter(isUsableCutoutRegion);
   const layer = window.AppConfig?.layer;
   const canvas = document.getElementById('canvas_minipaint');
   const wrapper = document.getElementById('canvas_wrapper');
@@ -1047,9 +1053,183 @@ function renderCutoutHintOverlay() {
   wrapper.append(overlay);
 }
 
+function positionCutoutOverlay(overlay, canvas) {
+  const canvasStyle = getComputedStyle(canvas);
+  overlay.style.left = `${canvas.offsetLeft}px`;
+  overlay.style.top = `${canvas.offsetTop}px`;
+  overlay.style.width = canvasStyle.width;
+  overlay.style.height = canvasStyle.height;
+}
+
+function removeCutoutPathOverlay() {
+  document.querySelector('[data-testid="cutout-path-overlay"]')?.remove();
+}
+
+/**
+ * 在文档坐标下描出套索/形状轮廓，供绿色选框叠加层使用。
+ * @param {CanvasRenderingContext2D} context
+ * @param {object} region
+ * @returns {boolean}
+ */
+function traceCutoutRegionPath(context, region) {
+  if (!region || region.shape === 'bitmap') return false;
+  context.beginPath();
+  if (region.shape === 'lasso') {
+    const points = region.points ?? [];
+    if (points.length < 2) return false;
+    context.moveTo(points[0].x, points[0].y);
+    points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+    if (points.length >= 3) context.closePath();
+    return true;
+  }
+  if (region.shape === 'line' && region.start && region.end) {
+    context.moveTo(region.start.x, region.start.y);
+    context.lineTo(region.end.x, region.end.y);
+    return true;
+  }
+  const x = Number(region.x);
+  const y = Number(region.y);
+  const width = Number(region.width);
+  const height = Number(region.height);
+  if (![x, y, width, height].every(Number.isFinite) || !width || !height) return false;
+  if (region.shape === 'ellipse') {
+    context.ellipse(x + width / 2, y + height / 2, Math.abs(width) / 2, Math.abs(height) / 2, 0, 0, Math.PI * 2);
+    return true;
+  }
+  if (region.shape === 'triangle' || region.shape === 'star' || region.shape === 'heart') {
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const points = [];
+    if (region.shape === 'triangle') {
+      points.push({ x: centerX, y }, { x: x + width, y: y + height }, { x, y: y + height });
+    } else if (region.shape === 'star') {
+      for (let index = 0; index < 10; index += 1) {
+        const radius = index % 2 === 0 ? 1 : 0.45;
+        const angle = -Math.PI / 2 + index * Math.PI / 5;
+        points.push({
+          x: centerX + Math.cos(angle) * (width / 2) * radius,
+          y: centerY + Math.sin(angle) * (height / 2) * radius,
+        });
+      }
+    } else {
+      for (let index = 0; index < 32; index += 1) {
+        const angle = index * Math.PI * 2 / 32;
+        const px = 16 * Math.sin(angle) ** 3;
+        const py = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle)
+          - 2 * Math.cos(3 * angle) - Math.cos(4 * angle));
+        points.push({ x: centerX + px * width / 32, y: centerY + py * height / 34 });
+      }
+    }
+    context.moveTo(points[0].x, points[0].y);
+    points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+    context.closePath();
+    return true;
+  }
+  context.rect(x, y, width, height);
+  return true;
+}
+
+/**
+ * 绘制绿色套索/形状选框。拖拽中显示路径，闭合后保留轮廓并配合实时抠图。
+ */
+function renderCutoutPathOverlay() {
+  removeCutoutPathOverlay();
+  if (!activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return;
+  const regions = currentCutoutRegions();
+  const canvas = document.getElementById('canvas_minipaint');
+  const wrapper = document.getElementById('canvas_wrapper');
+  if (!canvas || !wrapper || regions.length === 0) return;
+  const overlay = document.createElement('canvas');
+  overlay.dataset.testid = 'cutout-path-overlay';
+  overlay.className = 'studio-cutout-path-overlay';
+  overlay.width = canvas.width;
+  overlay.height = canvas.height;
+  const context = overlay.getContext('2d');
+  const zoom = Math.max(0.2, Number(window.AppConfig?.ZOOM) || 1);
+  context.lineJoin = 'round';
+  context.lineCap = 'round';
+  context.fillStyle = 'rgba(0, 255, 0, 0.28)';
+  context.strokeStyle = 'rgb(0, 220, 70)';
+  context.lineWidth = Math.max(1.5, 2 / zoom);
+  context.setLineDash([7 / zoom, 5 / zoom]);
+  for (const region of regions) {
+    if (region.shape === 'rectangle' && cutoutSelection.mode === 'selection') continue;
+    if (!traceCutoutRegionPath(context, region)) continue;
+    if (region.shape !== 'line') context.fill();
+    context.stroke();
+  }
+  positionCutoutOverlay(overlay, canvas);
+  wrapper.append(overlay);
+}
+
+function cloneCutoutRegion(region) {
+  if (region?.shape === 'bitmap' && region.canvas) {
+    const canvas = document.createElement('canvas');
+    canvas.width = region.canvas.width;
+    canvas.height = region.canvas.height;
+    canvas.getContext('2d').drawImage(region.canvas, 0, 0);
+    return { shape: 'bitmap', operation: region.operation, canvas };
+  }
+  return JSON.parse(JSON.stringify(region));
+}
+
+function isCutoutToolActive() {
+  return Boolean(document.querySelector('[data-editor-tool="cutout"]')?.classList.contains('is-active'));
+}
+
+function hasLiveCutoutPreview() {
+  return isCutoutToolActive() && Boolean(cutoutDraftRegion || cutoutPreview.canvas);
+}
+
+function refreshCutoutView() {
+  renderCutoutHintOverlay();
+  renderCutoutPathOverlay();
+  if (window.AppConfig) window.AppConfig.need_render = true;
+  window.app?.Layers?.render?.();
+}
+
+/**
+ * 撤销尚未 Apply 的实时抠图预览，不改图像历史。
+ * @returns {boolean}
+ */
+function undoCutoutPreview() {
+  if (!hasLiveCutoutPreview()) return false;
+  if (cutoutDraftRegion) {
+    cutoutDraftRegion = null;
+    if (cutoutSelection.regions.length === 0) clearCutoutPreview();
+    else refreshCutoutPreview();
+    refreshCutoutView();
+    return true;
+  }
+  if (cutoutSelection.regions.length === 0) {
+    clearCutoutPreview();
+    refreshCutoutView();
+    return true;
+  }
+  cutoutRedoStack.push(cloneCutoutRegion(cutoutSelection.regions.pop()));
+  const native = getCoreToolModule('selection');
+  if (native?.selection) native.selection = { x: null, y: null, width: null, height: null };
+  if (cutoutSelection.regions.length === 0) clearCutoutPreview();
+  else refreshCutoutPreview();
+  refreshCutoutView();
+  return true;
+}
+
+/**
+ * 重做被撤销的实时抠图选区。
+ * @returns {boolean}
+ */
+function redoCutoutPreview() {
+  if (!isCutoutToolActive() || cutoutRedoStack.length === 0) return false;
+  cutoutSelection.regions.push(cutoutRedoStack.pop());
+  refreshCutoutPreview();
+  refreshCutoutView();
+  return true;
+}
+
 async function applyCutoutSelection(intent) {
   if (!activeImageLayerIsEditable() || hasUnsupportedCutoutRotation()) return false;
-  const regions = currentCutoutRegions();
+  const regions = currentCutoutRegions().filter(isUsableCutoutRegion);
   if (regions.length === 0) return false;
   const layer = window.AppConfig.layer;
   const dimensions = layerImageDimensions(layer);
@@ -1070,8 +1250,10 @@ async function applyCutoutSelection(intent) {
   await window.State.do_action(new window.app.Actions.Update_layer_image_action(result));
   cutoutSelection.hintRemoved = false;
   cutoutDraftRegion = null;
+  cutoutRedoStack = [];
   clearCutoutPreview();
   removeCutoutHintOverlay();
+  removeCutoutPathOverlay();
   const selection = getCoreToolModule('selection');
   if (selection?.selection) {
     selection.selection = { x: null, y: null, width: null, height: null };
@@ -1202,8 +1384,9 @@ function bindCutoutCanvasGestures() {
       return { pointerId, start: point, points: [point], source, draw: draft };
     }
     const region = cutoutRegionFromGesture(cutoutSelection.mode, point, point, [point]);
-    cutoutDraftRegion = isUsableCutoutRegion(region) ? region : null;
-    if (cutoutDraftRegion) {
+    cutoutDraftRegion = region;
+    renderCutoutPathOverlay();
+    if (isUsableCutoutRegion(region)) {
       refreshCutoutPreview();
       renderCutoutHintOverlay();
     }
@@ -1222,7 +1405,7 @@ function bindCutoutCanvasGestures() {
       point,
       gesture.points,
     );
-    cutoutDraftRegion = isUsableCutoutRegion(region) ? region : null;
+    cutoutDraftRegion = region;
     scheduleCutoutPreview();
   };
   const discardCutoutDraft = () => {
@@ -1230,6 +1413,7 @@ function bindCutoutCanvasGestures() {
     cutoutDraftRegion = null;
     refreshCutoutPreview();
     renderCutoutHintOverlay();
+    renderCutoutPathOverlay();
   };
   canvas.addEventListener('touchstart', (event) => {
     const canStartHandoff = canStartCutoutTouchHandoff();
@@ -2159,6 +2343,7 @@ function renderEditorToolControls(key) {
           <button type="button"${cutoutSelection.softness === 'light' ? ' class="is-selected"' : ''} data-cutout-softness="light" data-testid="cutout-softness-light">Light</button>
           <button type="button"${cutoutSelection.softness === 'medium' ? ' class="is-selected"' : ''} data-cutout-softness="medium" data-testid="cutout-softness-medium">Medium</button>
         </div>
+        <p class="studio-control-hint">拖出绿色套索，闭合后即时抠图。撤销可退回上一刀预览，应用前不写入图像历史。</p>
       </section>
     ` : ''}
     <section class="studio-cutout-card studio-cutout-action-card" aria-label="抠图操作" data-testid="cutout-action-card">
@@ -3343,6 +3528,7 @@ async function activateEditorToolMode(coreTool) {
     installCutoutCoreEventShield();
     document.body.dataset.canvasToolMode = `cutout-${coreTool}`;
     refreshCutoutPreview();
+    renderCutoutPathOverlay();
     return true;
   }
   if (!MANUAL_CUTOUT_TOOLS.includes(coreTool)) return;
@@ -3351,11 +3537,13 @@ async function activateEditorToolMode(coreTool) {
     await activateCoreTool(coreTool);
     installCutoutCoreEventShield();
     refreshCutoutPreview();
+    renderCutoutPathOverlay();
     return true;
   }
   uninstallCutoutCoreEventShield();
   await activateCoreTool(coreTool);
   refreshCutoutPreview();
+  renderCutoutPathOverlay();
   return true;
 }
 
@@ -3405,15 +3593,42 @@ function bindWorkbenchControls() {
   });
   const refreshLayers = () => window.app?.GUI?.GUI_layers?.render_layers?.();
   document.querySelector('[data-editor-history="undo"]')?.addEventListener('click', async () => {
+    if (undoCutoutPreview()) {
+      refreshLayers();
+      return;
+    }
     await window.State?.undo_action?.();
     refreshLayers();
     refreshLiquifyControlsForActiveLayer();
   });
   document.querySelector('[data-editor-history="redo"]')?.addEventListener('click', async () => {
+    if (redoCutoutPreview()) {
+      refreshLayers();
+      return;
+    }
     await window.State?.redo_action?.();
     refreshLayers();
     refreshLiquifyControlsForActiveLayer();
   });
+  document.getElementById('undo_button')?.addEventListener('click', (event) => {
+    if (!undoCutoutPreview()) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    refreshLayers();
+  }, true);
+  document.addEventListener('keydown', (event) => {
+    const key = (event.key || '').toLowerCase();
+    if (!(event.ctrlKey || event.metaKey) || event.repeat) return;
+    if (key === 'z' && !event.shiftKey && undoCutoutPreview()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if ((key === 'y' || (key === 'z' && event.shiftKey)) && redoCutoutPreview()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
   document.addEventListener('click', (event) => {
     if (!event.target.closest('.layers_list .lock, .layers_list .layer_name')) return;
     window.setTimeout(() => {
@@ -3429,7 +3644,10 @@ function bindWorkbenchControls() {
   });
   document.querySelector('[data-editor-zoom="out"]')?.addEventListener('click', () => document.getElementById('zoom_less')?.click());
   document.querySelector('[data-editor-zoom="in"]')?.addEventListener('click', () => document.getElementById('zoom_more')?.click());
-  window.addEventListener('resize', renderCutoutHintOverlay);
+  window.addEventListener('resize', () => {
+    renderCutoutHintOverlay();
+    renderCutoutPathOverlay();
+  });
   document.querySelector('[data-testid="save-menu-toggle"]')?.addEventListener('click', () => {
     const menu = document.querySelector('[data-testid="save-menu"]');
     setSaveMenuOpen(Boolean(menu?.hidden));

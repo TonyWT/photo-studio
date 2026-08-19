@@ -131,7 +131,9 @@ body.photo-studio-editor .studio-cutout-hint-toggle-knob::after { position: abso
 body.photo-studio-editor .studio-cutout-hint-toggle.is-selected { border-color: #00a9df; color: #fff; background: #17465a; }
 body.photo-studio-editor .studio-cutout-hint-toggle.is-selected .studio-cutout-hint-toggle-knob { background: #00a9df; }
 body.photo-studio-editor .studio-cutout-hint-toggle.is-selected .studio-cutout-hint-toggle-knob::after { transform: translateX(14px); background: #fff; }
-body.photo-studio-editor .studio-cutout-hint-overlay { position: absolute; z-index: 4; display: block; box-sizing: border-box; pointer-events: none; }
+body.photo-studio-editor .studio-cutout-hint-overlay,
+body.photo-studio-editor .studio-cutout-path-overlay { position: absolute; z-index: 4; display: block; box-sizing: border-box; pointer-events: none; }
+body.photo-studio-editor .studio-cutout-path-overlay { z-index: 5; }
 body.photo-studio-editor .studio-cutout-full-action,
 body.photo-studio-editor .studio-cutout-primary-actions button { min-height: 36px; border: 1px solid #737373; border-radius: 18px; color: #d5d5d5; background: #2c2c2c; font: 12px/1 inherit; cursor: pointer; }
 body.photo-studio-editor .studio-cutout-full-action:hover,
