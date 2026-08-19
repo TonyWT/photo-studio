@@ -2,6 +2,7 @@ import app from './../app.js';
 import config from './../config.js';
 import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
+import { LayerPaintSession, shouldPaintOnCurrentLayer } from './../libs/draw-on-layer.js';
 
 class Pencil_class extends Base_tools_class {
 
@@ -13,6 +14,10 @@ class Pencil_class extends Base_tools_class {
 		this.params_hash = false;
 		this.pressure_supported = false;
 		this.pointer_pressure = 0; // has range [0 - 1]
+		this._paintSession = null;
+		this._strokeData = null;
+		this._paintParams = null;
+		this._paintColor = null;
 	}
 
 	load() {
@@ -58,6 +63,20 @@ class Pencil_class extends Base_tools_class {
 		var mouse = this.get_mouse_info(e);
 		if (mouse.click_valid == false)
 			return;
+
+		if (shouldPaintOnCurrentLayer()) {
+			if (this._paintSession?.active) this._paintSession.cancel();
+			this._paintSession = new LayerPaintSession();
+			if (!this._paintSession.begin()) {
+				this._paintSession = null;
+				this._strokeData = null;
+				return;
+			}
+			this._strokeData = [];
+			this._paintParams = this.clone(this.getParams());
+			this._paintColor = config.COLOR;
+			return;
+		}
 
 		var params_hash = this.get_params_hash();
 		var opacity = Math.round(config.ALPHA / 255 * 100);
@@ -110,6 +129,12 @@ class Pencil_class extends Base_tools_class {
 			return;
 		}
 
+		if (shouldPaintOnCurrentLayer()) {
+			this._pushPencilPaintPoint(mouse, params);
+			this._rasterizePencilStroke();
+			return;
+		}
+
 		//detect line size
 		var size = params.size;
 		var new_size = size;
@@ -130,6 +155,22 @@ class Pencil_class extends Base_tools_class {
 	mouseup(e) {
 		var mouse = this.get_mouse_info(e);
 		var params = this.getParams();
+		if (shouldPaintOnCurrentLayer()) {
+			if (!this._paintSession?.active) return;
+			if (mouse.click_valid == false) {
+				this._paintSession.cancel();
+				this._paintSession = null;
+				this._strokeData = null;
+				return;
+			}
+			this._pushPencilPaintPoint(mouse, this._paintParams || params);
+			this._rasterizePencilStroke();
+			this._paintSession.commit('draw_pencil', 'Draw Pencil');
+			this._paintSession = null;
+			this._strokeData = null;
+			return;
+		}
+
 		if (mouse.click_valid == false) {
 			config.layer.status = null;
 			return;
@@ -230,6 +271,51 @@ class Pencil_class extends Base_tools_class {
 		}
 
 		ctx.translate(-layer.x, -layer.y);
+	}
+
+	/**
+	 * @param {object} mouse
+	 * @param {object} params
+	 * @returns {void}
+	 */
+	_pushPencilPaintPoint(mouse, params) {
+		if (!this._paintSession?.active || !this._strokeData) return;
+		let new_size = params.size;
+		if (params.pressure == true && this.pressure_supported) {
+			new_size = params.size * this.pointer_pressure * 2;
+		}
+		const layer = this._paintSession.layer;
+		this._strokeData.push([
+			Math.ceil(mouse.x - (layer.x || 0)),
+			Math.ceil(mouse.y - (layer.y || 0)),
+			new_size,
+		]);
+	}
+
+	/**
+	 * 把当前铅笔笔触栅格化到预览画布。
+	 * @returns {void}
+	 */
+	_rasterizePencilStroke() {
+		const session = this._paintSession;
+		if (!session?.active || !this._strokeData) return;
+		session.restoreSnapshot();
+		const ctx = session.tmpCtx;
+		const layer = session.layer;
+		const displayWidth = layer.width || session.tmpCanvas.width;
+		const displayHeight = layer.height || session.tmpCanvas.height;
+		ctx.save();
+		ctx.globalAlpha = config.ALPHA / 255;
+		ctx.scale(session.tmpCanvas.width / displayWidth, session.tmpCanvas.height / displayHeight);
+		this.render_aliased(ctx, {
+			x: 0,
+			y: 0,
+			data: this._strokeData,
+			params: this._paintParams,
+			color: this._paintColor,
+		});
+		ctx.restore();
+		session.preview();
 	}
 
 	/**

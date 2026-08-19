@@ -5061,6 +5061,8 @@ test('Drawing 的 Sketchy 笔刷模式会保存在本地图层并可撤销', asy
 
   const before = await page.evaluate(() => ({
     history: window.State.action_history.length,
+    layerId: window.AppConfig.layer.id,
+    layerCount: window.AppConfig.layers.length,
     pixel: (() => {
       const canvas = document.getElementById('canvas_minipaint');
       return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
@@ -5069,12 +5071,24 @@ test('Drawing 的 Sketchy 笔刷模式会保存在本地图层并可撤销', asy
   await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
   await expect.poll(() => page.evaluate(() => ({
-    mode: window.AppConfig.layer.params.mode?.value ?? window.AppConfig.layer.params.mode,
+    mode: (() => {
+      const value = window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.mode;
+      return value?.value ?? value;
+    })(),
+    type: window.AppConfig.layer.type,
+    layerId: window.AppConfig.layer.id,
+    layerCount: window.AppConfig.layers.length,
     pixel: (() => {
       const canvas = document.getElementById('canvas_minipaint');
       return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
     })(),
-  }))).toEqual({ mode: 'sketchy', pixel: [255, 255, 255, 255] });
+  }))).toEqual({
+    mode: 'sketchy',
+    type: 'image',
+    layerId: before.layerId,
+    layerCount: before.layerCount,
+    pixel: [255, 255, 255, 255],
+  });
 
   const sketchyHash = await page.evaluate(() => {
     const canvas = document.getElementById('canvas_minipaint');
@@ -5140,6 +5154,10 @@ test('Drawing 的八种本地笔刷模式都写入对应图层参数、改变像
     })).toBe(mode);
     const before = await pixelHash();
     const historyIndex = await page.evaluate(() => window.State.action_history_index);
+    const beforeLayer = await page.evaluate(() => ({
+      id: window.AppConfig.layer.id,
+      count: window.AppConfig.layers.length,
+    }));
     await canvas.hover({ position: { x: 94, y: 116 } });
     await page.mouse.down();
     await page.mouse.move(canvasBox.x + 168, canvasBox.y + 116, { steps: 8 });
@@ -5147,9 +5165,14 @@ test('Drawing 的八种本地笔刷模式都写入对应图层参数、改变像
     await expect.poll(() => page.evaluate(() => window.State.action_history_index)).toBe(historyIndex + 1);
     await expect.poll(pixelHash).not.toBe(before);
     await expect.poll(() => page.evaluate(() => {
-      const value = window.AppConfig.layer.params.mode;
+      const value = window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes.mode;
       return value?.value ?? value;
     })).toBe(mode);
+    await expect.poll(() => page.evaluate(() => ({
+      id: window.AppConfig.layer.id,
+      count: window.AppConfig.layers.length,
+      type: window.AppConfig.layer.type,
+    }))).toEqual({ id: beforeLayer.id, count: beforeLayer.count, type: 'image' });
     await page.locator('[data-editor-history="undo"]').click();
     await expect.poll(pixelHash).toBe(before);
   }
@@ -5183,6 +5206,8 @@ test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', asy
   const before = await page.evaluate(() => ({
     history: window.State.action_history.length,
     index: window.State.action_history_index,
+    layerId: window.AppConfig.layer.id,
+    layerCount: window.AppConfig.layers.length,
     pixel: (() => {
       const canvas = document.createElement('canvas');
       canvas.width = window.AppConfig.layer.link.naturalWidth;
@@ -5196,6 +5221,11 @@ test('Drawing 画笔会写入本地像素，并可通过撤销精确恢复', asy
 
   await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(before.history + 1);
+  await expect.poll(() => page.evaluate(() => ({
+    id: window.AppConfig.layer.id,
+    count: window.AppConfig.layers.length,
+    type: window.AppConfig.layer.type,
+  }))).toEqual({ id: before.layerId, count: before.layerCount, type: 'image' });
   await expect.poll(() => page.evaluate(() => {
     const canvas = document.getElementById('canvas_minipaint');
     const context = canvas.getContext('2d', { willReadFrequently: true });
@@ -5431,6 +5461,10 @@ test('Drawing 形状会写入本地像素，并可通过撤销精确恢复', asy
   });
   const before = await regionHash();
   const history = await page.evaluate(() => window.State.action_history.length);
+  const beforeLayer = await page.evaluate(() => ({
+    id: window.AppConfig.layer.id,
+    count: window.AppConfig.layers.length,
+  }));
   const canvas = page.locator('#canvas_minipaint');
   const canvasBox = await canvas.boundingBox();
   expect(canvasBox).not.toBeNull();
@@ -5440,6 +5474,11 @@ test('Drawing 形状会写入本地像素，并可通过撤销精确恢复', asy
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
   await expect.poll(regionHash).not.toBe(before);
+  await expect.poll(() => page.evaluate(() => ({
+    id: window.AppConfig.layer.id,
+    count: window.AppConfig.layers.length,
+    type: window.AppConfig.layer.type,
+  }))).toEqual({ id: beforeLayer.id, count: beforeLayer.count, type: 'image' });
 
   await page.locator('[data-editor-history="undo"]').click();
   await expect.poll(regionHash).toBe(before);
@@ -5488,12 +5527,21 @@ test('Drawing 的椭圆、三角、星形、心形与直线快捷形状均会写
     await expect.poll(() => page.evaluate(() => window.AppConfig.TOOL.name)).toBe(tool);
     const before = await pixelHash();
     const history = await page.evaluate(() => window.State.action_history.length);
+    const beforeLayer = await page.evaluate(() => ({
+      id: window.AppConfig.layer.id,
+      count: window.AppConfig.layers.length,
+    }));
     await canvas.hover({ position: { x: 74, y: 74 } });
     await page.mouse.down();
     await page.mouse.move(canvasBox.x + 194, canvasBox.y + 172, { steps: 8 });
     await page.mouse.up();
     await expect.poll(() => page.evaluate(() => window.State.action_history.length)).toBe(history + 1);
     await expect.poll(pixelHash).not.toBe(before);
+    await expect.poll(() => page.evaluate(() => ({
+      id: window.AppConfig.layer.id,
+      count: window.AppConfig.layers.length,
+      type: window.AppConfig.layer.type,
+    }))).toEqual({ id: beforeLayer.id, count: beforeLayer.count, type: 'image' });
     await page.locator('[data-editor-history="undo"]').click();
     await expect.poll(pixelHash).toBe(before);
   }
@@ -5597,6 +5645,72 @@ test('Drawing 笔刷预设会写入可持久化的本地尺寸与柔化参数', 
   await expect.poll(() => page.evaluate(() => window.AppConfig.TOOLS.find((tool) => tool.name === 'brush').attributes)).toMatchObject({
     size: 18, softness: 0,
   });
+});
+
+test('Drawing 在文字图层上会提示只能在图像图层使用，且不新建图层', async ({ page }) => {
+  await openHome(page);
+  await page.getByTestId('image-picker').setInputFiles({ name: 'draw-text-guard.png', mimeType: 'image/png', buffer: samplePng });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await page.getByTestId('tool-text').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 80, y: 80 } });
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.type)).toBe('text');
+  const before = await page.evaluate(() => ({
+    count: window.AppConfig.layers.length,
+    id: window.AppConfig.layer.id,
+    history: window.State.action_history.length,
+    type: window.AppConfig.layer.type,
+  }));
+  await page.getByTestId('tool-drawing').click();
+  await expect(page.getByTestId('drawing-layer-warning')).toBeVisible();
+  await expect(page.getByTestId('drawing-layer-warning')).toHaveText('只有在图像图层或空白图层上才能使用绘制工具。');
+  await page.getByTestId('drawing-brush').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 90, y: 90 } });
+  await expect.poll(() => page.evaluate(() => ({
+    count: window.AppConfig.layers.length,
+    id: window.AppConfig.layer.id,
+    history: window.State.action_history.length,
+    type: window.AppConfig.layer.type,
+  }))).toEqual(before);
+  await expect(page.locator('.ajs-message, .ajs-error')).toContainText('只有在图像图层或空白图层上才能使用绘制工具。');
+});
+
+test('Drawing 在空白图层上绘制会写回同一图层并变成图像层', async ({ page }) => {
+  await openHome(page);
+  const drawingFixture = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 270;
+    canvas.height = 270;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'rgb(20, 30, 40)';
+    context.fillRect(0, 0, 270, 270);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.getByTestId('image-picker').setInputFiles({
+    name: 'blank-draw-base.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(drawingFixture, 'base64'),
+  });
+  await expect(page).toHaveURL(/\/editor\/$/);
+  await page.getByTestId('tool-drawing').click();
+  await page.getByTestId('drawing-new-layer').click();
+  await expect.poll(() => page.evaluate(() => window.AppConfig.layer.type)).toBe(null);
+  const before = await page.evaluate(() => ({
+    id: window.AppConfig.layer.id,
+    count: window.AppConfig.layers.length,
+  }));
+  await page.getByTestId('drawing-color').fill('#d946ef');
+  await page.getByTestId('drawing-opacity').fill('100');
+  await page.getByTestId('drawing-fill').click();
+  await page.locator('#canvas_minipaint').click({ position: { x: 134, y: 134 } });
+  await expect.poll(() => page.evaluate(() => ({
+    id: window.AppConfig.layer.id,
+    count: window.AppConfig.layers.length,
+    type: window.AppConfig.layer.type,
+  }))).toEqual({ id: before.id, count: before.count, type: 'image' });
+  await expect.poll(() => page.evaluate(() => {
+    const canvas = document.getElementById('canvas_minipaint');
+    return Array.from(canvas.getContext('2d', { willReadFrequently: true }).getImageData(135, 135, 1, 1).data);
+  })).toEqual([217, 70, 239, 255]);
 });
 
 test('Drawing 填充不会修改锁定图片图层或写入历史', async ({ page }) => {

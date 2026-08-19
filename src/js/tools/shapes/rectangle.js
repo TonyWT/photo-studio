@@ -2,6 +2,7 @@ import app from './../../app.js';
 import config from './../../config.js';
 import Base_tools_class from './../../core/base-tools.js';
 import Base_layers_class from './../../core/base-layers.js';
+import { ShapePaintController, shouldPaintOnCurrentLayer } from './../../libs/draw-on-layer.js';
 
 class Rectangle_class extends Base_tools_class {
 
@@ -14,6 +15,7 @@ class Rectangle_class extends Base_tools_class {
 		this.best_ratio = 1;
 		this.snap_line_info = {x: null, y: null};
 		this.mouse_click = {x: null, y: null};
+		this._shapePaint = null;
 	}
 
 	load() {
@@ -41,6 +43,16 @@ class Rectangle_class extends Base_tools_class {
 
 		this.mouse_click.x = mouse_x;
 		this.mouse_click.y = mouse_y;
+
+		if (shouldPaintOnCurrentLayer()) {
+			this._shapePaint = new ShapePaintController(this);
+			if (!this._shapePaint.begin(Math.round(mouse_x), Math.round(mouse_y))) {
+				this._shapePaint = null;
+				return;
+			}
+			this.layer = this._shapePaint.draft;
+			return;
+		}
 
 		//register new object - current layer is not ours or params changed
 		this.layer = {
@@ -106,6 +118,11 @@ class Rectangle_class extends Base_tools_class {
 			}
 		}
 
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			this._shapePaint.updateDraft({ x, y, width, height });
+			return;
+		}
+
 		//more data
 		config.layer.x = x;
 		config.layer.y = y;
@@ -118,6 +135,61 @@ class Rectangle_class extends Base_tools_class {
 	mouseup(e) {
 		var mouse = this.get_mouse_info(e);
 		var params = this.getParams();
+
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			if (mouse.click_valid == false) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+
+			var mouse_x = Math.round(mouse.x);
+			var mouse_y = Math.round(mouse.y);
+			var click_x = Math.round(this.mouse_click.x);
+			var click_y = Math.round(this.mouse_click.y);
+
+			var snap_info = this.calc_snap_position(e, mouse_x, mouse_y, config.layer.id);
+			if(snap_info != null){
+				if(snap_info.x != null) {
+					mouse_x = snap_info.x;
+				}
+				if(snap_info.y != null) {
+					mouse_y = snap_info.y;
+				}
+			}
+			this.snap_line_info = {x: null, y: null};
+
+			var x = Math.min(mouse_x, click_x);
+			var y = Math.min(mouse_y, click_y);
+			var width = Math.abs(mouse_x - click_x);
+			var height = Math.abs(mouse_y - click_y);
+
+			if (params.square == true || e.ctrlKey == true || e.metaKey) {
+				if (width < height) {
+					width = height;
+				}
+				else {
+					height = width;
+				}
+				if (mouse_x < click_x) {
+					x = click_x - width;
+				}
+				if (mouse_y < click_y) {
+					y = click_y - height;
+				}
+			}
+
+			if (width == 0 && height == 0) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+
+			this._shapePaint.updateDraft({ x, y, width, height, status: null });
+			this._shapePaint.commit('draw_rectangle', 'Draw Rectangle');
+			this._shapePaint = null;
+			return;
+		}
 
 		if (mouse.click_valid == false) {
 			config.layer.status = null;

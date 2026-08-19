@@ -3,6 +3,7 @@ import config from './../../config.js';
 import Base_tools_class from './../../core/base-tools.js';
 import Base_layers_class from './../../core/base-layers.js';
 import Helper_class from './../../libs/helpers.js';
+import { ShapePaintController, shouldPaintOnCurrentLayer } from './../../libs/draw-on-layer.js';
 
 class Polygon_class extends Base_tools_class {
 
@@ -20,6 +21,7 @@ class Polygon_class extends Base_tools_class {
 		this.mouse_lock = null;
 		this.selected_object_drag_type = null;
 		this.old_data = null;
+		this._shapePaint = null;
 
 		this.events();
 	}
@@ -30,10 +32,21 @@ class Polygon_class extends Base_tools_class {
 		document.addEventListener('keydown', function (event) {
 			var code = event.code;
 			if (config.TOOL.name == _this.name && code == "Escape") {
-				//escape
+				if (shouldPaintOnCurrentLayer() && _this._shapePaint?.active) {
+					_this._finishPolygonPaint();
+					return;
+				}
 				config.layer.status = null;
 			}
 		});
+	}
+
+	/**
+	 * 切换工具时把未闭合的多边形写进当前图像层。
+	 * @returns {void}
+	 */
+	on_leave() {
+		this._finishPolygonPaint();
 	}
 
 	/**
@@ -65,6 +78,11 @@ class Polygon_class extends Base_tools_class {
 	mousedown(e) {
 		var mouse = this.get_mouse_info(e);
 		if (mouse.click_valid == false) {
+			return;
+		}
+
+		if (shouldPaintOnCurrentLayer()) {
+			this._polygonPaintMouseDown(e);
 			return;
 		}
 
@@ -133,6 +151,22 @@ class Polygon_class extends Base_tools_class {
 			return;
 		}
 
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			var snap_info = this.calc_snap_position(e, mouse_x, mouse_y, config.layer.id);
+			if(snap_info != null){
+				if(snap_info.x != null) {
+					mouse_x = snap_info.x;
+				}
+				if(snap_info.y != null) {
+					mouse_y = snap_info.y;
+				}
+			}
+			const data = this._shapePaint.draft.data;
+			data[data.length - 1] = {x: mouse_x, y: mouse_y};
+			this._paintPolygonDraft();
+			return;
+		}
+
 		//apply snap
 		var snap_info = this.calc_snap_position(e, mouse_x, mouse_y, config.layer.id);
 		if(snap_info != null){
@@ -153,6 +187,25 @@ class Polygon_class extends Base_tools_class {
 	mouseup(e) {
 		var mouse = this.get_mouse_info(e);
 		if (mouse.click_valid == false) {
+			return;
+		}
+
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			var mouse_x = Math.round(mouse.x);
+			var mouse_y = Math.round(mouse.y);
+			var snap_info = this.calc_snap_position(e, mouse_x, mouse_y, config.layer.id);
+			if(snap_info != null){
+				if(snap_info.x != null) {
+					mouse_x = snap_info.x;
+				}
+				if(snap_info.y != null) {
+					mouse_y = snap_info.y;
+				}
+			}
+			this.snap_line_info = {x: null, y: null};
+			const data = this._shapePaint.draft.data;
+			data[data.length - 1] = {x: mouse_x, y: mouse_y};
+			this._paintPolygonDraft();
 			return;
 		}
 
@@ -228,6 +281,71 @@ class Polygon_class extends Base_tools_class {
 		ctx.translate(x + width / 2, y + height / 2);
 		this.draw_polygon(ctx, -width / 2, -height / 2, width, height, data);
 		ctx.restore();
+	}
+
+	/**
+	 * Draw 工作区：在当前图层上采集多边形顶点。
+	 * @param {MouseEvent} e
+	 * @returns {void}
+	 */
+	_polygonPaintMouseDown(e) {
+		var mouse = this.get_mouse_info(e);
+		var mouse_x = mouse.x;
+		var mouse_y = mouse.y;
+		var snap_info = this.calc_snap_position(e, mouse_x, mouse_y);
+		if(snap_info != null){
+			if(snap_info.x != null) {
+				mouse_x = snap_info.x;
+			}
+			if(snap_info.y != null) {
+				mouse_y = snap_info.y;
+			}
+		}
+		if (!this._shapePaint?.active) {
+			this._shapePaint = new ShapePaintController(this);
+			if (!this._shapePaint.begin(0, 0, {
+				x: 0,
+				y: 0,
+				width: config.WIDTH,
+				height: config.HEIGHT,
+				data: [{x: mouse_x, y: mouse_y}],
+			})) {
+				this._shapePaint = null;
+				return;
+			}
+		} else {
+			this._shapePaint.draft.data.push({x: mouse_x, y: mouse_y});
+		}
+		this._paintPolygonDraft();
+	}
+
+	/**
+	 * @returns {void}
+	 */
+	_paintPolygonDraft() {
+		if (!this._shapePaint?.active) return;
+		this._shapePaint.paint((ctx, draft) => {
+			const params = draft.params;
+			ctx.strokeStyle = params.border ? params.border_color : 'transparent';
+			ctx.fillStyle = params.fill ? params.fill_color : 'transparent';
+			ctx.lineWidth = params.border_size;
+			this.draw_polygon(ctx, 0, 0, 0, 0, draft.data);
+		});
+	}
+
+	/**
+	 * @returns {void}
+	 */
+	_finishPolygonPaint() {
+		if (!this._shapePaint?.active) return;
+		const points = this._shapePaint.draft?.data || [];
+		if (points.length < 2) {
+			this._shapePaint.cancel();
+		} else {
+			this._paintPolygonDraft();
+			this._shapePaint.commit('draw_polygon', 'Draw Polygon');
+		}
+		this._shapePaint = null;
 	}
 
 	render(ctx, layer) {

@@ -3,6 +3,7 @@ import config from './../../config.js';
 import Base_tools_class from './../../core/base-tools.js';
 import Base_layers_class from './../../core/base-layers.js';
 import Helper_class from './../../libs/helpers.js';
+import { ShapePaintController, shouldPaintOnCurrentLayer } from './../../libs/draw-on-layer.js';
 
 class Bezier_Curve_class extends Base_tools_class {
 
@@ -20,6 +21,7 @@ class Bezier_Curve_class extends Base_tools_class {
 		this.mouse_lock = null;
 		this.selected_object_drag_type = null;
 		this.old_data = null;
+		this._shapePaint = null;
 
 		this.events();
 	}
@@ -33,9 +35,24 @@ class Bezier_Curve_class extends Base_tools_class {
 			}
 			var code = event.code;
 			if (code == "Escape") {
-				//escape
+				if (shouldPaintOnCurrentLayer()) {
+					_this._cancelBezierPaint();
+				}
 			}
 		});
+	}
+
+	/**
+	 * @returns {void}
+	 */
+	on_leave() {
+		if (this._shapePaint?.active && this._shapePaint.draft?.data?.cp2?.x != null) {
+			this._paintBezierDraft();
+			this._shapePaint.commit('draw_bezier', 'Draw Bezier');
+		} else {
+			this._cancelBezierPaint();
+		}
+		this._shapePaint = null;
 	}
 
 	/**
@@ -84,6 +101,11 @@ class Bezier_Curve_class extends Base_tools_class {
 			if(snap_info.y != null) {
 				mouse_y = snap_info.y;
 			}
+		}
+
+		if (shouldPaintOnCurrentLayer()) {
+			this._bezierPaintMouseDown(mouse_x, mouse_y);
+			return;
 		}
 
 		const data_clone = JSON.parse(JSON.stringify(config.layer.data));
@@ -163,6 +185,19 @@ class Bezier_Curve_class extends Base_tools_class {
 			}
 		}
 
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			const data = this._shapePaint.draft.data;
+			if (data.end.x === null) {
+				data.cp1.x = mouse_x;
+				data.cp1.y = mouse_y;
+			} else {
+				data.cp2.x = mouse_x;
+				data.cp2.y = mouse_y;
+			}
+			this._paintBezierDraft();
+			return;
+		}
+
 		//add more data
 		if(config.layer.data.end.x === null){
 			//still first step
@@ -211,6 +246,23 @@ class Bezier_Curve_class extends Base_tools_class {
 		}
 		this.snap_line_info = {x: null, y: null};
 
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			const data = this._shapePaint.draft.data;
+			if (data.end.x === null) {
+				data.cp1.x = mouse_x;
+				data.cp1.y = mouse_y;
+			} else {
+				data.cp2.x = mouse_x;
+				data.cp2.y = mouse_y;
+				this._paintBezierDraft();
+				this._shapePaint.commit('draw_bezier', 'Draw Bezier');
+				this._shapePaint = null;
+				return;
+			}
+			this._paintBezierDraft();
+			return;
+		}
+
 		//add more data
 		if(config.layer.data.end.x === null){
 			//still first step
@@ -224,6 +276,62 @@ class Bezier_Curve_class extends Base_tools_class {
 		}
 
 		this.Base_layers.render();
+	}
+
+	/**
+	 * Draw 工作区：在当前图层上采集贝塞尔控制点。
+	 * @param {number} mouse_x
+	 * @param {number} mouse_y
+	 * @returns {void}
+	 */
+	_bezierPaintMouseDown(mouse_x, mouse_y) {
+		if (this._shapePaint?.active && this._shapePaint.draft?.data?.end?.x == null) {
+			this._shapePaint.draft.data.end.x = mouse_x;
+			this._shapePaint.draft.data.end.y = mouse_y;
+			this._paintBezierDraft();
+			return;
+		}
+		if (this._shapePaint?.active) {
+			this._cancelBezierPaint();
+		}
+		this._shapePaint = new ShapePaintController(this);
+		if (!this._shapePaint.begin(0, 0, {
+			x: 0,
+			y: 0,
+			width: config.WIDTH,
+			height: config.HEIGHT,
+			color: config.COLOR,
+			data: {
+				start: {x: mouse_x, y: mouse_y},
+				cp1: {x: null, y: null},
+				cp2: {x: null, y: null},
+				end: {x: null, y: null},
+			},
+		})) {
+			this._shapePaint = null;
+			return;
+		}
+		this._paintBezierDraft();
+	}
+
+	/**
+	 * @returns {void}
+	 */
+	_paintBezierDraft() {
+		if (!this._shapePaint?.active) return;
+		this._shapePaint.paint((ctx, draft) => {
+			const data = draft.data;
+			if (data.end.x == null || data.cp2.x == null) return;
+			this.draw_bezier(ctx, 0, 0, data, draft.params.size, draft.color);
+		});
+	}
+
+	/**
+	 * @returns {void}
+	 */
+	_cancelBezierPaint() {
+		this._shapePaint?.cancel();
+		this._shapePaint = null;
 	}
 
 	render_overlay(ctx){

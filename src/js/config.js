@@ -320,6 +320,7 @@ config.TOOLS = [
 	},
 	{
 		name: 'bezier_curve',
+		on_leave: 'on_leave',
 		visible: false,
 		attributes: {
 			size: 4,
@@ -517,6 +518,7 @@ config.TOOLS = [
 	},
 	{
 		name: 'polygon',
+		on_leave: 'on_leave',
 		visible: false,
 		attributes: {
 			border_size: 4,

@@ -8,6 +8,7 @@ import Base_layers_class from './base-layers.js';
 import Base_gui_class from './base-gui.js';
 import app from "../app";
 import Helper_class from "../libs/helpers";
+import { ShapePaintController, shouldPaintOnCurrentLayer } from "./../libs/draw-on-layer.js";
 
 /**
  * Base tools class, can be used for extending on tools like brush, provides various helping methods.
@@ -28,6 +29,7 @@ class Base_tools_class {
 		this.save_mouse = save_mouse;
 		this.is_touch = false;
 		this.shape_mouse_click = {x: null, y: null};
+		this._shapePaint = null;
 
 		this.prepare();
 
@@ -412,6 +414,17 @@ class Base_tools_class {
 		this.shape_mouse_click.x = mouse_x;
 		this.shape_mouse_click.y = mouse_y;
 
+		if (shouldPaintOnCurrentLayer()) {
+			this._shapePaint = new ShapePaintController(this);
+			if (!this._shapePaint.begin(Math.round(mouse_x), Math.round(mouse_y))) {
+				this._shapePaint = null;
+				this.shape_mouse_click = {x: null, y: null};
+				return;
+			}
+			this.layer = this._shapePaint.draft;
+			return;
+		}
+
 		//register new object - current layer is not ours or params changed
 		this.layer = {
 			type: this.name,
@@ -476,6 +489,11 @@ class Base_tools_class {
 			}
 		}
 
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			this._shapePaint.updateDraft({ x, y, width, height });
+			return;
+		}
+
 		//more data
 		config.layer.x = x;
 		config.layer.y = y;
@@ -488,6 +506,61 @@ class Base_tools_class {
 	shape_mouseup(e) {
 		var mouse = this.get_mouse_info(e);
 		var params = this.getParams();
+
+		if (shouldPaintOnCurrentLayer() && this._shapePaint?.active) {
+			if (mouse.click_valid == false) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+
+			var mouse_x = Math.round(mouse.x);
+			var mouse_y = Math.round(mouse.y);
+			var click_x = Math.round(this.shape_mouse_click.x);
+			var click_y = Math.round(this.shape_mouse_click.y);
+
+			var snap_info = this.calc_snap_position(e, mouse_x, mouse_y, config.layer.id);
+			if(snap_info != null){
+				if(snap_info.x != null) {
+					mouse_x = snap_info.x;
+				}
+				if(snap_info.y != null) {
+					mouse_y = snap_info.y;
+				}
+			}
+			this.snap_line_info = {x: null, y: null};
+
+			var x = Math.min(mouse_x, click_x);
+			var y = Math.min(mouse_y, click_y);
+			var width = Math.abs(mouse_x - click_x);
+			var height = Math.abs(mouse_y - click_y);
+
+			if (e.ctrlKey == true || e.metaKey) {
+				if (width  < height * this.best_ratio) {
+					width = height * this.best_ratio;
+				}
+				else {
+					height = width / this.best_ratio;
+				}
+				if (mouse_x < click_x) {
+					x = click_x - width;
+				}
+				if (mouse_y < click_y) {
+					y = click_y - height;
+				}
+			}
+
+			if (width == 0 && height == 0) {
+				this._shapePaint.cancel();
+				this._shapePaint = null;
+				return;
+			}
+
+			this._shapePaint.updateDraft({ x, y, width, height, status: null });
+			this._shapePaint.commit('draw_' + this.name, 'Draw ' + this.Helper.ucfirst(this.name));
+			this._shapePaint = null;
+			return;
+		}
 
 		if (mouse.click_valid == false) {
 			config.layer.status = null;

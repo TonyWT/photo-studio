@@ -66,6 +66,18 @@ function hasUnsupportedCutoutRotation(layer = window.AppConfig?.layer) {
   return normalized > 0.0001 && Math.abs(normalized - 360) > 0.0001;
 }
 
+const DRAW_LAYER_ERROR_MESSAGE = '只有在图像图层或空白图层上才能使用绘制工具。';
+
+/**
+ * Draw 工具只能作用在图像层或尚未写入内容的空白层上。
+ * @param {object | null | undefined} layer
+ * @returns {boolean}
+ */
+function isDrawableDrawingLayer(layer = window.AppConfig?.layer) {
+  if (!layer) return false;
+  return layer.type === 'image' || layer.type == null;
+}
+
 export const EDITOR_TOOL_REGISTRY = Object.freeze({
   arrange: { label: 'Arrange', description: '选择、移动、缩放和排列当前图层。', coreTool: 'select' },
   crop: { label: 'Crop', description: '裁剪图像或画布，并支持比例约束。', coreTool: 'crop' },
@@ -1724,6 +1736,7 @@ async function insertBlankDrawingLayer() {
     name: '新建空白绘制图层',
   }));
   window.app?.GUI?.GUI_layers?.render_layers?.();
+  refreshDrawingControlsForActiveLayer();
   return true;
 }
 
@@ -3212,7 +3225,9 @@ function renderEditorToolControls(key) {
     const brushMode = findToolConfig('brush')?.attributes?.mode?.value ?? findToolConfig('brush')?.attributes?.mode ?? 'plain';
     const opacity = Math.round((window.AppConfig?.ALPHA ?? 255) / 255 * 100);
     const color = window.AppConfig?.COLOR ?? '#ffffff';
+    const drawableLayer = isDrawableDrawingLayer(window.AppConfig?.layer);
     target.innerHTML = `
+      ${drawableLayer ? '' : `<p class="studio-control-status is-unavailable" data-testid="drawing-layer-warning">${DRAW_LAYER_ERROR_MESSAGE}</p>`}
       <section class="studio-drawing-tools" aria-label="本地绘制工具">
         <strong>Tool</strong>
         <div class="studio-control-group studio-drawing-primary-grid" data-testid="drawing-primary-tools">
@@ -3301,6 +3316,10 @@ function renderEditorToolControls(key) {
       window.AppConfig.COLOR = nextColor;
       setToolAttribute('shape', 'stroke', nextColor);
       setToolAttribute('gradient', 'color_1', nextColor);
+      window.AppConfig.TOOLS?.forEach((tool) => {
+        if (tool.attributes?.fill_color != null) tool.attributes.fill_color = nextColor;
+        if (tool.attributes?.border_color != null) tool.attributes.border_color = nextColor;
+      });
       palette?.querySelectorAll('button').forEach((button) => {
         button.classList.toggle('is-selected', button.style.getPropertyValue('--drawing-swatch').toLowerCase() === nextColor.toLowerCase());
       });
@@ -3708,6 +3727,16 @@ function refreshLiquifyControlsForActiveLayer() {
   }
 }
 
+/**
+ * 图层切换后刷新 Draw 面板的可用状态提示。
+ * @returns {void}
+ */
+function refreshDrawingControlsForActiveLayer() {
+  if (document.querySelector('[data-editor-tool="drawing"]')?.classList.contains('is-active')) {
+    renderEditorToolControls('drawing');
+  }
+}
+
 async function closeActiveEditorToolPanel() {
   const activeTool = document.querySelector('[data-editor-tool].is-active')?.dataset.editorTool;
   if (activeTool === 'cutout') {
@@ -3755,6 +3784,7 @@ function bindWorkbenchControls() {
     await window.State?.undo_action?.();
     refreshLayers();
     refreshLiquifyControlsForActiveLayer();
+    refreshDrawingControlsForActiveLayer();
   });
   document.querySelector('[data-editor-history="redo"]')?.addEventListener('click', async () => {
     if (redoCutoutPreview()) {
@@ -3764,6 +3794,7 @@ function bindWorkbenchControls() {
     await window.State?.redo_action?.();
     refreshLayers();
     refreshLiquifyControlsForActiveLayer();
+    refreshDrawingControlsForActiveLayer();
   });
   document.getElementById('undo_button')?.addEventListener('click', (event) => {
     if (!undoCutoutPreview()) return;
@@ -3789,7 +3820,7 @@ function bindWorkbenchControls() {
     window.setTimeout(() => {
       refreshLiquifyControlsForActiveLayer();
       const activeTool = document.querySelector('[data-editor-tool].is-active')?.dataset.editorTool;
-      if (activeTool === 'crop' || activeTool === 'arrange') renderEditorToolControls(activeTool);
+      if (activeTool === 'crop' || activeTool === 'arrange' || activeTool === 'drawing') renderEditorToolControls(activeTool);
     }, 0);
   }, true);
   window.addEventListener('photo-studio-liquify-preview-change', () => {
