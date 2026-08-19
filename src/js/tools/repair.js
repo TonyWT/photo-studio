@@ -68,52 +68,84 @@ class Repair_class extends Base_tools_class {
 		]));
 	}
 
+	/**
+	 * 用笔刷外圈像素的均值填补内圈污点。只读取笔刷邻域，避免整图 copy。
+	 * @param {object} mouse
+	 * @param {object} params
+	 */
 	apply_brush(mouse, params) {
-		let centerX = Math.round(mouse.x) - config.layer.x;
-		let centerY = Math.round(mouse.y) - config.layer.y;
+		if (!this.tmpCanvas || !this.tmpCanvasCtx) return;
+		const size = Math.max(1, Number(params.size) || 30);
+		let centerX = Math.round(mouse.x) - (Number(config.layer.x) || 0);
+		let centerY = Math.round(mouse.y) - (Number(config.layer.y) || 0);
 		centerX = Math.round(this.adaptSize(centerX, 'width'));
 		centerY = Math.round(this.adaptSize(centerY, 'height'));
-		const radiusX = Math.max(1, Math.round(this.adaptSize(params.size, 'width') / 2));
-		const radiusY = Math.max(1, Math.round(this.adaptSize(params.size, 'height') / 2));
-		const left = Math.max(0, centerX - radiusX);
-		const top = Math.max(0, centerY - radiusY);
-		const right = Math.min(this.tmpCanvas.width, centerX + radiusX + 1);
-		const bottom = Math.min(this.tmpCanvas.height, centerY + radiusY + 1);
-		const width = right - left;
-		const height = bottom - top;
-		if (width <= 0 || height <= 0) return;
+		const radiusX = Math.max(1, Math.round(this.adaptSize(size, 'width') / 2));
+		const radiusY = Math.max(1, Math.round(this.adaptSize(size, 'height') / 2));
+		const margin = Math.max(2, Math.round(Math.max(radiusX, radiusY) * 0.45));
+		const sampleLeft = Math.max(0, centerX - radiusX - margin);
+		const sampleTop = Math.max(0, centerY - radiusY - margin);
+		const sampleRight = Math.min(this.tmpCanvas.width, centerX + radiusX + margin + 1);
+		const sampleBottom = Math.min(this.tmpCanvas.height, centerY + radiusY + margin + 1);
+		const sampleWidth = sampleRight - sampleLeft;
+		const sampleHeight = sampleBottom - sampleTop;
+		if (sampleWidth <= 0 || sampleHeight <= 0) return;
 
-		const source = this.tmpCanvasCtx.getImageData(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
-		const result = this.tmpCanvasCtx.getImageData(left, top, width, height);
 		const quality = params.quality?.value ?? params.quality ?? 'balanced';
-		// The three local modes deliberately trade the sample window size for
-		// speed. They remain deterministic median repair; no model or network
-		// inference is involved.
-		const sampleRadius = quality === 'speed' ? 1 : quality === 'quality' ? 3 : 2;
-		const channelValues = new Array((sampleRadius * 2 + 1) ** 2);
-		for (let y = 0; y < height; y++) {
-			for (let x = 0; x < width; x++) {
-				const targetX = left + x;
-				const targetY = top + y;
-				const distanceX = (targetX - centerX) / radiusX;
-				const distanceY = (targetY - centerY) / radiusY;
-				if (Math.sqrt(distanceX * distanceX + distanceY * distanceY) > 1) continue;
-				const targetIndex = (y * width + x) * 4;
-				for (let channel = 0; channel < 3; channel++) {
-					let count = 0;
-					for (let offsetY = -sampleRadius; offsetY <= sampleRadius; offsetY++) {
-						const sampleY = Math.max(0, Math.min(source.height - 1, targetY + offsetY));
-						for (let offsetX = -sampleRadius; offsetX <= sampleRadius; offsetX++) {
-							const sampleX = Math.max(0, Math.min(source.width - 1, targetX + offsetX));
-							channelValues[count++] = source.data[(sampleY * source.width + sampleX) * 4 + channel];
-						}
-					}
-					channelValues.sort((a, b) => a - b);
-					result.data[targetIndex + channel] = channelValues[Math.floor(count / 2)];
+		const outerScale = quality === 'speed' ? 1.25 : quality === 'quality' ? 1.7 : 1.45;
+		const source = this.tmpCanvasCtx.getImageData(sampleLeft, sampleTop, sampleWidth, sampleHeight);
+		const ring = [0, 0, 0];
+		let ringCount = 0;
+		for (let y = 0; y < sampleHeight; y += 1) {
+			for (let x = 0; x < sampleWidth; x += 1) {
+				const dist = this.brushDistance(sampleLeft + x, sampleTop + y, centerX, centerY, radiusX, radiusY);
+				if (dist <= 1 || dist > outerScale) continue;
+				const index = (y * sampleWidth + x) * 4;
+				ring[0] += source.data[index];
+				ring[1] += source.data[index + 1];
+				ring[2] += source.data[index + 2];
+				ringCount += 1;
+			}
+		}
+		if (ringCount === 0) return;
+		ring[0] /= ringCount;
+		ring[1] /= ringCount;
+		ring[2] /= ringCount;
+
+		const left = Math.max(sampleLeft, centerX - radiusX);
+		const top = Math.max(sampleTop, centerY - radiusY);
+		const width = Math.min(sampleRight, centerX + radiusX + 1) - left;
+		const height = Math.min(sampleBottom, centerY + radiusY + 1) - top;
+		if (width <= 0 || height <= 0) return;
+		const result = this.tmpCanvasCtx.getImageData(left, top, width, height);
+		for (let y = 0; y < height; y += 1) {
+			for (let x = 0; x < width; x += 1) {
+				const dist = this.brushDistance(left + x, top + y, centerX, centerY, radiusX, radiusY);
+				if (dist > 1) continue;
+				const blend = dist < 0.62 ? 1 : (1 - (dist - 0.62) / 0.38) ** 2;
+				const index = (y * width + x) * 4;
+				for (let channel = 0; channel < 3; channel += 1) {
+					result.data[index + channel] = result.data[index + channel] * (1 - blend) + ring[channel] * blend;
 				}
 			}
 		}
 		this.tmpCanvasCtx.putImageData(result, left, top);
+	}
+
+	/**
+	 * 椭圆笔刷内的归一化距离，圆心为 0，边缘为 1。
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {number} centerX
+	 * @param {number} centerY
+	 * @param {number} radiusX
+	 * @param {number} radiusY
+	 * @returns {number}
+	 */
+	brushDistance(x, y, centerX, centerY, radiusX, radiusY) {
+		const distanceX = (x - centerX) / radiusX;
+		const distanceY = (y - centerY) / radiusY;
+		return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 	}
 }
 
